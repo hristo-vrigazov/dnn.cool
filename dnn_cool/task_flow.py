@@ -204,6 +204,10 @@ class ClassificationTask(Task):
 
 class RegressionTask(Task):
 
+    def __init__(self, name: str, module_options, activation_func):
+        super().__init__(name, module_options)
+        self.activation_func = activation_func
+
     def do_call(self, *args, **kwargs):
         return RegressionResult(self, *args, **kwargs)
 
@@ -213,10 +217,10 @@ class RegressionTask(Task):
                          self.module_options.get('bias', True))
 
     def activation(self) -> nn.Module:
-        return nn.Sigmoid()
+        return self.activation_func
 
     def loss(self):
-        return SigmoidAndMSELoss()
+        return SigmoidAndMSELoss() if isinstance(self.activation_func, nn.Sigmoid) else nn.MSELoss()
 
 
 class NestedClassificationTask(Task):

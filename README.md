@@ -22,7 +22,7 @@ Task:
 - [ ] Concept of per-task activation/decoding.
 - [ ] Overall activation/decoding (topological sorting, etc.).
 - [ ] Automatic per-task or overall hyperparameter tuning.
-- [ ] Composite tasks (e.g YOLO)
+- [ ] Composite flows (e.g YOLO inside a classifier, etc.)
 - [ ] UI splitting helper
 - [ ] ONNX converter (if possible) - with static analysis.
 - [ ] Test training a model with synthetic dataset.
@@ -36,3 +36,5 @@ Task:
 - [ ] Allow custom entries in the FlowDict
 - [ ] Add to latex option (automatically generate loss functions in latex)
 - [ ] Think of way to handle properly the or operator.
+- [ ] Implement YOLO for example
+- [ ] Add possibility to add weights based on masks
