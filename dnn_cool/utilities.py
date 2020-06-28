@@ -15,7 +15,14 @@ class FlowDict:
         return self
 
     def __getattr__(self, attr):
-        return self.res[attr]
+        if not ('training' in self.res):
+            return self.res[attr]
+        if not self.res['training']:
+            return self.res[attr]
+        return {
+            'value': self.res[attr],
+            'gt': self.res['gt'],
+        }
 
     def __or__(self, result):
         for key in self.res:

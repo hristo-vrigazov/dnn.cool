@@ -129,7 +129,9 @@ def test_train_flow(carsbg):
         'common': torch.ones(4, 2560).float(),
         'lp': torch.ones(4, 2560).float(),
         'sliced': torch.tensor([True, False, True, False]).bool(),
-        'gt|is_car': torch.ones(4).bool()
+        'gt': {
+            'is_car': torch.ones(4).bool()
+        }
     }
 
     module = module.train()

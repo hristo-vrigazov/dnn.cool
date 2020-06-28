@@ -79,6 +79,36 @@ class NestedFC(nn.Module):
         return res
 
 
+def find_arg_with_gt(args, is_kwargs):
+    new_args = {} if is_kwargs else []
+    gt = None
+    for arg in args:
+        if is_kwargs:
+            arg = args[arg]
+        try:
+            gt = arg['gt']
+            new_args.append(arg['value'])
+        except:
+            new_args.append(arg)
+    return gt, new_args
+
+
+def select_gt(a_gt, k_gt):
+    if a_gt is None and k_gt is None:
+        return {}
+
+    if a_gt is None:
+        return k_gt
+
+    return a_gt
+
+
+def find_gt_and_process_args_when_training(*args, **kwargs):
+    a_gt, args = find_arg_with_gt(args, is_kwargs=False)
+    k_gt, kwargs = find_arg_with_gt(kwargs, is_kwargs=True)
+    return args, kwargs, select_gt(a_gt, k_gt)
+
+
 class FlowDictDecorator(nn.Module):
 
     def __init__(self, task):
@@ -89,12 +119,12 @@ class FlowDictDecorator(nn.Module):
         self.decoder = task.decoder()
 
     def forward(self, *args, **kwargs):
+        if self.training:
+            args, kwargs, gt = find_gt_and_process_args_when_training(*args, **kwargs)
+
         logits = self.module(*args, **kwargs)
         activated_logits = self.activation(logits) if self.activation is not None else logits
         decoded_logits = self.decoder(activated_logits) if self.decoder is not None else activated_logits
-
-        if self.training:
-            pass
 
         return FlowDict({
             self.key: FlowDict({
@@ -119,4 +149,5 @@ class TaskFlowModule(nn.Module):
             setattr(self, key, FlowDictDecorator(task))
 
     def forward(self, x):
+        x['training'] = self.training
         return self.flow(self, FlowDict(x), FlowDict({}))
