@@ -243,7 +243,7 @@ class TaskFlow(Task):
     def __getattr__(self, attr):
         return self.tasks[attr]
 
-    def symbolic_flow(self, x):
+    def trace_flow(self, x):
         out = NestedResult(self)
         return self.flow(x, out)
 

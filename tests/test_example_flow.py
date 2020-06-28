@@ -1,3 +1,5 @@
+import pytest
+
 from dnn_cool.task_flow import TaskFlow, NestedResult, BinaryClassificationTask, ClassificationTask, \
     BinaryHardcodedTask, LocalizationTask, NestedClassificationTask, RegressionTask
 
@@ -6,8 +8,8 @@ import torch
 from torch import nn
 
 
-def test_example_flow():
-
+@pytest.fixture(scope='module')
+def carsbg():
     class IsCarModule(nn.Module):
 
         def __init__(self, fc):
@@ -87,13 +89,17 @@ def test_example_flow():
             return out
 
     carsbg = CarsBgNetFlow()
+    return carsbg
+
+
+def test_example_flow(carsbg):
     task_input = NestedResult(carsbg)
     task_input.res['car'] = 2560
     task_input.res['common'] = 2560
     task_input.res['lp'] = 2560
     task_input.res['sliced'] = True
 
-    r = carsbg.symbolic_flow(task_input)
+    r = carsbg.trace_flow(task_input)
 
     print('Final res')
     print(r)
@@ -121,4 +127,3 @@ def test_example_flow():
 
     res = module(example_dict)
     print(res)
-
