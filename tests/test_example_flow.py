@@ -37,8 +37,16 @@ def test_example_flow():
                         'out_features': 26,
                         'bias': True
                     }),
-                    RegressionTask(name='year'),
-                    NestedClassificationTask(name='model', top_k=5)
+                    RegressionTask(name='year', module_options={
+                        'in_features': 2560,
+                        'out_features': 1,
+                        'bias': True
+                    }),
+                    NestedClassificationTask(name='model', top_k=5, module_options={
+                        'in_features': 2560,
+                        'out_features_nested': [9, 15, 2, 12],
+                        'bias': True
+                    })
                 ])
 
         def flow(self, x: NestedResult) -> NestedResult:
@@ -76,4 +84,8 @@ def test_example_flow():
     print(r.sliced.torch())
     print(r.car_localization.torch())
     print(r.license_plate_localization.torch())
+    print(r.year.torch())
+    print(r.model.torch())
+
+    print(r.torch())
 

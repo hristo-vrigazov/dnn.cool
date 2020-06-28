@@ -4,7 +4,7 @@ from typing import Iterable, Dict, Optional
 
 from torch import nn
 
-from dnn_cool.modules import SigmoidEval, SoftmaxEval, SigmoidAndMSELoss, Identity
+from dnn_cool.modules import SigmoidEval, SoftmaxEval, SigmoidAndMSELoss, Identity, NestedFC
 
 
 class Result:
@@ -18,12 +18,6 @@ class Result:
     def __or__(self, result):
         self.precondition = result
         return self
-
-    def activation(self) -> nn.Module:
-        raise NotImplementedError()
-
-    def loss(self):
-        raise NotImplementedError()
 
     def torch(self) -> nn.Module:
         """
@@ -46,35 +40,17 @@ class BooleanResult(Result):
     def __and__(self, other):
         return self
 
-    def activation(self) -> nn.Module:
-        return nn.Sigmoid()
-
-    def loss(self):
-        return nn.BCEWithLogitsLoss()
-
 
 class LocalizationResult(Result):
 
     def __init__(self, task, *args, **kwargs):
         super().__init__(task, *args, **kwargs)
 
-    def activation(self) -> nn.Module:
-        return nn.Sigmoid()
-
-    def loss(self):
-        return SigmoidAndMSELoss()
-
 
 class ClassificationResult(Result):
 
     def __init__(self, task, *args, **kwargs):
         super().__init__(task, *args, **kwargs)
-
-    def activation(self) -> nn.Module:
-        return nn.Softmax(dim=-1)
-
-    def loss(self):
-        return nn.CrossEntropyLoss()
 
 
 class NestedClassificationResult(Result):
@@ -83,6 +59,7 @@ class NestedClassificationResult(Result):
 
 
 class RegressionResult(Result):
+
     def __init__(self, task, *args, **kwargs):
         super().__init__(task, *args, **kwargs)
 
@@ -109,6 +86,12 @@ class NestedResult(Result):
             self.res[key] = value | result
         return self
 
+    def activation(self) -> nn.Module:
+        pass
+
+    def loss(self):
+        pass
+
 
 class Task:
 
@@ -124,6 +107,12 @@ class Task:
 
     def get_name(self):
         return self.name
+
+    def activation(self) -> Optional[nn.Module]:
+        raise NotImplementedError()
+
+    def loss(self):
+        raise NotImplementedError()
 
     def torch(self):
         """
@@ -142,6 +131,12 @@ class BinaryHardcodedTask(Task):
     def torch(self):
         return Identity()
 
+    def activation(self) -> Optional[nn.Module]:
+        return None
+
+    def loss(self):
+        return None
+
 
 class LocalizationTask(Task):
     def do_call(self, *args, **kwargs):
@@ -149,6 +144,12 @@ class LocalizationTask(Task):
 
     def torch(self) -> nn.Module:
         return nn.Linear(self.module_options['in_features'], 4, self.module_options.get('bias', True))
+
+    def activation(self) -> nn.Module:
+        return nn.Sigmoid()
+
+    def loss(self):
+        return SigmoidAndMSELoss()
 
 
 class BinaryClassificationTask(Task):
@@ -158,6 +159,12 @@ class BinaryClassificationTask(Task):
 
     def torch(self) -> nn.Module:
         return nn.Linear(self.module_options['in_features'], 1, self.module_options.get('bias', True))
+
+    def activation(self) -> nn.Module:
+        return nn.Sigmoid()
+
+    def loss(self):
+        return nn.BCEWithLogitsLoss()
 
 
 class ClassificationTask(Task):
@@ -170,21 +177,49 @@ class ClassificationTask(Task):
                          self.module_options['out_features'],
                          self.module_options.get('bias', True))
 
+    def activation(self) -> nn.Module:
+        return nn.Softmax(dim=-1)
+
+    def loss(self):
+        return nn.CrossEntropyLoss()
+
 
 class RegressionTask(Task):
 
     def do_call(self, *args, **kwargs):
         return RegressionResult(self, *args, **kwargs)
 
+    def torch(self):
+        return nn.Linear(self.module_options['in_features'],
+                         self.module_options.get('out_features', 1),
+                         self.module_options.get('bias', True))
+
+    def activation(self) -> nn.Module:
+        return nn.Sigmoid()
+
+    def loss(self):
+        return SigmoidAndMSELoss()
+
 
 class NestedClassificationTask(Task):
 
-    def __init__(self, name, top_k):
-        super().__init__(name)
+    def __init__(self, name, top_k, module_options):
+        super().__init__(name, module_options)
         self.top_k = top_k
 
     def do_call(self, *args, **kwargs):
         return NestedClassificationResult(self, *args, **kwargs)
+
+    def activation(self) -> Optional[nn.Module]:
+        raise NotImplementedError()
+
+    def loss(self):
+        raise NotImplementedError()
+
+    def torch(self):
+        return NestedFC(self.module_options['in_features'],
+                        self.module_options['out_features_nested'],
+                        self.module_options['bias'])
 
 
 class TaskFlow(Task):
