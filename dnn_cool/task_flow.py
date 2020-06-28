@@ -192,6 +192,12 @@ class ClassificationTask(Task):
     def activation(self) -> nn.Module:
         return nn.Softmax(dim=-1)
 
+    def decoder(self):
+        return self.decode
+
+    def decode(self, x):
+        return (-x).argsort(dim=1)
+
     def loss(self):
         return nn.CrossEntropyLoss()
 

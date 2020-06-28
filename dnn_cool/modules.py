@@ -69,7 +69,7 @@ class NestedFC(nn.Module):
         number of classes for the child FC.
         """
         n = len(features)
-        parent_indices = parent_flow_dict.activated.argsort(dim=1)[:, :self.top_k]
+        parent_indices = parent_flow_dict.decoded[:, :self.top_k]
         res = []
         for i in range(n):
             res_for_parent = []
