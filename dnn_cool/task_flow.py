@@ -1,6 +1,6 @@
 import os
 
-from typing import Iterable
+from typing import Iterable, Dict
 
 from torch import nn
 
@@ -19,12 +19,21 @@ class Result:
         self.precondition = result
         return self
 
-    def __repr__(self):
-        args = map(str, self.args)
-        kwargs = map(str, self.kwargs)
-        arguments = ', '.join(args) + ', '.join(kwargs)
-        precondition = f' | {self.precondition}' if self.precondition is not None else ''
-        return f'{self.task.get_name()}({arguments}){precondition}'
+    def activation(self) -> nn.Module:
+        raise NotImplementedError()
+
+    def loss(self):
+        raise NotImplementedError()
+
+    def torch(self) -> nn.Module:
+        raise NotImplementedError()
+
+    # def __repr__(self):
+    #     args = map(str, self.args)
+    #     kwargs = map(str, self.kwargs)
+    #     arguments = ', '.join(args) + ', '.join(kwargs)
+    #     precondition = f' | {self.precondition}' if self.precondition is not None else ''
+    #     return f'{self.task.get_name()}({arguments}){precondition}'
 
 
 class BooleanResult(Result):
@@ -38,6 +47,15 @@ class BooleanResult(Result):
     def __and__(self, other):
         return self
 
+    def activation(self) -> nn.Module:
+        return nn.Sigmoid()
+
+    def loss(self):
+        return nn.BCEWithLogitsLoss()
+
+    def torch(self) -> nn.Module:
+        return nn.Linear(self.kwargs['in_features'], 1, self.kwargs.get('bias', True))
+
 
 class LocalizationResult(Result):
     def __init__(self, task, *args, **kwargs):
@@ -45,8 +63,15 @@ class LocalizationResult(Result):
 
 
 class ClassificationResult(Result):
+
     def __init__(self, task, *args, **kwargs):
         super().__init__(task, *args, **kwargs)
+
+    def activation(self) -> nn.Module:
+        return nn.Softmax(dim=-1)
+
+    def loss(self):
+        return nn.CrossEntropyLoss()
 
 
 class NestedClassificationResult(Result):
@@ -81,12 +106,12 @@ class NestedResult(Result):
             self.res[key] = value | result
         return self
 
-    def __repr__(self):
-        repr = f'{{{os.linesep}'
-        for key, value in self.res.items():
-            repr += f'\t{key}: {value}{os.linesep}'
-        repr += f'{os.linesep}}}'
-        return repr
+    # def __repr__(self):
+    #     repr = f'{{{os.linesep}'
+    #     for key, value in self.res.items():
+    #         repr += f'\t{key}: {value}{os.linesep}'
+    #     repr += f'{os.linesep}}}'
+    #     return repr
 
 
 class Task:
@@ -100,12 +125,6 @@ class Task:
     def do_call(self, *args, **kwargs):
         raise NotImplementedError()
 
-    def activation(self) -> nn.Module:
-        raise NotImplementedError()
-
-    def loss(self):
-        raise NotImplementedError()
-
     def get_name(self):
         return self.name
 
@@ -114,34 +133,21 @@ class BinaryHardcodedTask(Task):
     def do_call(self, *args, **kwargs) -> BooleanResult:
         return BooleanResult(self, *args, **kwargs)
 
-    def activation(self) -> nn.Module:
-        pass
-
-    def loss(self):
-        pass
-
 
 class LocalizationTask(Task):
     def do_call(self, *args, **kwargs):
         return LocalizationResult(self, *args, **kwargs)
 
-    def activation(self) -> nn.Module:
-        pass
-
-    def loss(self):
-        pass
-
 
 class BinaryClassificationTask(Task):
 
+    def __init__(self, name: str, layer_options: Dict):
+        super().__init__(name)
+        self.layer_options = layer_options
+
     def do_call(self, *args, **kwargs) -> BooleanResult:
+        kwargs.update(self.layer_options)
         return BooleanResult(self, *args, **kwargs)
-
-    def activation(self) -> nn.Module:
-        return SigmoidEval()
-
-    def loss(self):
-        return nn.BCEWithLogitsLoss()
 
 
 class ClassificationTask(Task):
@@ -149,23 +155,11 @@ class ClassificationTask(Task):
     def do_call(self, *args, **kwargs):
         return ClassificationResult(self, *args, **kwargs)
 
-    def activation(self) -> nn.Module:
-        return SoftmaxEval()
-
-    def loss(self):
-        return nn.CrossEntropyLoss()
-
 
 class RegressionTask(Task):
 
     def do_call(self, *args, **kwargs):
         return RegressionResult(self, *args, **kwargs)
-
-    def activation(self) -> nn.Module:
-        pass
-
-    def loss(self):
-        pass
 
 
 class NestedClassificationTask(Task):
@@ -176,12 +170,6 @@ class NestedClassificationTask(Task):
 
     def do_call(self, *args, **kwargs):
         return NestedClassificationResult(self, *args, **kwargs)
-
-    def activation(self) -> nn.Module:
-        pass
-
-    def loss(self):
-        pass
 
 
 class TaskFlow(Task):

@@ -13,8 +13,14 @@ def test_example_flow():
                     BinaryHardcodedTask(name='sliced'),
                     LocalizationTask(name='car_localization'),
                     LocalizationTask(name='license_plate_localization'),
-                    BinaryClassificationTask(name='is_car'),
-                    BinaryClassificationTask(name='has_lp'),
+                    BinaryClassificationTask(name='is_car', layer_options={
+                        'in_features': 2560,
+                        'bias': True
+                    }),
+                    BinaryClassificationTask(name='has_lp', layer_options={
+                        'in_features': 2560,
+                        'bias': True
+                    }),
                     ClassificationTask(name='brand'),
                     ClassificationTask(name='color'),
                     ClassificationTask(name='year'),
@@ -41,9 +47,9 @@ def test_example_flow():
 
     carsbg = CarsBgNetFlow()
     task_input = NestedResult(carsbg)
-    task_input.res['car'] = 'car'
-    task_input.res['common'] = 'common'
-    task_input.res['lp'] = 'lp'
+    task_input.res['car'] = 2560
+    task_input.res['common'] = 2560
+    task_input.res['lp'] = 2560
     r = carsbg.flow(task_input)
 
     print('Final res')
