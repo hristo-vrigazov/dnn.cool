@@ -1,5 +1,7 @@
 from torch import nn
 
+from dnn_cool.utilities import FlowDict
+
 
 class SigmoidEval(nn.Module):
 
@@ -72,7 +74,11 @@ class TaskFlowModule(nn.Module):
 
     def __init__(self, task_flow):
         super().__init__()
-        self.task_flow = task_flow
+        self._task_flow = task_flow
+        self.flow = task_flow.flow
+
+        for key, value in task_flow.tasks.items():
+            setattr(self, key, value.torch())
 
     def forward(self, x):
-        return x
+        return self.flow(FlowDict(x), FlowDict({}))

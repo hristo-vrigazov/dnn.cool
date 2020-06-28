@@ -49,8 +49,7 @@ def test_example_flow():
                     })
                 ])
 
-        def flow(self, x: NestedResult) -> NestedResult:
-            out = NestedResult(self)
+        def flow(self, x, out):
             out += self.sliced(x)
             out += self.car_localization(x.car) | (~out.sliced)
 
@@ -72,7 +71,7 @@ def test_example_flow():
     task_input.res['car'] = 2560
     task_input.res['common'] = 2560
     task_input.res['lp'] = 2560
-    r = carsbg.flow(task_input)
+    r = carsbg.symbolic_flow(task_input)
 
     print('Final res')
     print(r)

@@ -230,17 +230,15 @@ class TaskFlow(Task):
         for task in tasks:
             self.tasks[task.get_name()] = task
 
-    def __call__(self, x: NestedResult) -> NestedResult:
-        return self.flow(x)
-
     def __getattr__(self, attr):
         return self.tasks[attr]
 
-    def flow(self, x: NestedResult) -> NestedResult:
-        raise NotImplementedError()
+    def symbolic_flow(self, x):
+        out = NestedResult(self)
+        return self.flow(x, out)
 
     def do_call(self, *args, **kwargs):
-        pass
+        return NestedResult(task=self)
 
     def activation(self) -> Optional[nn.Module]:
         pass
@@ -250,3 +248,6 @@ class TaskFlow(Task):
 
     def torch(self):
         return TaskFlowModule(self)
+
+    def flow(self, x, out):
+        raise NotImplementedError()
