@@ -169,6 +169,12 @@ class BinaryClassificationTask(Task):
     def activation(self) -> nn.Module:
         return nn.Sigmoid()
 
+    def decoder(self):
+        return self.decode
+
+    def decode(self, x):
+        return x > 0.5
+
     def loss(self):
         return nn.BCEWithLogitsLoss()
 
