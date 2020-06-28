@@ -121,10 +121,15 @@ class FlowDictDecorator(nn.Module):
     def forward(self, *args, **kwargs):
         if self.training:
             args, kwargs, gt = find_gt_and_process_args_when_training(*args, **kwargs)
+            decoded_logits = gt.get(self.key, None)
+        else:
+            decoded_logits = None
 
         logits = self.module(*args, **kwargs)
         activated_logits = self.activation(logits) if self.activation is not None else logits
-        decoded_logits = self.decoder(activated_logits) if self.decoder is not None else activated_logits
+
+        if decoded_logits is None:
+            decoded_logits = self.decoder(activated_logits) if self.decoder is not None else activated_logits
 
         return FlowDict({
             self.key: FlowDict({
