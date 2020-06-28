@@ -92,7 +92,7 @@ def carsbg():
     return carsbg
 
 
-def test_example_flow(carsbg):
+def test_trace_flow(carsbg):
     task_input = NestedResult(carsbg)
     task_input.res['car'] = 2560
     task_input.res['common'] = 2560
@@ -104,26 +104,35 @@ def test_example_flow(carsbg):
     print('Final res')
     print(r)
 
-    print(r.is_car.torch())
-    print(r.has_license_plate.torch())
-    print(r.brand.torch())
-    print(r.color.torch())
-    print(r.sliced.torch())
-    print(r.car_localization.torch())
-    print(r.license_plate_localization.torch())
-    print(r.year.torch())
-    print(r.model.torch())
 
-    print(r.torch())
-
-    module = r.torch()
+def test_eval_flow(carsbg):
+    module = carsbg.torch()
 
     example_dict = {
         'car': torch.ones(4, 2560).float(),
         'common': torch.ones(4, 2560).float(),
         'lp': torch.ones(4, 2560).float(),
-        'sliced': torch.ones(4).bool()
+        'sliced': torch.tensor([True, False, True, False]).bool()
     }
 
+    module = module.eval()
     res = module(example_dict)
+    print(module)
+    print(res)
+
+
+def test_train_flow(carsbg):
+    module = carsbg.torch()
+
+    example_dict = {
+        'car': torch.ones(4, 2560).float(),
+        'common': torch.ones(4, 2560).float(),
+        'lp': torch.ones(4, 2560).float(),
+        'sliced': torch.tensor([True, False, True, False]).bool(),
+        'gt|is_car': torch.ones(4).bool()
+    }
+
+    module = module.train()
+    res = module(example_dict)
+    print(module)
     print(res)
