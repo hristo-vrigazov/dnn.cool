@@ -22,7 +22,7 @@ def test_example_flow():
                 ])
 
         def flow(self, x: NestedResult) -> NestedResult:
-            out = NestedResult()
+            out = NestedResult(self)
             out += self.sliced(x)
             out += self.car_localization(x.car) | (~out.sliced)
 
@@ -40,10 +40,11 @@ def test_example_flow():
             return out
 
     carsbg = CarsBgNetFlow()
-    task_input = NestedResult()
+    task_input = NestedResult(carsbg)
     task_input.res['car'] = 'car'
     task_input.res['common'] = 'common'
     task_input.res['lp'] = 'lp'
     r = carsbg.flow(task_input)
 
+    print('Final res')
     print(r)

@@ -1,3 +1,5 @@
+import os
+
 from typing import Iterable
 
 from torch import nn
@@ -7,55 +9,64 @@ from dnn_cool.modules import SigmoidEval, SoftmaxEval
 
 class Result:
 
-    def __init__(self):
+    def __init__(self, task, *args, **kwargs):
         self.precondition = None
+        self.task = task
+        self.args = args
+        self.kwargs = kwargs
 
     def __or__(self, result):
         self.precondition = result
         return self
 
+    def __repr__(self):
+        args = map(str, self.args)
+        kwargs = map(str, self.kwargs)
+        arguments = ', '.join(args) + ', '.join(kwargs)
+        precondition = f' | {self.precondition}' if self.precondition is not None else ''
+        return f'{self.task.get_name()}({arguments}){precondition}'
+
 
 class BooleanResult(Result):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__()
+    def __init__(self, task, *args, **kwargs):
+        super().__init__(task, *args, **kwargs)
 
     def __invert__(self):
-        print('Invert!')
         return self
 
     def __and__(self, other):
-        print('And')
         return self
 
 
 class LocalizationResult(Result):
-    def __init__(self, *args, **kwargs):
-        super().__init__()
+    def __init__(self, task, *args, **kwargs):
+        super().__init__(task, *args, **kwargs)
 
 
 class ClassificationResult(Result):
-    def __init__(self, *args, **kwargs):
-        super().__init__()
+    def __init__(self, task, *args, **kwargs):
+        super().__init__(task, *args, **kwargs)
 
 
 class NestedClassificationResult(Result):
-    def __init__(self, *args, **kwargs):
-        super().__init__()
+    def __init__(self, task, *args, **kwargs):
+        super().__init__(task, *args, **kwargs)
 
 
 class RegressionResult(Result):
-    def __init__(self, *args, **kwargs):
-        super().__init__()
+    def __init__(self, task, *args, **kwargs):
+        super().__init__(task, *args, **kwargs)
 
 
 class NestedResult(Result):
 
-    def __init__(self, key=None, value=None):
-        super().__init__()
+    def __init__(self, task, *args, **kwargs):
+        super().__init__(task, *args, **kwargs)
         self.res = {}
+        key = kwargs.get('key', None)
         if key is not None:
-            self.res[key] = value
+            self.res[key] = kwargs.get('value', None)
 
     def __iadd__(self, other):
         self.res.update(other.res)
@@ -70,6 +81,13 @@ class NestedResult(Result):
             self.res[key] = value | result
         return self
 
+    def __repr__(self):
+        repr = f'{{{os.linesep}'
+        for key, value in self.res.items():
+            repr += f'\t{key}: {value}{os.linesep}'
+        repr += f'{os.linesep}}}'
+        return repr
+
 
 class Task:
 
@@ -77,7 +95,7 @@ class Task:
         self.name = name
 
     def __call__(self, *args, **kwargs) -> Result:
-        return NestedResult(key=self.name, value=self.do_call(*args, **kwargs))
+        return NestedResult(task=self, key=self.name, value=self.do_call(*args, **kwargs))
 
     def do_call(self, *args, **kwargs):
         raise NotImplementedError()
@@ -94,7 +112,7 @@ class Task:
 
 class BinaryHardcodedTask(Task):
     def do_call(self, *args, **kwargs) -> BooleanResult:
-        return BooleanResult(self, args, kwargs)
+        return BooleanResult(self, *args, **kwargs)
 
     def activation(self) -> nn.Module:
         pass
@@ -105,7 +123,7 @@ class BinaryHardcodedTask(Task):
 
 class LocalizationTask(Task):
     def do_call(self, *args, **kwargs):
-        return LocalizationResult(self, args, kwargs)
+        return LocalizationResult(self, *args, **kwargs)
 
     def activation(self) -> nn.Module:
         pass
@@ -117,7 +135,7 @@ class LocalizationTask(Task):
 class BinaryClassificationTask(Task):
 
     def do_call(self, *args, **kwargs) -> BooleanResult:
-        return BooleanResult(self, args, kwargs)
+        return BooleanResult(self, *args, **kwargs)
 
     def activation(self) -> nn.Module:
         return SigmoidEval()
@@ -129,7 +147,7 @@ class BinaryClassificationTask(Task):
 class ClassificationTask(Task):
 
     def do_call(self, *args, **kwargs):
-        return ClassificationResult(self, args, kwargs)
+        return ClassificationResult(self, *args, **kwargs)
 
     def activation(self) -> nn.Module:
         return SoftmaxEval()
@@ -141,7 +159,7 @@ class ClassificationTask(Task):
 class RegressionTask(Task):
 
     def do_call(self, *args, **kwargs):
-        return RegressionResult(self, args, kwargs)
+        return RegressionResult(self, *args, **kwargs)
 
     def activation(self) -> nn.Module:
         pass
@@ -157,7 +175,7 @@ class NestedClassificationTask(Task):
         self.top_k = top_k
 
     def do_call(self, *args, **kwargs):
-        return NestedClassificationResult(self, args, kwargs)
+        return NestedClassificationResult(self, *args, **kwargs)
 
     def activation(self) -> nn.Module:
         pass
