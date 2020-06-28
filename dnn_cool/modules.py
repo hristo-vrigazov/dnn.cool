@@ -66,3 +66,13 @@ class NestedFC(nn.Module):
         number of classes for the child FC.
         """
         raise NotImplementedError()
+
+
+class TaskFlowModule(nn.Module):
+
+    def __init__(self, task_flow):
+        super().__init__()
+        self.task_flow = task_flow
+
+    def forward(self, x):
+        return x

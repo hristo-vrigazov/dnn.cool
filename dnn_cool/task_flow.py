@@ -4,7 +4,7 @@ from typing import Iterable, Dict, Optional
 
 from torch import nn
 
-from dnn_cool.modules import SigmoidEval, SoftmaxEval, SigmoidAndMSELoss, Identity, NestedFC
+from dnn_cool.modules import SigmoidEval, SoftmaxEval, SigmoidAndMSELoss, Identity, NestedFC, TaskFlowModule
 
 
 class Result:
@@ -230,11 +230,23 @@ class TaskFlow(Task):
         for task in tasks:
             self.tasks[task.get_name()] = task
 
-    def flow(self, x: NestedResult) -> NestedResult:
-        raise NotImplementedError()
-
     def __call__(self, x: NestedResult) -> NestedResult:
         return self.flow(x)
 
     def __getattr__(self, attr):
         return self.tasks[attr]
+
+    def flow(self, x: NestedResult) -> NestedResult:
+        raise NotImplementedError()
+
+    def do_call(self, *args, **kwargs):
+        pass
+
+    def activation(self) -> Optional[nn.Module]:
+        pass
+
+    def loss(self):
+        pass
+
+    def torch(self):
+        return TaskFlowModule(self)
