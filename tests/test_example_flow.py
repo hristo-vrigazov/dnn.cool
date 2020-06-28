@@ -3,8 +3,26 @@ from dnn_cool.task_flow import TaskFlow, NestedResult, BinaryClassificationTask,
 
 import torch
 
+from torch import nn
+
 
 def test_example_flow():
+
+    class IsCarModule(nn.Module):
+
+        def __init__(self, fc):
+            super().__init__()
+            self.fc = fc
+
+        def forward(self, features, sliced):
+            res = self.fc(features)
+            res[sliced.decoded] = 1e3
+            return res
+
+    class IsCarTask(BinaryClassificationTask):
+
+        def torch(self) -> nn.Module:
+            return IsCarModule(super().torch())
 
     class CarsBgNetFlow(TaskFlow):
 
@@ -21,7 +39,7 @@ def test_example_flow():
                         'in_features': 2560,
                         'bias': True
                     }),
-                    BinaryClassificationTask(name='is_car', module_options={
+                    IsCarTask(name='is_car', module_options={
                         'in_features': 2560,
                         'bias': True
                     }),
@@ -55,7 +73,7 @@ def test_example_flow():
             out += self.sliced(x.sliced)
             out += self.car_localization(x.car) | (~out.sliced)
 
-            out += self.is_car(x.car) | (~out.sliced)
+            out += self.is_car(x.car, out.sliced)
 
             out += self.brand(x.common) | out.is_car
             out += self.color(x.common) | out.is_car

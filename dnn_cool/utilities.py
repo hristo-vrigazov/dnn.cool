@@ -24,5 +24,11 @@ class FlowDict:
 
     def __invert__(self):
         for key, value in self.res.items():
-            self.res[key] = ~value
+            self.preconditions[key] = ~value
         return self
+
+    def __and__(self, other):
+        res = {
+            'decoded': self.decoded & other.decoded
+        }
+        return FlowDict(res)
