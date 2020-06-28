@@ -70,6 +70,19 @@ class NestedFC(nn.Module):
         raise NotImplementedError()
 
 
+class FlowDictDecorator(nn.Module):
+
+    def __init__(self, task):
+        super().__init__()
+        self.key = task.get_name()
+        self.module = task.torch()
+
+    def forward(self, *args, **kwargs):
+        return FlowDict({
+            self.key: self.module(*args, **kwargs)
+        })
+
+
 class TaskFlowModule(nn.Module):
 
     def __init__(self, task_flow):
@@ -80,8 +93,8 @@ class TaskFlowModule(nn.Module):
         # it with this class
         self.flow = task_flow.__class__.flow
 
-        for key, value in task_flow.tasks.items():
-            setattr(self, key, value.torch())
+        for key, task in task_flow.tasks.items():
+            setattr(self, key, FlowDictDecorator(task))
 
     def forward(self, x):
         return self.flow(self, FlowDict(x), FlowDict({}))

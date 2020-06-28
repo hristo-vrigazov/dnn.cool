@@ -52,10 +52,10 @@ def test_example_flow():
                 ])
 
         def flow(self, x, out):
-            out += self.sliced(x)
+            out += self.sliced(x.sliced)
             out += self.car_localization(x.car) | (~out.sliced)
 
-            out += self.is_car(x.car, out.sliced)
+            out += self.is_car(x.car) | (~out.sliced)
 
             out += self.brand(x.common) | out.is_car
             out += self.color(x.common) | out.is_car
@@ -73,6 +73,8 @@ def test_example_flow():
     task_input.res['car'] = 2560
     task_input.res['common'] = 2560
     task_input.res['lp'] = 2560
+    task_input.res['sliced'] = True
+
     r = carsbg.symbolic_flow(task_input)
 
     print('Final res')
@@ -93,9 +95,10 @@ def test_example_flow():
     module = r.torch()
 
     example_dict = {
-        'car': torch.ones(2560).float(),
-        'common': torch.ones(2560).float(),
-        'lp': torch.ones(2560).float()
+        'car': torch.ones(4, 2560).float(),
+        'common': torch.ones(4, 2560).float(),
+        'lp': torch.ones(4, 2560).float(),
+        'sliced': torch.ones(4).bool()
     }
 
     res = module(example_dict)
