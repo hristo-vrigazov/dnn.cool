@@ -1,6 +1,8 @@
 from dnn_cool.task_flow import TaskFlow, NestedResult, BinaryClassificationTask, ClassificationTask, \
     BinaryHardcodedTask, LocalizationTask, NestedClassificationTask, RegressionTask
 
+import torch
+
 
 def test_example_flow():
 
@@ -87,4 +89,15 @@ def test_example_flow():
     print(r.model.torch())
 
     print(r.torch())
+
+    module = r.torch()
+
+    example_dict = {
+        'car': torch.ones(2560).float(),
+        'common': torch.ones(2560).float(),
+        'lp': torch.ones(2560).float()
+    }
+
+    res = module(example_dict)
+    print(res)
 

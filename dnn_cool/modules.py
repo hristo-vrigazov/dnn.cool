@@ -75,10 +75,13 @@ class TaskFlowModule(nn.Module):
     def __init__(self, task_flow):
         super().__init__()
         self._task_flow = task_flow
-        self.flow = task_flow.flow
+        # Save a reference to the flow function of the original class
+        # We will then call it by replacing the self, this way effectively running
+        # it with this class
+        self.flow = task_flow.__class__.flow
 
         for key, value in task_flow.tasks.items():
             setattr(self, key, value.torch())
 
     def forward(self, x):
-        return self.flow(FlowDict(x), FlowDict({}))
+        return self.flow(self, FlowDict(x), FlowDict({}))
