@@ -24,3 +24,22 @@ class SoftmaxEval(nn.Module):
             return x
         return self.softmax(x)
 
+
+class SigmoidAndMSELoss(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+        self.sigmoid = nn.Sigmoid()
+        self.mse = nn.MSELoss()
+
+    def forward(self, output, target):
+        activated_output = self.sigmoid(output)
+        return self.mse(activated_output, target)
+
+
+class Identity(nn.Module):
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+
+    def forward(self, x):
+        return x

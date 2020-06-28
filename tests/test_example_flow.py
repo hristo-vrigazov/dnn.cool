@@ -1,5 +1,5 @@
 from dnn_cool.task_flow import TaskFlow, NestedResult, BinaryClassificationTask, ClassificationTask, \
-    BinaryHardcodedTask, LocalizationTask, NestedClassificationTask
+    BinaryHardcodedTask, LocalizationTask, NestedClassificationTask, RegressionTask
 
 
 def test_example_flow():
@@ -11,19 +11,33 @@ def test_example_flow():
                 name='carsbg_flow',
                 tasks=[
                     BinaryHardcodedTask(name='sliced'),
-                    LocalizationTask(name='car_localization'),
-                    LocalizationTask(name='license_plate_localization'),
-                    BinaryClassificationTask(name='is_car', layer_options={
+                    LocalizationTask(name='car_localization', module_options={
                         'in_features': 2560,
                         'bias': True
                     }),
-                    BinaryClassificationTask(name='has_lp', layer_options={
+                    LocalizationTask(name='license_plate_localization', module_options={
                         'in_features': 2560,
                         'bias': True
                     }),
-                    ClassificationTask(name='brand'),
-                    ClassificationTask(name='color'),
-                    ClassificationTask(name='year'),
+                    BinaryClassificationTask(name='is_car', module_options={
+                        'in_features': 2560,
+                        'bias': True
+                    }),
+                    BinaryClassificationTask(name='has_license_plate', module_options={
+                        'in_features': 2560,
+                        'bias': True
+                    }),
+                    ClassificationTask(name='brand', module_options={
+                        'in_features': 2560,
+                        'out_features': 80,
+                        'bias': True
+                    }),
+                    ClassificationTask(name='color', module_options={
+                        'in_features': 2560,
+                        'out_features': 26,
+                        'bias': True
+                    }),
+                    RegressionTask(name='year'),
                     NestedClassificationTask(name='model', top_k=5)
                 ])
 
@@ -40,8 +54,8 @@ def test_example_flow():
 
             out += self.model(x.common, out.brand) | out.is_car
 
-            out += self.has_lp(x.lp) | out.is_car
-            out += self.license_plate_localization(x.lp) | (out.has_lp & out.is_car)
+            out += self.has_license_plate(x.lp) | out.is_car
+            out += self.license_plate_localization(x.lp) | (out.has_license_plate & out.is_car)
 
             return out
 
@@ -54,3 +68,12 @@ def test_example_flow():
 
     print('Final res')
     print(r)
+
+    print(r.is_car.torch())
+    print(r.has_license_plate.torch())
+    print(r.brand.torch())
+    print(r.color.torch())
+    print(r.sliced.torch())
+    print(r.car_localization.torch())
+    print(r.license_plate_localization.torch())
+
