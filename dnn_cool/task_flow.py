@@ -228,7 +228,8 @@ class NestedClassificationTask(Task):
     def torch(self):
         return NestedFC(self.module_options['in_features'],
                         self.module_options['out_features_nested'],
-                        self.module_options['bias'])
+                        self.module_options['bias'],
+                        self.top_k)
 
 
 class TaskFlow(Task):

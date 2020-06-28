@@ -31,7 +31,7 @@ def test_example_flow():
                     }),
                     ClassificationTask(name='brand', module_options={
                         'in_features': 2560,
-                        'out_features': 80,
+                        'out_features': 4,
                         'bias': True
                     }),
                     ClassificationTask(name='color', module_options={
