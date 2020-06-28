@@ -109,7 +109,13 @@ class Task:
         return self.name
 
     def activation(self) -> Optional[nn.Module]:
-        raise NotImplementedError()
+        pass
+
+    def decoder(self):
+        pass
+
+    def encoder(self):
+        pass
 
     def loss(self):
         raise NotImplementedError()
@@ -210,11 +216,8 @@ class NestedClassificationTask(Task):
     def do_call(self, *args, **kwargs):
         return NestedClassificationResult(self, *args, **kwargs)
 
-    def activation(self) -> Optional[nn.Module]:
-        raise NotImplementedError()
-
     def loss(self):
-        raise NotImplementedError()
+        pass
 
     def torch(self):
         return NestedFC(self.module_options['in_features'],

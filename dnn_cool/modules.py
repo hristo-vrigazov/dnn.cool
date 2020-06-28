@@ -76,10 +76,20 @@ class FlowDictDecorator(nn.Module):
         super().__init__()
         self.key = task.get_name()
         self.module = task.torch()
+        self.activation = task.activation()
+        self.decoder = task.decoder()
 
     def forward(self, *args, **kwargs):
+        logits = self.module(*args, **kwargs)
+        activated_logits = self.activation(logits) if self.activation is not None else logits
+        decoded_logits = self.decoder(activated_logits) if self.decoder is not None else activated_logits
+
         return FlowDict({
-            self.key: self.module(*args, **kwargs)
+            self.key: FlowDict({
+                'logits': logits,
+                'activated': activated_logits,
+                'decoded': decoded_logits
+            })
         })
 
 

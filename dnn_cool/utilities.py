@@ -21,3 +21,8 @@ class FlowDict:
             mask_dict[f'precondition|{key}'] = result
         self.res.update(mask_dict)
         return self
+
+    def __invert__(self):
+        for key, value in self.res.items():
+            self.res[key] = ~value
+        return self
