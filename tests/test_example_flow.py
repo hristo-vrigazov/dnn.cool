@@ -17,6 +17,7 @@ def test_example_flow():
                     BinaryClassificationTask(name='has_lp'),
                     ClassificationTask(name='brand'),
                     ClassificationTask(name='color'),
+                    ClassificationTask(name='year'),
                     NestedClassificationTask(name='model', top_k=5)
                 ])
 
@@ -31,9 +32,9 @@ def test_example_flow():
             out += self.color(x.common) | out.is_car
             out += self.year(x.common) | out.is_car
 
-            out += self.model(x.common, out.brand[:5]) | out.is_car
+            out += self.model(x.common, out.brand) | out.is_car
 
-            out += self.has_lp(x.lp)
+            out += self.has_lp(x.lp) | out.is_car
             out += self.license_plate_localization(x.lp) | (out.has_lp & out.is_car)
 
             return out

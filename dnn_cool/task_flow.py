@@ -1,9 +1,8 @@
-from typing import Dict, List, Iterable, Optional, Tuple, Any
+from typing import Iterable
+
 from torch import nn
 
 from dnn_cool.modules import SigmoidEval, SoftmaxEval
-
-from dataclasses import dataclass
 
 
 class Result:
@@ -25,8 +24,27 @@ class BooleanResult(Result):
         print('Invert!')
         return self
 
+    def __and__(self, other):
+        print('And')
+        return self
+
 
 class LocalizationResult(Result):
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+
+
+class ClassificationResult(Result):
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+
+
+class NestedClassificationResult(Result):
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+
+
+class RegressionResult(Result):
     def __init__(self, *args, **kwargs):
         super().__init__()
 
@@ -110,6 +128,9 @@ class BinaryClassificationTask(Task):
 
 class ClassificationTask(Task):
 
+    def do_call(self, *args, **kwargs):
+        return ClassificationResult(self, args, kwargs)
+
     def activation(self) -> nn.Module:
         return SoftmaxEval()
 
@@ -117,11 +138,32 @@ class ClassificationTask(Task):
         return nn.CrossEntropyLoss()
 
 
+class RegressionTask(Task):
+
+    def do_call(self, *args, **kwargs):
+        return RegressionResult(self, args, kwargs)
+
+    def activation(self) -> nn.Module:
+        pass
+
+    def loss(self):
+        pass
+
+
 class NestedClassificationTask(Task):
 
     def __init__(self, name, top_k):
         super().__init__(name)
         self.top_k = top_k
+
+    def do_call(self, *args, **kwargs):
+        return NestedClassificationResult(self, args, kwargs)
+
+    def activation(self) -> nn.Module:
+        pass
+
+    def loss(self):
+        pass
 
 
 class TaskFlow(Task):
