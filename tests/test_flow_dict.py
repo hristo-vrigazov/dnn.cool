@@ -45,9 +45,10 @@ def test_chaining_preconditions_work_correctly():
 
     first_precondition = torch.tensor([False, True, True, True, False]).bool()
     second_precondition = torch.tensor([True, True, False, True, False]).bool()
-    expected = first_precondition & second_precondition
+    third_precondition = torch.tensor([True, True, True, False, True]).bool()
+    expected = first_precondition & second_precondition & third_precondition
 
-    for precondition in [first_precondition, second_precondition]:
+    for precondition in [first_precondition, second_precondition, third_precondition]:
         precondition_mask = FlowDict({
             'decoded': precondition
         })
