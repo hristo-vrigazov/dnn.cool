@@ -9,11 +9,6 @@ class FlowDict:
         self.res = res
         self.preconditions = {}
 
-    def __iadd__(self, other):
-        self.res.update(other.res)
-        self.preconditions.update(other.preconditions)
-        return self
-
     def __getattr__(self, attr):
         if not ('training' in self.res):
             return self.res[attr]
@@ -71,3 +66,32 @@ class FlowDict:
             'decoded': self.decoded | other.decoded
         }
         return self.__shallow_copy_keys(res)
+
+    def __xor__(self, other):
+        res = {
+            'decoded': self.decoded ^ other.decoded
+        }
+        return self.__shallow_copy_keys(res)
+
+    def __sub__(self, other):
+        res = FlowDict({})
+        for key, value in self.res.items():
+            if key not in other.res:
+                res.res[key] = value
+        for key, value in self.preconditions.items():
+            if key not in other.preconditions:
+                res.preconditions[key] = value
+        return res
+
+    def __add__(self, other):
+        res = FlowDict({})
+        res.res.update(self.res)
+        res.res.update(other.res)
+        res.preconditions.update(self.preconditions)
+        res.preconditions.update(other.preconditions)
+        return res
+
+    def __iadd__(self, other):
+        self.res.update(other.res)
+        self.preconditions.update(other.preconditions)
+        return self

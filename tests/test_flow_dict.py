@@ -15,7 +15,7 @@ def example_data():
             'decoded': torch.tensor([True, True, False, False, True]).bool()
         },
         'head_visible': {
-            'decoded': torch.tensor([True, True, False, False, False])
+            'decoded': torch.tensor([True, True, False, False, False]).bool()
         }
     }
     flow_dict = FlowDict(res)
@@ -74,6 +74,16 @@ def test_mask_operations_or(example_data):
 
     expected = first_precondition | second_precondition
     flow_dict = flow_dict | (precondition_dicts[0].or_else(precondition_dicts[1]))
+
+    for key, actual in flow_dict.preconditions.items():
+        assert np.allclose(expected, actual)
+
+
+def test_mask_operations_xor(example_data):
+    flow_dict, precondition_dicts, first_precondition, second_precondition, third_precondition = example_data
+
+    expected = first_precondition ^ second_precondition
+    flow_dict = flow_dict | (precondition_dicts[0] ^ (precondition_dicts[1]))
 
     for key, actual in flow_dict.preconditions.items():
         assert np.allclose(expected, actual)
