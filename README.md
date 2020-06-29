@@ -38,3 +38,4 @@ Task:
 - [ ] Think of way to handle properly the or operator.
 - [ ] Implement YOLO for example
 - [ ] Add possibility to add weights based on masks
+- [ ] Correct handling when multiple precondition masks are present

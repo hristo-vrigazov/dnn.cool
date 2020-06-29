@@ -26,24 +26,21 @@ class FlowDict:
 
     def __or__(self, result):
         for key in self.res:
-            self.preconditions[key] = result.decoded
+            current_precondition = self.preconditions.get(key, result.decoded)
+            self.preconditions[key] = current_precondition & result.decoded
         return self
 
     def __invert__(self):
         res = {
             'decoded': ~self.decoded
         }
-        for key, value in self.res.items():
-            res[key] = value
-        return FlowDict(res)
+        return self.__shallow_copy_keys(res)
 
     def __and__(self, other):
         res = {
             'decoded': self.decoded & other.decoded
         }
-        for key, value in self.res.items():
-            res[key] = value
-        return FlowDict(res)
+        return self.__shallow_copy_keys(res)
 
     def __getitem__(self, key):
         return self.res[key]
@@ -53,3 +50,9 @@ class FlowDict:
 
     def __iter__(self):
         return self.res.__iter__()
+
+    def __shallow_copy_keys(self, res):
+        for key, value in self.res.items():
+            if key not in res:
+                res[key] = value
+        return FlowDict(res)

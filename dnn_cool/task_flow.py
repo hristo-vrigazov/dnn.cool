@@ -173,7 +173,7 @@ class BinaryClassificationTask(Task):
         return self.decode
 
     def decode(self, x):
-        return (x > 0.5).squeeze(dim=1)
+        return (x > 0.1).squeeze(dim=1)
 
     def loss(self):
         return nn.BCEWithLogitsLoss()
