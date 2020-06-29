@@ -8,7 +8,7 @@ from torch import optim
 
 
 def dummy_data():
-    X = torch.randn(64, 1).float()
+    X = torch.randn(256, 1).float()
     y = X.clone()
     y[X > 0] = (X * 2)[X > 0]
     y[X <= 0] = (X * -11)[X <= 0]
@@ -31,8 +31,8 @@ class DummyDataset(Dataset):
 
         y = {
             'is_positive': (self.y[item] > 0).float(),
-            'regress_positive': self.X[item] * 2,
-            'regress_negative': self.y[item] * -11
+            'positive_func': self.X[item] * 2,
+            'negative_func': self.y[item] * -11
         }
         return X, y
 
@@ -44,8 +44,8 @@ class DummyDataset(Dataset):
 def loaders():
     train_dataset = DummyDataset(*dummy_data())
     val_dataset = DummyDataset(*dummy_data())
-    train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=8, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
     return {
         'train': train_loader,
         'valid': val_loader
@@ -64,7 +64,7 @@ def test_very_simple_train(simple_nesting_linear, loaders):
         runner.train(
             model=model,
             criterion=simple_nesting_linear.loss(reduction='none'),
-            optimizer=optim.Adam(model.parameters(), lr=1e-2),
+            optimizer=optim.Adam(model.parameters(), lr=1e-1),
             loaders=loaders,
             logdir=tmp_dir,
             num_epochs=20,

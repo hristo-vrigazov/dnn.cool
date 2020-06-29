@@ -265,7 +265,7 @@ class TaskFlow(Task):
         pass
 
     def loss(self, reduction):
-        return TaskFlowLoss(self, reduction)
+        return TaskFlowLoss(self, 'mean', reduction)
 
     def torch(self):
         return TaskFlowModule(self)

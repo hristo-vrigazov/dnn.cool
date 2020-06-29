@@ -46,3 +46,5 @@ Task:
 - [ ] Add option for readable output
 - [ ] Add a lot of predefined tasks and flows
 - [ ] Rethink reduction and variable names
+- [ ] Compute only when precondition is True (will requires precomputing)
+- [ ] Pass around kwargs for flexibility
