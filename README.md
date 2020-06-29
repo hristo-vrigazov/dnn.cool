@@ -3,8 +3,8 @@
 Task:
 
 
-- [x] Generate a `nn.Module` with `train` mode, which work correctly.
-- [x] Generate a `nn.Module` with `eval` mode, which work correctly.
+- [x] Generate a `nn.Module` with `train` mode, which works correctly.
+- [x] Generate a `nn.Module` with `eval` mode, which works correctly.
 - [ ] Per-task evaluation information, given that precondition is working correctly.
 - [ ] Overall evaluation information
 - [ ] Per-task result interpretation

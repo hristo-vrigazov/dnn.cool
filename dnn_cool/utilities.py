@@ -33,10 +33,14 @@ class FlowDict:
         res = {
             'decoded': ~self.decoded
         }
+        for key, value in self.res.items():
+            res[key] = value
         return FlowDict(res)
 
     def __and__(self, other):
         res = {
             'decoded': self.decoded & other.decoded
         }
+        for key, value in self.res.items():
+            res[key] = value
         return FlowDict(res)
