@@ -7,43 +7,43 @@ from torch.utils.data import TensorDataset, DataLoader, Dataset
 from torch import optim
 
 
-def dummy_data():
-    X = torch.randn(256, 1).float()
-    y = X.clone()
-    y[X > 0] = (X * 2)[X > 0]
-    y[X <= 0] = (X * -11)[X <= 0]
-    return X, y
-
 
 class DummyDataset(Dataset):
-
-    def __init__(self, X, y):
-        self.X = X
-        self.y = y
+    """
+    The function is the following:
+    2 * x,  if x > 0
+    -11 * x, else
+    """
 
     def __getitem__(self, item):
+        X_raw = torch.randn(1).float()
         X = {
-            'features': self.X[item],
+            'features': X_raw,
             'gt': {
-                'is_positive': (self.y[item] > 0).bool(),
+                'is_positive': (X_raw > 0).bool(),
             }
         }
 
-        y = {
-            'is_positive': (self.y[item] > 0).float(),
-            'positive_func': self.X[item] * 2,
-            'negative_func': self.y[item] * -11
+        if (X_raw > 0).item():
+            return X, {
+                'is_positive': (X_raw > 0).float(),
+                'positive_func': X_raw * 2,
+                'negative_func': torch.zeros_like(X_raw).float(),
+            }
+        return X, {
+            'is_positive': (X_raw > 0).float(),
+            'positive_func': torch.zeros_like(X_raw).float(),
+            'negative_func': X_raw * -11,
         }
-        return X, y
 
     def __len__(self):
-        return len(self.X)
+        return 2 ** 10
 
 
 @pytest.fixture()
 def loaders():
-    train_dataset = DummyDataset(*dummy_data())
-    val_dataset = DummyDataset(*dummy_data())
+    train_dataset = DummyDataset()
+    val_dataset = DummyDataset()
     train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
     return {
@@ -64,8 +64,8 @@ def test_very_simple_train(simple_nesting_linear, loaders):
         runner.train(
             model=model,
             criterion=simple_nesting_linear.loss(reduction='none'),
-            optimizer=optim.Adam(model.parameters(), lr=1e-1),
+            optimizer=optim.Adam(model.parameters(), lr=1e-3),
             loaders=loaders,
             logdir=tmp_dir,
-            num_epochs=20,
+            num_epochs=100,
         )

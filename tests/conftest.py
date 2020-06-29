@@ -147,20 +147,41 @@ def nested_carsbg(carsbg):
 @pytest.fixture(scope='package')
 def simple_nesting_linear():
     n_features = 1
-    is_positive = BinaryClassificationTask(name='is_positive', module_options={
-        'in_features': n_features,
-        'bias': False
-    })
 
-    positive_func = RegressionTask(name='positive_func', module_options={
-        'in_features': n_features,
-        'bias': False
-    }, activation_func=Identity())
+    class SimpleBinaryClassificationTask(BinaryClassificationTask):
 
-    negative_func = RegressionTask(name='negative_func', module_options={
-        'in_features': n_features,
-        'bias': False
-    }, activation_func=Identity())
+        def __init__(self):
+            super().__init__(name='is_positive')
+
+        def torch(self) -> nn.Module:
+            seq = nn.Sequential(
+                nn.Linear(1, 64, bias=True),
+                nn.ReLU(inplace=True),
+                nn.Linear(64, 128, bias=True),
+                nn.ReLU(inplace=True),
+                nn.Linear(128, 1, bias=True)
+            )
+            return seq
+
+    class FuncRegression(RegressionTask):
+
+        def __init__(self, name):
+            super().__init__(name=name, activation_func=Identity(), module_options={})
+
+        def torch(self):
+            seq = nn.Sequential(
+                nn.Linear(1, 64, bias=True),
+                nn.ReLU(inplace=True),
+                nn.Linear(64, 128, bias=True),
+                nn.ReLU(inplace=True),
+                nn.Linear(128, 1, bias=True)
+            )
+            return seq
+
+    is_positive = SimpleBinaryClassificationTask()
+
+    positive_func = FuncRegression(name='positive_func')
+    negative_func = FuncRegression(name='negative_func')
 
     class SimpleConditionalFlow(TaskFlow):
 
