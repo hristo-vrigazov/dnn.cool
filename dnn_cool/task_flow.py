@@ -1,10 +1,8 @@
-import os
-
 from typing import Iterable, Dict, Optional
 
 from torch import nn
 
-from dnn_cool.modules import SigmoidEval, SoftmaxEval, SigmoidAndMSELoss, Identity, NestedFC, TaskFlowModule
+from dnn_cool.modules import SigmoidAndMSELoss, Identity, NestedFC, TaskFlowModule
 
 
 class Result:
