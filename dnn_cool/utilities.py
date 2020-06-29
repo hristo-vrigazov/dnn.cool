@@ -44,3 +44,12 @@ class FlowDict:
         for key, value in self.res.items():
             res[key] = value
         return FlowDict(res)
+
+    def __getitem__(self, key):
+        return self.res[key]
+
+    def __setitem__(self, key, item):
+        self.res[key] = item
+
+    def __iter__(self):
+        return self.res.__iter__()
