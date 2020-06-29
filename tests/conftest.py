@@ -142,3 +142,35 @@ def nested_carsbg(carsbg):
             return out
 
     return CameraBlockedCarsBgFlow()
+
+
+@pytest.fixture(scope='package')
+def simple_nesting_linear():
+    n_features = 1
+    is_positive = BinaryClassificationTask(name='is_positive', module_options={
+        'in_features': n_features,
+        'bias': False
+    })
+
+    positive_func = RegressionTask(name='positive_func', module_options={
+        'in_features': n_features,
+        'bias': False
+    }, activation_func=Identity())
+
+    negative_func = RegressionTask(name='negative_func', module_options={
+        'in_features': n_features,
+        'bias': False
+    }, activation_func=Identity())
+
+    class SimpleConditionalFlow(TaskFlow):
+
+        def __init__(self):
+            super().__init__(name='simple_conditional_flow', tasks=[is_positive, positive_func, negative_func])
+
+        def flow(self, x, out):
+            out += self.is_positive(x.features)
+            out += self.positive_func(x.features) | out.is_positive
+            out += self.negative_func(x.features) | (~out.is_positive)
+            return out
+
+    return SimpleConditionalFlow()
