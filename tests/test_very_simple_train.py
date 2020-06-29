@@ -7,7 +7,6 @@ from torch.utils.data import TensorDataset, DataLoader, Dataset
 from torch import optim
 
 
-
 class DummyDataset(Dataset):
     """
     The function is the following:
@@ -52,8 +51,8 @@ def loaders():
     }
 
 
-def test_very_simple_train(simple_nesting_linear, loaders):
-    model = simple_nesting_linear.torch()
+def test_very_simple_train(simple_nesting_linear_pair, loaders):
+    model, simple_nesting_linear = simple_nesting_linear_pair
 
     print(model)
 

@@ -10,7 +10,7 @@ Task:
 - [ ] Per-task result interpretation
 - [ ] Overall interpretation
 - [ ] Per-task loss function `nn.Module`s
-- [ ] Overall loss function as `nn.Module`
+- [x] Overall loss function as `nn.Module`
 - [ ] Per-task metrics
 - [ ] Overall metrics
 - [ ] Predictions per task
