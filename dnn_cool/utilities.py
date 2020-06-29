@@ -25,6 +25,12 @@ class FlowDict:
         }
 
     def __or__(self, result):
+        """
+        Note that this has the meaning of preconditioning, not boolean __or__. If you want to use boolean or,
+        use the `or_else` method.
+        :param result:
+        :return:
+        """
         for key in self.res:
             current_precondition = self.preconditions.get(key, result.decoded)
             self.preconditions[key] = current_precondition & result.decoded
@@ -51,8 +57,17 @@ class FlowDict:
     def __iter__(self):
         return self.res.__iter__()
 
+    def __contains__(self, item):
+        return self.res.__contains__(item)
+
     def __shallow_copy_keys(self, res):
         for key, value in self.res.items():
             if key not in res:
                 res[key] = value
         return FlowDict(res)
+
+    def or_else(self, other):
+        res = {
+            'decoded': self.decoded | other.decoded
+        }
+        return self.__shallow_copy_keys(res)
