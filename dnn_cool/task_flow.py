@@ -2,6 +2,7 @@ from typing import Iterable, Dict, Optional
 
 from torch import nn
 
+from dnn_cool.losses import TaskFlowLoss
 from dnn_cool.modules import SigmoidAndMSELoss, Identity, NestedFC, TaskFlowModule
 
 
@@ -115,7 +116,7 @@ class Task:
     def encoder(self):
         pass
 
-    def loss(self):
+    def loss(self, reduction):
         raise NotImplementedError()
 
     def torch(self):
@@ -138,7 +139,7 @@ class BinaryHardcodedTask(Task):
     def activation(self) -> Optional[nn.Module]:
         return None
 
-    def loss(self):
+    def loss(self, reduction):
         return None
 
 
@@ -152,7 +153,7 @@ class LocalizationTask(Task):
     def activation(self) -> nn.Module:
         return nn.Sigmoid()
 
-    def loss(self):
+    def loss(self, reduction):
         return SigmoidAndMSELoss()
 
 
@@ -173,8 +174,8 @@ class BinaryClassificationTask(Task):
     def decode(self, x):
         return (x > 0.5).squeeze(dim=1)
 
-    def loss(self):
-        return nn.BCEWithLogitsLoss()
+    def loss(self, reduction):
+        return nn.BCEWithLogitsLoss(reduction=reduction)
 
 
 class ClassificationTask(Task):
@@ -196,7 +197,7 @@ class ClassificationTask(Task):
     def decode(self, x):
         return (-x).argsort(dim=1)
 
-    def loss(self):
+    def loss(self, reduction):
         return nn.CrossEntropyLoss()
 
 
@@ -217,8 +218,10 @@ class RegressionTask(Task):
     def activation(self) -> nn.Module:
         return self.activation_func
 
-    def loss(self):
-        return SigmoidAndMSELoss() if isinstance(self.activation_func, nn.Sigmoid) else nn.MSELoss()
+    def loss(self, reduction):
+        if isinstance(self.activation_func, nn.Sigmoid):
+            return SigmoidAndMSELoss(reduction=reduction)
+        return nn.MSELoss(reduction=reduction)
 
 
 class NestedClassificationTask(Task):
@@ -230,7 +233,7 @@ class NestedClassificationTask(Task):
     def do_call(self, *args, **kwargs):
         return NestedClassificationResult(self, *args, **kwargs)
 
-    def loss(self):
+    def loss(self, reduction):
         pass
 
     def torch(self):
@@ -261,8 +264,8 @@ class TaskFlow(Task):
     def activation(self) -> Optional[nn.Module]:
         pass
 
-    def loss(self):
-        pass
+    def loss(self, reduction):
+        return TaskFlowLoss(self, reduction)
 
     def torch(self):
         return TaskFlowModule(self)

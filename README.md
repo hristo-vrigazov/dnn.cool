@@ -19,8 +19,8 @@ Task:
 - [ ] Callbacks per task (for metrics, loss function, additional metrics, samples, etc.)
 - [ ] Sample decoded results per task
 - [ ] Handles missing labels correctly.
-- [ ] Concept of per-task activation/decoding.
-- [ ] Overall activation/decoding (topological sorting, etc.).
+- [x] Concept of per-task activation/decoding.
+- [x] Overall activation/decoding (topological sorting, etc.).
 - [ ] Automatic per-task or overall hyperparameter tuning.
 - [ ] Composite flows (e.g YOLO inside a classifier, etc.)
 - [ ] UI splitting helper
@@ -40,3 +40,9 @@ Task:
 - [ ] Add possibility to add weights based on masks
 - [x] Correct handling when multiple precondition masks are present
 - [ ] Correct operations override for magic methods
+- [ ] Improve variable names
+- [ ] Add option to skip flatten (for inference it's actually better to keep it, but for loaders it has to be flattened)
+- [ ] Customization - add the possibility to pass not only the logits, but other keys as well (maybe include them by default?)
+- [ ] Add option for readable output
+- [ ] Add a lot of predefined tasks and flows
+- [ ] Rethink reduction and variable names

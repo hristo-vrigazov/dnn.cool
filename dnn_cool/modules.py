@@ -5,10 +5,10 @@ from dnn_cool.utilities import FlowDict
 
 class SigmoidAndMSELoss(nn.Module):
 
-    def __init__(self):
+    def __init__(self, reduction):
         super().__init__()
         self.sigmoid = nn.Sigmoid()
-        self.mse = nn.MSELoss()
+        self.mse = nn.MSELoss(reduction=reduction)
 
     def forward(self, output, target):
         activated_output = self.sigmoid(output)
@@ -131,4 +131,5 @@ class TaskFlowModule(nn.Module):
 
     def forward(self, x):
         x['training'] = self.training
-        return self.flow(self, FlowDict(x), FlowDict({}))
+        flow_dict_res = self.flow(self, FlowDict(x), FlowDict({}))
+        return flow_dict_res.flatten()

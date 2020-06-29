@@ -95,3 +95,20 @@ class FlowDict:
         self.res.update(other.res)
         self.preconditions.update(other.preconditions)
         return self
+
+    def flatten(self):
+        res = {}
+        for key, value in self.preconditions.items():
+            res[f'precondition|{key}'] = value
+
+        for key, value in self.res.items():
+            path_key, path_value = self._traverse(key, value)
+            res[path_key] = path_value
+
+        return res
+
+    def _traverse(self, path_so_far, subtree):
+        try:
+            return path_so_far, subtree.logits
+        except:
+            raise NotImplementedError(f'Converting for nested FlowDicts is not implemented yet.')
