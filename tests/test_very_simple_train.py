@@ -68,3 +68,13 @@ def test_very_simple_train(simple_nesting_linear_pair, loaders):
             logdir=tmp_dir,
             num_epochs=100,
         )
+
+    loader = loaders['valid']
+    X, y = next(iter(loader))
+    X = runner._batch2device(X, next(model.parameters()).device)
+    model = model.eval()
+
+    pred = model(X)
+    print(pred, y)
+
+
