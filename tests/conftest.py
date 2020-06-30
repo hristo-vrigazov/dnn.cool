@@ -195,7 +195,8 @@ def simple_nesting_linear_pair():
             super().__init__(name='positive_flow', tasks=tasks)
 
         def flow(self, x, out):
-            out += self.positive_func(x.features)
+            out += self.is_positive(x.features)
+            out += self.positive_func(x.features) | out.is_positive
             return out
 
     class NegativeFlow(TaskFlow):
@@ -204,7 +205,8 @@ def simple_nesting_linear_pair():
             super().__init__(name='negative_flow', tasks=tasks)
 
         def flow(self, x, out):
-            out += self.negative_func(x.features)
+            out += self.is_positive(x.features)
+            out += self.negative_func(x.features) | (~out.is_positive)
             return out
 
     class SimpleConditionalFlow(TaskFlow):
@@ -223,8 +225,8 @@ def simple_nesting_linear_pair():
                                    activation_func=Identity())
     negative_func = RegressionTask(name='negative_func', module_options={'in_features': 128},
                                    activation_func=Identity())
-    positive_flow = PositiveFlow(tasks=[positive_func])
-    negative_flow = NegativeFlow(tasks=[negative_func])
+    positive_flow = PositiveFlow(tasks=[positive_func, is_positive])
+    negative_flow = NegativeFlow(tasks=[negative_func, is_positive])
     tasks = [is_positive, positive_flow, negative_flow]
     simple_flow = SimpleConditionalFlow(tasks)
 

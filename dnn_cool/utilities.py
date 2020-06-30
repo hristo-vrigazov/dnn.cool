@@ -98,18 +98,35 @@ class FlowDict:
 
     def flatten(self):
         res = {}
-        for key, value in self.preconditions.items():
-            res[f'precondition|{key}'] = value
-
         for key, value in self.res.items():
-            path_key, path_value = self._traverse(key, value)
-            res[path_key] = path_value
+            keys, values = self._traverse(key, value, self.preconditions.get(key, None))
+            for i in range(len(keys)):
+                res[keys[i]] = values[i]
 
         return res
 
-    def _traverse(self, path_so_far, subtree):
-        is_leaf = isinstance(subtree.logits, torch.Tensor)
+    def _traverse(self, parent_key, parent_value, parent_precondition):
+        is_leaf = isinstance(parent_value.logits, torch.Tensor)
         if is_leaf:
-            return path_so_far, subtree.logits
-        else:
-            raise NotImplementedError(f'Converting for nested FlowDicts is not implemented yet.')
+            res_keys = [parent_key]
+            res_values = [parent_value.logits]
+            if parent_precondition is not None:
+                res_keys.append(f'precondition|{parent_key}')
+                res_values.append(parent_precondition)
+            return res_keys, res_values
+
+        all_keys, all_values = [], []
+        for key, value in parent_value.logits.items():
+            if key.startswith('precondition|'):
+                continue
+            full_path_key = f'{parent_key}.{key}'
+            all_keys.append(full_path_key)
+            all_values.append(value)
+            # if there is a parent precondition, then the child has to satisfy both his own and his parents'
+            # preconditions.
+            current_precondition = parent_value.logits.get(f'precondition|{key}', parent_precondition)
+            if parent_precondition is not None:
+                current_precondition &= parent_precondition
+            all_keys.append(f'precondition|{full_path_key}')
+            all_values.append(current_precondition)
+        return all_keys, all_values
