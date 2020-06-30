@@ -106,7 +106,7 @@ class FlowDict:
         return res
 
     def _traverse(self, parent_key, parent_value, parent_precondition):
-        is_leaf = isinstance(parent_value.logits, torch.Tensor)
+        is_leaf = not isinstance(parent_value.logits, dict)
         if is_leaf:
             res_keys = [parent_key]
             res_values = [parent_value.logits]
