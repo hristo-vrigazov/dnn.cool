@@ -48,4 +48,4 @@ Task:
 - [ ] Rethink reduction and variable names
 - [ ] Compute only when precondition is True (will require precomputing)
 - [ ] Pass around kwargs for flexibility
-- [ ] 
+- [ ] Nested loss functions check and test
