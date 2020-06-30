@@ -116,7 +116,7 @@ class Task:
     def encoder(self):
         pass
 
-    def loss(self, reduction):
+    def loss(self, *args, **kwargs):
         raise NotImplementedError()
 
     def torch(self):
@@ -139,7 +139,7 @@ class BinaryHardcodedTask(Task):
     def activation(self) -> Optional[nn.Module]:
         return None
 
-    def loss(self, reduction):
+    def loss(self, *args, **kwargs):
         return None
 
 
@@ -153,8 +153,8 @@ class LocalizationTask(Task):
     def activation(self) -> nn.Module:
         return nn.Sigmoid()
 
-    def loss(self, reduction):
-        return SigmoidAndMSELoss()
+    def loss(self, *args, **kwargs):
+        return SigmoidAndMSELoss(*args, **kwargs)
 
 
 class BinaryClassificationTask(Task):
@@ -174,8 +174,8 @@ class BinaryClassificationTask(Task):
     def decode(self, x):
         return (x > 0.5).squeeze(dim=1)
 
-    def loss(self, reduction):
-        return nn.BCEWithLogitsLoss(reduction=reduction)
+    def loss(self, *args, **kwargs):
+        return nn.BCEWithLogitsLoss(*args, **kwargs)
 
 
 class ClassificationTask(Task):
@@ -197,8 +197,8 @@ class ClassificationTask(Task):
     def decode(self, x):
         return (-x).argsort(dim=1)
 
-    def loss(self, reduction):
-        return nn.CrossEntropyLoss()
+    def loss(self, *args, **kwargs):
+        return nn.CrossEntropyLoss(*args, **kwargs)
 
 
 class RegressionTask(Task):
@@ -218,10 +218,10 @@ class RegressionTask(Task):
     def activation(self) -> nn.Module:
         return self.activation_func
 
-    def loss(self, reduction):
+    def loss(self, *args, **kwargs):
         if isinstance(self.activation_func, nn.Sigmoid):
-            return SigmoidAndMSELoss(reduction=reduction)
-        return nn.MSELoss(reduction=reduction)
+            return SigmoidAndMSELoss(*args, **kwargs)
+        return nn.MSELoss(*args, **kwargs)
 
 
 class NestedClassificationTask(Task):
@@ -233,7 +233,7 @@ class NestedClassificationTask(Task):
     def do_call(self, *args, **kwargs):
         return NestedClassificationResult(self, *args, **kwargs)
 
-    def loss(self, reduction):
+    def loss(self, *args, **kwargs):
         pass
 
     def torch(self):
