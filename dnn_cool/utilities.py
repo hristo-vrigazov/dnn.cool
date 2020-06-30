@@ -108,7 +108,8 @@ class FlowDict:
         return res
 
     def _traverse(self, path_so_far, subtree):
-        try:
+        is_leaf = isinstance(subtree.logits, torch.Tensor)
+        if is_leaf:
             return path_so_far, subtree.logits
-        except:
+        else:
             raise NotImplementedError(f'Converting for nested FlowDicts is not implemented yet.')

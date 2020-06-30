@@ -29,7 +29,7 @@ Task:
 - [ ] Help with logic when creating `nn.Dataset`.
 - [ ] Treelib explanation
 - [ ] Grad-CAM per branch
-- [ ] Can debug the flow in any mode
+- [x] Can debug the flow in any mode
 - [ ] Cleaner representations for results
 - [ ] Work on error messages
 - [ ] Predict only for those, for which precondition is correct.
@@ -49,3 +49,5 @@ Task:
 - [ ] Compute only when precondition is True (will require precomputing)
 - [ ] Pass around kwargs for flexibility
 - [ ] Nested loss functions check and test
+- [ ] Support multilabel classification problem
+- [ ] Think how suitable it would be to use scoping

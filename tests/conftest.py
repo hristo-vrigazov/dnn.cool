@@ -145,7 +145,7 @@ def nested_carsbg(carsbg):
 
 
 @pytest.fixture(scope='package')
-def simple_nesting_linear_pair():
+def simple_linear_pair():
 
     class SimpleConditionalFlow(TaskFlow):
 
@@ -164,6 +164,68 @@ def simple_nesting_linear_pair():
     negative_func = RegressionTask(name='negative_func', module_options={'in_features': 128},
                                    activation_func=Identity())
     tasks = [is_positive, positive_func, negative_func]
+    simple_flow = SimpleConditionalFlow(tasks)
+
+    class SimpleMultiTaskModule(nn.Module):
+
+        def __init__(self):
+            super().__init__()
+            n_features = 128
+            self.seq = nn.Sequential(
+                nn.Linear(1, 64, bias=True),
+                nn.ReLU(inplace=True),
+                nn.Linear(64, n_features, bias=True),
+                nn.ReLU(inplace=True),
+            )
+            self.simple_flow_module = simple_flow.torch()
+
+        def forward(self, x):
+            x['features'] = self.seq(x['features'])
+            return self.simple_flow_module(x)
+
+    return SimpleMultiTaskModule(), simple_flow
+
+
+@pytest.fixture(scope='package')
+def simple_nesting_linear_pair():
+
+    class PositiveFlow(TaskFlow):
+
+        def __init__(self, tasks):
+            super().__init__(name='positive_flow', tasks=tasks)
+
+        def flow(self, x, out):
+            out += self.positive_func(x.features)
+            return out
+
+    class NegativeFlow(TaskFlow):
+
+        def __init__(self, tasks):
+            super().__init__(name='negative_flow', tasks=tasks)
+
+        def flow(self, x, out):
+            out += self.negative_func(x.features)
+            return out
+
+    class SimpleConditionalFlow(TaskFlow):
+
+        def __init__(self, tasks):
+            super().__init__(name='simple_conditional_flow', tasks=tasks)
+
+        def flow(self, x, out):
+            out += self.is_positive(x.features)
+            out += self.positive_flow(x) | out.is_positive
+            out += self.negative_flow(x) | (~out.is_positive)
+            return out
+
+    is_positive = BinaryClassificationTask(name='is_positive', module_options={'in_features': 128})
+    positive_func = RegressionTask(name='positive_func', module_options={'in_features': 128},
+                                   activation_func=Identity())
+    negative_func = RegressionTask(name='negative_func', module_options={'in_features': 128},
+                                   activation_func=Identity())
+    positive_flow = PositiveFlow(tasks=[positive_func])
+    negative_flow = NegativeFlow(tasks=[negative_func])
+    tasks = [is_positive, positive_flow, negative_flow]
     simple_flow = SimpleConditionalFlow(tasks)
 
     class SimpleMultiTaskModule(nn.Module):

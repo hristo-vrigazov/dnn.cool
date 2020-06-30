@@ -1,6 +1,7 @@
 import tempfile
 import pytest
 import torch
+import numpy as np
 
 from catalyst.dl import SupervisedRunner
 from torch.utils.data import TensorDataset, DataLoader, Dataset
@@ -51,8 +52,8 @@ def loaders():
     }
 
 
-def test_very_simple_train(simple_nesting_linear_pair, loaders):
-    model, simple_nesting_linear = simple_nesting_linear_pair
+def test_very_simple_train(simple_linear_pair, loaders):
+    model, simple_nesting_linear = simple_linear_pair
 
     print(model)
 
@@ -77,4 +78,30 @@ def test_very_simple_train(simple_nesting_linear_pair, loaders):
     pred = model(X)
     print(pred, y)
 
+
+def test_very_simple_train_nested(simple_nesting_linear_pair, loaders):
+    model, simple_nesting_linear = simple_nesting_linear_pair
+
+    print(model)
+
+    runner = SupervisedRunner()
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        print(tmp_dir)
+        runner.train(
+            model=model,
+            criterion=simple_nesting_linear.loss(reduction='none'),
+            optimizer=optim.Adam(model.parameters(), lr=1e-3),
+            loaders=loaders,
+            logdir=tmp_dir,
+            num_epochs=100,
+        )
+
+    loader = loaders['valid']
+    X, y = next(iter(loader))
+    X = runner._batch2device(X, next(model.parameters()).device)
+    model = model.eval()
+
+    pred = model(X)
+    print(pred, y)
 
