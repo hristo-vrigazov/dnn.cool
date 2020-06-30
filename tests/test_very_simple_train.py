@@ -63,7 +63,7 @@ def test_very_simple_train(simple_linear_pair, loaders):
         print(tmp_dir)
         runner.train(
             model=model,
-            criterion=simple_nesting_linear.loss(reduction='none'),
+            criterion=simple_nesting_linear.loss(parent_reduction='mean', child_reduction='none'),
             optimizer=optim.Adam(model.parameters(), lr=1e-3),
             loaders=loaders,
             logdir=tmp_dir,
@@ -90,7 +90,7 @@ def test_very_simple_train_nested(simple_nesting_linear_pair, loaders):
         print(tmp_dir)
         runner.train(
             model=model,
-            criterion=simple_nesting_linear.loss(reduction='none'),
+            criterion=simple_nesting_linear.loss(parent_reduction='mean', child_reduction='none'),
             optimizer=optim.Adam(model.parameters(), lr=1e-3),
             loaders=loaders,
             logdir=tmp_dir,

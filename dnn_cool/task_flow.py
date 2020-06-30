@@ -264,8 +264,8 @@ class TaskFlow(Task):
     def activation(self) -> Optional[nn.Module]:
         pass
 
-    def loss(self, reduction):
-        return TaskFlowLoss(self, 'mean', reduction)
+    def loss(self, **kwargs):
+        return TaskFlowLoss(self, **kwargs)
 
     def torch(self):
         return TaskFlowModule(self)
