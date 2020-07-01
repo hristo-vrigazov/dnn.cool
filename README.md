@@ -51,4 +51,4 @@ Task:
 - [ ] Nested loss functions check and test
 - [ ] Support multilabel classification problem
 - [ ] Think how suitable it would be to use scoping
-- [ ] The results seem weird
+- [x] Fix bug with the results seem weird

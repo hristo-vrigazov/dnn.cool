@@ -40,10 +40,64 @@ class DummyDataset(Dataset):
         return 2 ** 10
 
 
+class NestedDummyDataset(Dataset):
+    """
+    The function is the following:
+    2 * x,  if x > 0
+    -11 * x, else
+    """
+
+    def __getitem__(self, item):
+        X_raw = torch.randn(1).float()
+        X = {
+            'features': X_raw,
+            'gt': {
+                'is_positive': (X_raw > 0).bool(),
+                'positive_flow.is_positive': (X_raw > 0).bool(),
+                'negative_flow.is_positive': (X_raw > 0).bool()
+            }
+        }
+
+        if (X_raw > 0).item():
+            return X, {
+                'is_positive': (X_raw > 0).float(),
+                'positive_flow.is_positive': (X_raw > 0).float(),
+                'positive_flow.positive_func': X_raw * 2,
+                'positive_flow.negative_func': torch.zeros_like(X_raw),
+                'negative_flow.is_positive': (X_raw > 0).float(),
+                'negative_flow.positive_func': torch.zeros_like(X_raw).float(),
+                'negative_flow.negative_func': X_raw * -11,
+            }
+        return X, {
+            'is_positive': (X_raw > 0).float(),
+            'positive_flow.is_positive': (X_raw > 0).float(),
+            'positive_flow.positive_func': torch.zeros_like(X_raw),
+            'positive_flow.negative_func': torch.zeros_like(X_raw),
+            'negative_flow.is_positive': (X_raw > 0).float(),
+            'negative_flow.positive_func': torch.zeros_like(X_raw).float(),
+            'negative_flow.negative_func': X_raw * -11,
+        }
+
+    def __len__(self):
+        return 2 ** 10
+
+
 @pytest.fixture()
 def loaders():
     train_dataset = DummyDataset()
     val_dataset = DummyDataset()
+    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
+    return {
+        'train': train_loader,
+        'valid': val_loader
+    }
+
+
+@pytest.fixture()
+def nested_loaders():
+    train_dataset = NestedDummyDataset()
+    val_dataset = NestedDummyDataset()
     train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
     return {
@@ -79,7 +133,7 @@ def test_very_simple_train(simple_linear_pair, loaders):
     print(pred, y)
 
 
-def test_very_simple_train_nested(simple_nesting_linear_pair, loaders):
+def test_very_simple_train_nested(simple_nesting_linear_pair, nested_loaders):
     model, simple_nesting_linear = simple_nesting_linear_pair
 
     print(model)
@@ -93,12 +147,12 @@ def test_very_simple_train_nested(simple_nesting_linear_pair, loaders):
             model=model,
             criterion=criterion,
             optimizer=optim.Adam(model.parameters(), lr=1e-3),
-            loaders=loaders,
+            loaders=nested_loaders,
             logdir=tmp_dir,
             num_epochs=100,
         )
 
-    loader = loaders['valid']
+    loader = nested_loaders['valid']
     X, y = next(iter(loader))
     X = runner._batch2device(X, next(model.parameters()).device)
     y = runner._batch2device(y, next(model.parameters()).device)

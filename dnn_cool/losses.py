@@ -71,7 +71,7 @@ class TaskLossDecorator(nn.Module):
         key = self.prefix + self.task_name
         outputs = loss_flow_data.outputs[key]
         precondition = loss_flow_data.outputs.get(f'precondition|{key}', None)
-        targets = loss_flow_data.targets[self.task_name] #TODO: this should be handled correctly when datasets are introduced
+        targets = loss_flow_data.targets[key]
         n = len(outputs)
         loss_items = torch.zeros(n, dtype=outputs.dtype, device=outputs.device)
         if precondition is None:
