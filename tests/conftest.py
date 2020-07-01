@@ -8,7 +8,7 @@ from torch.utils.data import Dataset, DataLoader
 from dnn_cool.datasets import FlowDataset
 from dnn_cool.modules import Identity
 from dnn_cool.task_flow import BinaryClassificationTask, TaskFlow, BinaryHardcodedTask, LocalizationTask, \
-    ClassificationTask, RegressionTask, NestedClassificationTask
+    ClassificationTask, RegressionTask, NestedClassificationTask, RegressionTask
 
 
 @pytest.fixture(scope='package')
@@ -231,11 +231,55 @@ def simple_nesting_linear_pair():
             out += self.negative_flow(x) | (~out.is_positive)
             return out
 
-    is_positive = BinaryClassificationTask(name='is_positive', module_options={'in_features': 128})
-    positive_func = RegressionTask(name='positive_func', module_options={'in_features': 128},
-                                   activation_func=Identity())
-    negative_func = RegressionTask(name='negative_func', module_options={'in_features': 128},
-                                   activation_func=Identity())
+    Xs = torch.randn(2 ** 12).float()
+
+    class IsPositiveDataset(Dataset):
+
+        def __getitem__(self, item):
+            X_raw = Xs[item]
+            return X_raw, X_raw > 0.5
+
+    class IsPositiveTask(BinaryClassificationTask):
+
+        def __init__(self):
+            super().__init__(name='is_positive', module_options={'in_features': 128})
+
+        def datasets(self) -> Dataset:
+            return IsPositiveDataset()
+
+    class PositiveFuncDataset(Dataset):
+
+        def __getitem__(self, item):
+            X_raw = Xs[item]
+            return X_raw, X_raw * 2
+
+    class PositiveFuncTask(RegressionTask):
+
+        def __init__(self):
+            super().__init__(name='positive_func', module_options={'in_features': 128},
+                             activation_func=Identity())
+
+        def datasets(self, **kwargs) -> Dataset:
+            return PositiveFuncDataset()
+
+    class NegativeFuncDataset(Dataset):
+
+        def __getitem__(self, item):
+            X_raw = Xs[item]
+            return X_raw, X_raw * -11
+
+    class NegativeFuncTask(RegressionTask):
+
+        def __init__(self):
+            super().__init__(name='negative_func', module_options={'in_features': 128},
+                             activation_func=Identity())
+
+        def datasets(self, **kwargs) -> Dataset:
+            return NegativeFuncDataset()
+
+    is_positive = IsPositiveTask()
+    positive_func = PositiveFuncTask()
+    negative_func = NegativeFuncTask()
     positive_flow = PositiveFlow(tasks=[positive_func, is_positive])
     negative_flow = NegativeFlow(tasks=[negative_func, is_positive])
     tasks = [is_positive, positive_flow, negative_flow]

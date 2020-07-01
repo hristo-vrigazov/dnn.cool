@@ -132,7 +132,7 @@ class Task:
         """
         raise NotImplementedError()
 
-    def datasets(self) -> Dataset:
+    def datasets(self, **kwargs) -> Dataset:
         raise NotImplementedError()
 
 

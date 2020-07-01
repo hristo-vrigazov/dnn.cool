@@ -37,8 +37,9 @@ def test_very_simple_train_nested(simple_nesting_linear_pair):
     model, simple_nesting_linear = simple_nesting_linear_pair
 
     datasets = simple_nesting_linear.datasets()
-    train_dataset = datasets['train']
-    val_dataset = datasets['val']
+    # TODO: use train/test split
+    train_dataset = datasets
+    val_dataset = datasets
     train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
     nested_loaders = OrderedDict({

@@ -60,7 +60,6 @@ class TaskLossDecorator(nn.Module):
         super().__init__()
         self.task_name = task.get_name()
         self.prefix = prefix
-        self.has_children = task.has_children()
         self.loss = task.loss(reduction=child_reduction)
 
     def forward(self, *args, **kwargs):
