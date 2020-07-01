@@ -1,109 +1,9 @@
 import tempfile
-import pytest
-import torch
-import numpy as np
+from collections import OrderedDict
 
 from catalyst.dl import SupervisedRunner
-from torch.utils.data import TensorDataset, DataLoader, Dataset
+from torch.utils.data import DataLoader
 from torch import optim
-
-
-class DummyDataset(Dataset):
-    """
-    The function is the following:
-    2 * x,  if x > 0
-    -11 * x, else
-    """
-
-    def __getitem__(self, item):
-        X_raw = torch.randn(1).float()
-        X = {
-            'features': X_raw,
-            'gt': {
-                'is_positive': (X_raw > 0).bool(),
-            }
-        }
-
-        if (X_raw > 0).item():
-            return X, {
-                'is_positive': (X_raw > 0).float(),
-                'positive_func': X_raw * 2,
-                'negative_func': torch.zeros_like(X_raw).float(),
-            }
-        return X, {
-            'is_positive': (X_raw > 0).float(),
-            'positive_func': torch.zeros_like(X_raw).float(),
-            'negative_func': X_raw * -11,
-        }
-
-    def __len__(self):
-        return 2 ** 10
-
-
-class NestedDummyDataset(Dataset):
-    """
-    The function is the following:
-    2 * x,  if x > 0
-    -11 * x, else
-    """
-
-    def __getitem__(self, item):
-        X_raw = torch.randn(1).float()
-        X = {
-            'features': X_raw,
-            'gt': {
-                'is_positive': (X_raw > 0).bool(),
-                'positive_flow.is_positive': (X_raw > 0).bool(),
-                'negative_flow.is_positive': (X_raw > 0).bool()
-            }
-        }
-
-        if (X_raw > 0).item():
-            return X, {
-                'is_positive': (X_raw > 0).float(),
-                'positive_flow.is_positive': (X_raw > 0).float(),
-                'positive_flow.positive_func': X_raw * 2,
-                'positive_flow.negative_func': torch.zeros_like(X_raw),
-                'negative_flow.is_positive': (X_raw > 0).float(),
-                'negative_flow.positive_func': torch.zeros_like(X_raw).float(),
-                'negative_flow.negative_func': X_raw * -11,
-            }
-        return X, {
-            'is_positive': (X_raw > 0).float(),
-            'positive_flow.is_positive': (X_raw > 0).float(),
-            'positive_flow.positive_func': torch.zeros_like(X_raw),
-            'positive_flow.negative_func': torch.zeros_like(X_raw),
-            'negative_flow.is_positive': (X_raw > 0).float(),
-            'negative_flow.positive_func': torch.zeros_like(X_raw).float(),
-            'negative_flow.negative_func': X_raw * -11,
-        }
-
-    def __len__(self):
-        return 2 ** 10
-
-
-@pytest.fixture()
-def loaders():
-    train_dataset = DummyDataset()
-    val_dataset = DummyDataset()
-    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
-    return {
-        'train': train_loader,
-        'valid': val_loader
-    }
-
-
-@pytest.fixture()
-def nested_loaders():
-    train_dataset = NestedDummyDataset()
-    val_dataset = NestedDummyDataset()
-    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
-    return {
-        'train': train_loader,
-        'valid': val_loader
-    }
 
 
 def test_very_simple_train(simple_linear_pair, loaders):
@@ -133,8 +33,18 @@ def test_very_simple_train(simple_linear_pair, loaders):
     print(pred, y)
 
 
-def test_very_simple_train_nested(simple_nesting_linear_pair, nested_loaders):
+def test_very_simple_train_nested(simple_nesting_linear_pair):
     model, simple_nesting_linear = simple_nesting_linear_pair
+
+    datasets = simple_nesting_linear.datasets()
+    train_dataset = datasets['train']
+    val_dataset = datasets['val']
+    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
+    nested_loaders = OrderedDict({
+        'train': train_loader,
+        'valid': val_loader
+    })
 
     print(model)
 

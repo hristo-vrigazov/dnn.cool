@@ -1,5 +1,9 @@
+from typing import Dict
+
 import pytest
+import torch
 from torch import nn
+from torch.utils.data import Dataset, DataLoader
 
 from dnn_cool.modules import Identity
 from dnn_cool.task_flow import BinaryClassificationTask, TaskFlow, BinaryHardcodedTask, LocalizationTask, \
@@ -220,6 +224,12 @@ def simple_nesting_linear_pair():
             out += self.negative_flow(x) | (~out.is_positive)
             return out
 
+        def datasets(self) -> Dict[str, Dataset]:
+            return {
+                'train': NestedDummyDataset(),
+                'val': NestedDummyDataset()
+            }
+
     is_positive = BinaryClassificationTask(name='is_positive', module_options={'in_features': 128})
     positive_func = RegressionTask(name='positive_func', module_options={'in_features': 128},
                                    activation_func=Identity())
@@ -248,3 +258,89 @@ def simple_nesting_linear_pair():
             return self.simple_flow_module(x)
 
     return SimpleMultiTaskModule(), simple_flow
+
+
+class DummyDataset(Dataset):
+    """
+    The function is the following:
+    2 * x,  if x > 0
+    -11 * x, else
+    """
+
+    def __getitem__(self, item):
+        X_raw = torch.randn(1).float()
+        X = {
+            'features': X_raw,
+            'gt': {
+                'is_positive': (X_raw > 0).bool(),
+            }
+        }
+
+        if (X_raw > 0).item():
+            return X, {
+                'is_positive': (X_raw > 0).float(),
+                'positive_func': X_raw * 2,
+                'negative_func': torch.zeros_like(X_raw).float(),
+            }
+        return X, {
+            'is_positive': (X_raw > 0).float(),
+            'positive_func': torch.zeros_like(X_raw).float(),
+            'negative_func': X_raw * -11,
+        }
+
+    def __len__(self):
+        return 2 ** 10
+
+
+class NestedDummyDataset(Dataset):
+    """
+    The function is the following:
+    2 * x,  if x > 0
+    -11 * x, else
+    """
+
+    def __getitem__(self, item):
+        X_raw = torch.randn(1).float()
+        X = {
+            'features': X_raw,
+            'gt': {
+                'is_positive': (X_raw > 0).bool(),
+                'positive_flow.is_positive': (X_raw > 0).bool(),
+                'negative_flow.is_positive': (X_raw > 0).bool()
+            }
+        }
+
+        if (X_raw > 0).item():
+            return X, {
+                'is_positive': (X_raw > 0).float(),
+                'positive_flow.is_positive': (X_raw > 0).float(),
+                'positive_flow.positive_func': X_raw * 2,
+                'positive_flow.negative_func': torch.zeros_like(X_raw),
+                'negative_flow.is_positive': (X_raw > 0).float(),
+                'negative_flow.positive_func': torch.zeros_like(X_raw).float(),
+                'negative_flow.negative_func': X_raw * -11,
+            }
+        return X, {
+            'is_positive': (X_raw > 0).float(),
+            'positive_flow.is_positive': (X_raw > 0).float(),
+            'positive_flow.positive_func': torch.zeros_like(X_raw),
+            'positive_flow.negative_func': torch.zeros_like(X_raw),
+            'negative_flow.is_positive': (X_raw > 0).float(),
+            'negative_flow.positive_func': torch.zeros_like(X_raw).float(),
+            'negative_flow.negative_func': X_raw * -11,
+        }
+
+    def __len__(self):
+        return 2 ** 10
+
+
+@pytest.fixture()
+def loaders():
+    train_dataset = DummyDataset()
+    val_dataset = DummyDataset()
+    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
+    return {
+        'train': train_loader,
+        'valid': val_loader
+    }

@@ -1,6 +1,7 @@
 from typing import Iterable, Dict, Optional
 
 from torch import nn
+from torch.utils.data import Dataset
 
 from dnn_cool.losses import TaskFlowLoss
 from dnn_cool.modules import SigmoidAndMSELoss, Identity, NestedFC, TaskFlowModule
@@ -128,6 +129,9 @@ class Task:
         the precondition is satisfied.
         :return:
         """
+        raise NotImplementedError()
+
+    def datasets(self) -> Dict[str, Dataset]:
         raise NotImplementedError()
 
 
