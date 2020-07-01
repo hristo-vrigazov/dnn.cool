@@ -56,26 +56,22 @@ def squeeze_if_needed(tensor):
 
 class TaskLossDecorator(nn.Module):
 
-    def __init__(self, task, child_reduction):
+    def __init__(self, task, child_reduction, prefix):
         super().__init__()
         self.task_name = task.get_name()
-
-        kwargs = {}
-        if task.has_children():
-            kwargs['parent_reduction'] = child_reduction
-            kwargs['child_reduction'] = child_reduction
-        else:
-            kwargs['reduction'] = child_reduction
-        self.loss = task.loss(**kwargs)
+        self.prefix = prefix
+        self.has_children = task.has_children()
+        self.loss = task.loss(reduction=child_reduction)
 
     def forward(self, *args, **kwargs):
         return LossItems(self.read_vectors(args, kwargs))
 
     def read_vectors(self, args, kwargs):
         loss_flow_data = get_flow_data(*args, **kwargs)
-        outputs = loss_flow_data.outputs[self.task_name]
-        precondition = loss_flow_data.outputs.get(f'precondition|{self.task_name}', None)
-        targets = loss_flow_data.targets[self.task_name]
+        key = self.prefix + self.task_name
+        outputs = loss_flow_data.outputs[key]
+        precondition = loss_flow_data.outputs.get(f'precondition|{key}', None)
+        targets = loss_flow_data.targets[self.task_name] #TODO: this should be handled correctly when datasets are introduced
         n = len(outputs)
         loss_items = torch.zeros(n, dtype=outputs.dtype, device=outputs.device)
         if precondition is None:
@@ -89,7 +85,7 @@ class TaskLossDecorator(nn.Module):
 
 class TaskFlowLoss(nn.Module):
 
-    def __init__(self, task_flow, parent_reduction, child_reduction):
+    def __init__(self, task_flow, parent_reduction, child_reduction, prefix=''):
         super().__init__()
         self.parent_reduction = parent_reduction
         self._task_flow = task_flow
@@ -99,15 +95,29 @@ class TaskFlowLoss(nn.Module):
         self.flow = task_flow.__class__.flow
 
         for key, task in task_flow.tasks.items():
-            setattr(self, key, TaskLossDecorator(task, child_reduction))
+            if not task.has_children():
+                instance = TaskLossDecorator(task, child_reduction, prefix)
+            else:
+                instance = TaskFlowLoss(task, child_reduction, child_reduction, prefix=f'{prefix}{task.get_name()}.')
 
-        print('Party')
+            setattr(self, key, instance)
 
-    def forward(self, outputs, targets):
+    def forward(self, *args):
+        is_root = len(args) == 2
+        if is_root:
+            outputs, targets = args
+        else:
+            loss_flow_data = args[0]
+            outputs = loss_flow_data.outputs
+            targets = loss_flow_data.targets
+
         value = self.__any_value(outputs)
         n = len(value)
         loss_items = torch.zeros(n, dtype=value.dtype, device=value.device)
         flow_result = self.flow(self, LossFlowData(outputs, targets), LossItems(loss_items))
+
+        if not is_root:
+            return LossItems(loss_items)
 
         if self.parent_reduction == 'mean':
             return flow_result.loss_items.mean()
