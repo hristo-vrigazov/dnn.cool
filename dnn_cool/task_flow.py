@@ -116,6 +116,9 @@ class Task:
     def encoder(self):
         pass
 
+    def has_children(self):
+        return False
+
     def loss(self, *args, **kwargs):
         raise NotImplementedError()
 
@@ -269,6 +272,9 @@ class TaskFlow(Task):
 
     def torch(self):
         return TaskFlowModule(self)
+
+    def has_children(self):
+        return True
 
     def flow(self, x, out):
         raise NotImplementedError()

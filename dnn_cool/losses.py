@@ -56,10 +56,17 @@ def squeeze_if_needed(tensor):
 
 class TaskLossDecorator(nn.Module):
 
-    def __init__(self, task, reduction):
+    def __init__(self, task, child_reduction):
         super().__init__()
         self.task_name = task.get_name()
-        self.loss = task.loss(reduction=reduction)
+
+        kwargs = {}
+        if task.has_children():
+            kwargs['parent_reduction'] = child_reduction
+            kwargs['child_reduction'] = child_reduction
+        else:
+            kwargs['reduction'] = child_reduction
+        self.loss = task.loss(**kwargs)
 
     def forward(self, *args, **kwargs):
         return LossItems(self.read_vectors(args, kwargs))
@@ -93,6 +100,8 @@ class TaskFlowLoss(nn.Module):
 
         for key, task in task_flow.tasks.items():
             setattr(self, key, TaskLossDecorator(task, child_reduction))
+
+        print('Party')
 
     def forward(self, outputs, targets):
         value = self.__any_value(outputs)
