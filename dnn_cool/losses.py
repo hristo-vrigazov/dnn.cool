@@ -117,7 +117,7 @@ class TaskFlowLoss(nn.Module):
         flow_result = self.flow(self, LossFlowData(outputs, targets), LossItems(loss_items))
 
         if not is_root:
-            return LossItems(loss_items)
+            return LossItems(flow_result.loss_items)
 
         if self.parent_reduction == 'mean':
             return flow_result.loss_items.mean()

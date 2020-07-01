@@ -85,12 +85,13 @@ def test_very_simple_train_nested(simple_nesting_linear_pair, loaders):
     print(model)
 
     runner = SupervisedRunner()
+    criterion = simple_nesting_linear.loss(parent_reduction='mean', child_reduction='none')
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         print(tmp_dir)
         runner.train(
             model=model,
-            criterion=simple_nesting_linear.loss(parent_reduction='mean', child_reduction='none'),
+            criterion=criterion,
             optimizer=optim.Adam(model.parameters(), lr=1e-3),
             loaders=loaders,
             logdir=tmp_dir,
@@ -100,8 +101,11 @@ def test_very_simple_train_nested(simple_nesting_linear_pair, loaders):
     loader = loaders['valid']
     X, y = next(iter(loader))
     X = runner._batch2device(X, next(model.parameters()).device)
+    y = runner._batch2device(y, next(model.parameters()).device)
     model = model.eval()
 
     pred = model(X)
+    res = criterion(pred, y)
+    print(res.item())
     print(pred, y)
 
