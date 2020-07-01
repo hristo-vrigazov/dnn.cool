@@ -2,7 +2,7 @@ import torch
 import pytest
 import numpy as np
 
-from dnn_cool.utilities import FlowDict
+from dnn_cool.modules import FlowDict
 
 
 @pytest.fixture()

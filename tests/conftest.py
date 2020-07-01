@@ -5,6 +5,7 @@ import torch
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
 
+from dnn_cool.datasets import FlowDataset
 from dnn_cool.modules import Identity
 from dnn_cool.task_flow import BinaryClassificationTask, TaskFlow, BinaryHardcodedTask, LocalizationTask, \
     ClassificationTask, RegressionTask, NestedClassificationTask
@@ -203,6 +204,9 @@ def simple_nesting_linear_pair():
             out += self.positive_func(x.features) | out.is_positive
             return out
 
+        def datasets(self) -> Dataset:
+            pass
+
     class NegativeFlow(TaskFlow):
 
         def __init__(self, tasks):
@@ -212,6 +216,9 @@ def simple_nesting_linear_pair():
             out += self.is_positive(x.features)
             out += self.negative_func(x.features) | (~out.is_positive)
             return out
+
+        def datasets(self) -> Dataset:
+            pass
 
     class SimpleConditionalFlow(TaskFlow):
 
@@ -223,12 +230,6 @@ def simple_nesting_linear_pair():
             out += self.positive_flow(x) | out.is_positive
             out += self.negative_flow(x) | (~out.is_positive)
             return out
-
-        def datasets(self) -> Dict[str, Dataset]:
-            return {
-                'train': NestedDummyDataset(),
-                'val': NestedDummyDataset()
-            }
 
     is_positive = BinaryClassificationTask(name='is_positive', module_options={'in_features': 128})
     positive_func = RegressionTask(name='positive_func', module_options={'in_features': 128},

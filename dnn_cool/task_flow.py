@@ -3,6 +3,7 @@ from typing import Iterable, Dict, Optional
 from torch import nn
 from torch.utils.data import Dataset
 
+from dnn_cool.datasets import FlowDataset
 from dnn_cool.losses import TaskFlowLoss
 from dnn_cool.modules import SigmoidAndMSELoss, Identity, NestedFC, TaskFlowModule
 
@@ -131,7 +132,7 @@ class Task:
         """
         raise NotImplementedError()
 
-    def datasets(self) -> Dict[str, Dataset]:
+    def datasets(self) -> Dataset:
         raise NotImplementedError()
 
 
@@ -279,6 +280,9 @@ class TaskFlow(Task):
 
     def has_children(self):
         return True
+
+    def datasets(self, **kwargs) -> Dataset:
+        return FlowDataset(self, **kwargs)
 
     def flow(self, x, out):
         raise NotImplementedError()
