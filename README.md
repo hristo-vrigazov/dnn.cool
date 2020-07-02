@@ -26,7 +26,7 @@ Task:
 - [ ] UI splitting helper
 - [ ] ONNX converter (if possible) - with static analysis.
 - [ ] Test training a model with synthetic dataset.
-- [ ] Help with logic when creating `nn.Dataset`.
+- [x] Help with logic when creating `nn.Dataset`.
 - [ ] Treelib explanation
 - [ ] Grad-CAM per branch
 - [x] Can debug the flow in any mode
@@ -55,4 +55,7 @@ Task:
 - [ ] Optimize inputs (so that it is not read multiple times)
 - [ ] Make good tests for cascading preconditions (especially for datasets).
 - [ ] Make sure immutability of objects is preserved
-- [ ] Performance issues
+- [x] Performance issues
+- [ ] Documentation
+- [ ] Create a helper class for creating tasks (by trying to guess task type)
+- [ ] Think of useful methods
