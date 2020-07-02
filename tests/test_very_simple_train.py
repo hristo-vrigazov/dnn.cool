@@ -1,7 +1,6 @@
 import tempfile
 from collections import OrderedDict
 
-from catalyst.core import MetricCallback
 from catalyst.dl import SupervisedRunner
 from torch.utils.data import DataLoader
 from torch import optim
@@ -25,10 +24,7 @@ def test_passenger_example(interior_car_task):
 
     runner = SupervisedRunner()
     criterion = task_flow.loss(parent_reduction='mean', child_reduction='none')
-    leaf_losses = criterion.get_leaf_losses()
-    callbacks = []
-    for leaf_loss in leaf_losses:
-        callbacks.append(MetricCallback(f'{leaf_loss.prefix}{leaf_loss.task_name}_loss', leaf_loss))
+    callbacks = criterion.catalyst_callbacks()
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         print(tmp_dir)

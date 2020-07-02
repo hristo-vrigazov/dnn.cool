@@ -148,3 +148,11 @@ class TaskFlowLoss(nn.Module):
                 all_losses.append(child_loss)
         return all_losses
 
+    def catalyst_callbacks(self):
+        from catalyst.core import MetricCallback
+        leaf_losses = self.get_leaf_losses()
+        callbacks = []
+        for leaf_loss in leaf_losses:
+            callbacks.append(MetricCallback(f'loss_{leaf_loss.prefix}{leaf_loss.task_name}', leaf_loss))
+        return callbacks
+
