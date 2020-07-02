@@ -55,3 +55,4 @@ Task:
 - [ ] Optimize inputs (so that it is not read multiple times)
 - [ ] Make good tests for cascading preconditions (especially for datasets).
 - [ ] Make sure immutability of objects is preserved
+- [ ] Performance issues

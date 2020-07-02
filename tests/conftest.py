@@ -225,7 +225,7 @@ def simple_nesting_linear_pair():
             out += self.negative_flow(x) | (~out.is_positive)
             return out
 
-    Xs = torch.randn(2 ** 12).float()
+    Xs = torch.randn(2 ** 10).float()
 
     class IsPositiveDataset(Dataset):
 
