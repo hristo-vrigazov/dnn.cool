@@ -37,13 +37,17 @@ class LossItems:
 
 
 def get_flow_data(*args, **kwargs):
+    is_callback_invoked = len(args) == 2
+    if is_callback_invoked:
+        return is_callback_invoked, LossFlowData(*args)
+
     for arg in args:
         if isinstance(arg, LossFlowData):
-            return arg
+            return is_callback_invoked, arg
 
     for arg in kwargs.values():
         if isinstance(arg, LossFlowData):
-            return arg
+            return is_callback_invoked, arg
 
 
 def squeeze_if_needed(tensor):
@@ -63,10 +67,15 @@ class TaskLossDecorator(nn.Module):
         self.loss = task.loss(reduction=child_reduction)
 
     def forward(self, *args, **kwargs):
-        return LossItems(self.read_vectors(args, kwargs))
+        is_callback_invoked, loss_items = self.read_vectors(args, kwargs)
+
+        if is_callback_invoked:
+            return loss_items.mean()
+
+        return LossItems(loss_items)
 
     def read_vectors(self, args, kwargs):
-        loss_flow_data = get_flow_data(*args, **kwargs)
+        is_callback_invoked, loss_flow_data = get_flow_data(*args, **kwargs)
         key = self.prefix + self.task_name
         outputs = squeeze_if_needed(loss_flow_data.outputs[key])
         precondition = loss_flow_data.outputs.get(f'precondition|{key}', None)
@@ -74,12 +83,18 @@ class TaskLossDecorator(nn.Module):
         n = len(outputs)
         loss_items = torch.zeros(n, dtype=outputs.dtype, device=outputs.device)
         if precondition is None:
-            return squeeze_if_needed(self.loss(outputs, targets))
+            return is_callback_invoked, squeeze_if_needed(self.loss(outputs, targets))
         if precondition.sum() == 0:
-            return squeeze_if_needed(loss_items)
+            return is_callback_invoked, squeeze_if_needed(loss_items)
         precondition = squeeze_if_needed(precondition)
         loss_items[precondition] = squeeze_if_needed(self.loss(outputs[precondition], targets[precondition]))
-        return loss_items
+        return is_callback_invoked, loss_items
+
+
+def any_value(outputs):
+    for key, value in outputs.items():
+        if not key.startswith('precondition'):
+            return value
 
 
 class TaskFlowLoss(nn.Module):
@@ -110,7 +125,7 @@ class TaskFlowLoss(nn.Module):
             outputs = loss_flow_data.outputs
             targets = loss_flow_data.targets
 
-        value = self.__any_value(outputs)
+        value = any_value(outputs)
         n = len(value)
         loss_items = torch.zeros(n, dtype=value.dtype, device=value.device)
         flow_result = self.flow(self, LossFlowData(outputs, targets), LossItems(loss_items))
@@ -123,7 +138,13 @@ class TaskFlowLoss(nn.Module):
 
         return flow_result.loss_items
 
-    def __any_value(self, outputs):
-        for key, value in outputs.items():
-            if not key.startswith('precondition'):
-                return value
+    def get_leaf_losses(self):
+        all_losses = []
+        for key, task in self._task_flow.tasks.items():
+            child_loss = getattr(self, key)
+            if task.has_children():
+                all_losses += child_loss.get_leaf_losses()
+            else:
+                all_losses.append(child_loss)
+        return all_losses
+
