@@ -81,7 +81,7 @@ class FlowDatasetDict:
                 continue
             inputs, targets = value
             # TODO: multi input processing
-            X['features'] = inputs
+            X['inputs'] = inputs
             y[key] = targets
         return X, y
 

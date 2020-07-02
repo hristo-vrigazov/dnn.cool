@@ -1,3 +1,4 @@
+from abc import ABC
 from typing import Iterable, Dict, Optional
 
 from torch import nn
@@ -145,9 +146,6 @@ class BinaryHardcodedTask(Task):
         return Identity()
 
     def activation(self) -> Optional[nn.Module]:
-        return None
-
-    def loss(self, *args, **kwargs):
         return None
 
 

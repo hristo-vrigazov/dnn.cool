@@ -3,7 +3,7 @@ from typing import Dict
 import pytest
 import torch
 from torch import nn
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, TensorDataset
 
 from dnn_cool.datasets import FlowDataset
 from dnn_cool.modules import Identity
@@ -89,7 +89,6 @@ def carsbg():
 
 @pytest.fixture(scope='package')
 def yolo_anchor():
-
     class YoloAnchorFlow(TaskFlow):
 
         def __init__(self):
@@ -151,7 +150,6 @@ def nested_carsbg(carsbg):
 
 @pytest.fixture(scope='package')
 def simple_linear_pair():
-
     class SimpleConditionalFlow(TaskFlow):
 
         def __init__(self, tasks):
@@ -193,7 +191,6 @@ def simple_linear_pair():
 
 @pytest.fixture(scope='package')
 def simple_nesting_linear_pair():
-
     class PositiveFlow(TaskFlow):
 
         def __init__(self, tasks):
@@ -230,7 +227,7 @@ def simple_nesting_linear_pair():
     class IsPositiveDataset(Dataset):
 
         def __getitem__(self, item):
-            X_raw = Xs[item:item+1]
+            X_raw = Xs[item:item + 1]
             return X_raw, (X_raw > 0.5).float()
 
         def __len__(self):
@@ -247,7 +244,7 @@ def simple_nesting_linear_pair():
     class PositiveFuncDataset(Dataset):
 
         def __getitem__(self, item):
-            X_raw = Xs[item: item+1]
+            X_raw = Xs[item: item + 1]
             return X_raw, X_raw * 2
 
         def __len__(self):
@@ -265,7 +262,7 @@ def simple_nesting_linear_pair():
     class NegativeFuncDataset(Dataset):
 
         def __getitem__(self, item):
-            X_raw = Xs[item: item+1]
+            X_raw = Xs[item: item + 1]
             return X_raw, X_raw * -11
 
         def __len__(self):
@@ -340,48 +337,6 @@ class DummyDataset(Dataset):
         return 2 ** 10
 
 
-class NestedDummyDataset(Dataset):
-    """
-    The function is the following:
-    2 * x,  if x > 0
-    -11 * x, else
-    """
-
-    def __getitem__(self, item):
-        X_raw = torch.randn(1).float()
-        X = {
-            'features': X_raw,
-            'gt': {
-                'is_positive': (X_raw > 0).bool(),
-                'positive_flow.is_positive': (X_raw > 0).bool(),
-                'negative_flow.is_positive': (X_raw > 0).bool()
-            }
-        }
-
-        if (X_raw > 0).item():
-            return X, {
-                'is_positive': (X_raw > 0).float(),
-                'positive_flow.is_positive': (X_raw > 0).float(),
-                'positive_flow.positive_func': X_raw * 2,
-                'positive_flow.negative_func': torch.zeros_like(X_raw),
-                'negative_flow.is_positive': (X_raw > 0).float(),
-                'negative_flow.positive_func': torch.zeros_like(X_raw).float(),
-                'negative_flow.negative_func': X_raw * -11,
-            }
-        return X, {
-            'is_positive': (X_raw > 0).float(),
-            'positive_flow.is_positive': (X_raw > 0).float(),
-            'positive_flow.positive_func': torch.zeros_like(X_raw),
-            'positive_flow.negative_func': torch.zeros_like(X_raw),
-            'negative_flow.is_positive': (X_raw > 0).float(),
-            'negative_flow.positive_func': torch.zeros_like(X_raw).float(),
-            'negative_flow.negative_func': X_raw * -11,
-        }
-
-    def __len__(self):
-        return 2 ** 10
-
-
 @pytest.fixture()
 def loaders():
     train_dataset = DummyDataset()
@@ -392,3 +347,125 @@ def loaders():
         'train': train_loader,
         'valid': val_loader
     }
+
+
+@pytest.fixture(scope='package')
+def interior_car_task():
+    n = 2 ** 10
+    n_features = 128
+
+    # Generate ground truth
+    camera_blocked = torch.randn(n).float() > 0.
+    passenger_seat_empty = torch.randn(n).float() > -0.3
+    driver_seat_empty = torch.randn(n).float() > 0.3
+
+    driver_has_seatbelt = torch.randn(n).float() > 0.
+    # 0 - police, 1 - doctor, 2 - civilian
+    driver_uniform_type = torch.randint(low=0, high=3, size=(n,)).long()
+    passenger_uniform_type = torch.randint(low=0, high=3, size=(n,)).long()
+
+    inputs = torch.stack((camera_blocked.float(),
+                          passenger_seat_empty.float(),
+                          driver_seat_empty.float(),
+                          driver_has_seatbelt.float(),
+                          driver_uniform_type.float() * 3.,
+                          passenger_uniform_type.float() * 7.), dim=1)
+
+    class BinaryThresholdedTask(BinaryClassificationTask):
+
+        def __init__(self, name, labels):
+            super().__init__(name, module_options={'in_features': 128})
+            self.labels = labels
+
+        def datasets(self, **kwargs) -> Dataset:
+            return TensorDataset(inputs, self.labels)
+
+    class DummyClassificationTask(ClassificationTask):
+
+        def __init__(self, name: str, labels):
+            super().__init__(name, module_options={
+                'in_features': n_features,
+                'out_features': 3,
+                'bias': True
+            })
+            self.inputs = inputs
+            self.labels = labels
+
+        def datasets(self, **kwargs) -> Dataset:
+            return TensorDataset(inputs, self.labels)
+
+    camera_blocked_task = BinaryThresholdedTask('camera_blocked', camera_blocked.float())
+    driver_seat_empty_task = BinaryThresholdedTask('driver_seat_empty', driver_seat_empty.float())
+    passenger_seat_empty_task = BinaryThresholdedTask('passenger_seat_empty', passenger_seat_empty.float())
+    driver_has_seatbelt_task = BinaryThresholdedTask('driver_has_seatbelt', driver_has_seatbelt.float())
+    driver_uniform_type_task = DummyClassificationTask('driver_uniform_type', driver_uniform_type.long())
+    passenger_uniform_type_task = DummyClassificationTask('passenger_uniform_type', passenger_uniform_type.long())
+
+    class DriverFlow(TaskFlow):
+
+        def __init__(self):
+            super().__init__('driver_flow', [driver_seat_empty_task,
+                                             driver_has_seatbelt_task,
+                                             driver_uniform_type_task])
+
+        def flow(self, x, out):
+            out += self.driver_seat_empty(x.driver_features)
+            out += self.driver_has_seatbelt(x.driver_features) | (~out.driver_seat_empty)
+            out += self.driver_uniform_type(x.driver_features) | (~out.driver_seat_empty)
+            return out
+
+    driver_flow = DriverFlow()
+
+    class PassengerFlow(TaskFlow):
+
+        def __init__(self):
+            super().__init__('passenger_flow', [passenger_seat_empty_task, passenger_uniform_type_task])
+
+        def flow(self, x, out):
+            out += self.passenger_seat_empty(x.passenger_features)
+            out += self.passenger_uniform_type(x.passenger_features) | out.passenger_seat_empty
+            return out
+
+    passenger_flow = PassengerFlow()
+
+    class FullFlow(TaskFlow):
+
+        def __init__(self):
+            super().__init__('full_flow', [camera_blocked_task, driver_flow, passenger_flow])
+
+        def flow(self, x, out):
+            out += self.camera_blocked(x.features)
+            out += self.driver_flow(x) | (~out.camera_blocked)
+            out += self.passenger_flow(x) | (~out.camera_blocked)
+            return out
+
+    flow = FullFlow()
+
+    class InteriorMonitorModule(nn.Module):
+
+        def __init__(self):
+            super().__init__()
+            self.seq = nn.Sequential(
+                nn.Linear(6, 64, bias=True),
+                nn.ReLU(inplace=True),
+                nn.Linear(64, 64, bias=True),
+                nn.ReLU(inplace=True),
+            )
+            self.driver_features_fc = nn.Linear(64, n_features, bias=True)
+            self.passenger_features_fc = nn.Linear(64, n_features, bias=True)
+            self.features_fc = nn.Linear(64, n_features, bias=True)
+
+            self.flow_module = flow.torch()
+
+        def forward(self, x):
+            common = self.seq(x['inputs'])
+
+            res = {
+                'driver_features': self.driver_features_fc(common),
+                'passenger_features': self.passenger_features_fc(common),
+                'features': self.features_fc(common),
+                'gt': x['gt']
+            }
+            return self.flow_module(res)
+
+    return InteriorMonitorModule(), flow

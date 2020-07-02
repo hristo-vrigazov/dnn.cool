@@ -68,7 +68,7 @@ class TaskLossDecorator(nn.Module):
     def read_vectors(self, args, kwargs):
         loss_flow_data = get_flow_data(*args, **kwargs)
         key = self.prefix + self.task_name
-        outputs = loss_flow_data.outputs[key]
+        outputs = squeeze_if_needed(loss_flow_data.outputs[key])
         precondition = loss_flow_data.outputs.get(f'precondition|{key}', None)
         targets = loss_flow_data.targets[key]
         n = len(outputs)

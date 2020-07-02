@@ -1,7 +1,8 @@
 # dnn.cool
 
-Task:
 
+
+TODO:
 
 - [x] Generate a `nn.Module` with `train` mode, which works correctly.
 - [x] Generate a `nn.Module` with `eval` mode, which works correctly.
@@ -59,3 +60,6 @@ Task:
 - [ ] Documentation
 - [ ] Create a helper class for creating tasks (by trying to guess task type)
 - [ ] Think of useful methods
+- [ ] Think of a better way to organize labels
+- [ ] Add the possibility to predict given the precondition is true (very useful for evaluation)
+- [ ] Test with very weird cases
