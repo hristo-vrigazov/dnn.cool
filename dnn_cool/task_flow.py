@@ -7,6 +7,7 @@ from torch.utils.data import Dataset
 from dnn_cool.datasets import FlowDataset
 from dnn_cool.losses import TaskFlowLoss
 from dnn_cool.modules import SigmoidAndMSELoss, Identity, NestedFC, TaskFlowModule
+from functools import partial
 
 
 class Result:
@@ -136,6 +137,9 @@ class Task:
     def datasets(self, **kwargs) -> Dataset:
         raise NotImplementedError()
 
+    def metrics(self):
+        return []
+
 
 class BinaryHardcodedTask(Task):
 
@@ -178,10 +182,20 @@ class BinaryClassificationTask(Task):
         return self.decode
 
     def decode(self, x):
-        return (x > 0.5).squeeze(dim=1)
+        return x > 0.5
 
     def loss(self, *args, **kwargs):
         return nn.BCEWithLogitsLoss(*args, **kwargs)
+
+    def metrics(self):
+        from catalyst.utils.metrics import accuracy
+
+        def single_result_accuracy(outputs, targets, threshold=0.5, activation='Sigmoid'):
+            return accuracy(outputs, targets, threshold=threshold, activation=activation)[0]
+
+        return [
+            ('acc_0.5', partial(single_result_accuracy, threshold=0.5, activation='Sigmoid'))
+        ]
 
 
 class ClassificationTask(Task):

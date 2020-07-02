@@ -1,3 +1,5 @@
+from copy import copy
+
 import torch
 from torch import nn
 
@@ -66,28 +68,35 @@ class TaskLossDecorator(nn.Module):
         self.prefix = prefix
         self.loss = task.loss(reduction=child_reduction)
 
+        self.mode = 'loss'
+        self.metric = None
+
     def forward(self, *args, **kwargs):
-        is_callback_invoked, loss_items = self.read_vectors(args, kwargs)
+        is_callback_invoked, loss_flow_data = get_flow_data(*args, **kwargs)
+        func = self.loss if self.mode == 'loss' else self.metric
+        is_callback_invoked, loss_items = self.read_vectors(is_callback_invoked, loss_flow_data, func)
 
         if is_callback_invoked:
             return loss_items.mean()
 
         return LossItems(loss_items)
 
-    def read_vectors(self, args, kwargs):
-        is_callback_invoked, loss_flow_data = get_flow_data(*args, **kwargs)
+    def read_vectors(self, is_callback_invoked, loss_flow_data, metric):
         key = self.prefix + self.task_name
-        outputs = squeeze_if_needed(loss_flow_data.outputs[key])
+        outputs = loss_flow_data.outputs[key]
         precondition = loss_flow_data.outputs.get(f'precondition|{key}', None)
         targets = loss_flow_data.targets[key]
         n = len(outputs)
-        loss_items = torch.zeros(n, dtype=outputs.dtype, device=outputs.device)
+        loss_items = torch.zeros(n, 1, dtype=outputs.dtype, device=outputs.device)
         if precondition is None:
-            return is_callback_invoked, squeeze_if_needed(self.loss(outputs, targets))
+            return is_callback_invoked, metric(outputs, targets)
         if precondition.sum() == 0:
-            return is_callback_invoked, squeeze_if_needed(loss_items)
+            return is_callback_invoked, loss_items
         precondition = squeeze_if_needed(precondition)
-        loss_items[precondition] = squeeze_if_needed(self.loss(outputs[precondition], targets[precondition]))
+        metric_res = metric(outputs[precondition], targets[precondition])
+        if len(metric_res.shape) == 1:
+            metric_res = metric_res.unsqueeze(dim=1)
+        loss_items[precondition] = metric_res
         return is_callback_invoked, loss_items
 
 
@@ -127,7 +136,7 @@ class TaskFlowLoss(nn.Module):
 
         value = any_value(outputs)
         n = len(value)
-        loss_items = torch.zeros(n, dtype=value.dtype, device=value.device)
+        loss_items = torch.zeros(n, 1, dtype=value.dtype, device=value.device)
         flow_result = self.flow(self, LossFlowData(outputs, targets), LossItems(loss_items))
 
         if not is_root:
@@ -148,11 +157,27 @@ class TaskFlowLoss(nn.Module):
                 all_losses.append(child_loss)
         return all_losses
 
+    def get_metrics(self):
+        all_metrics = []
+        for key, task in self._task_flow.tasks.items():
+            child_loss = copy(getattr(self, key))
+            for metric_name, metric in task.metrics():
+                child_loss.metric = metric
+                child_loss.mode = 'metric'
+                if task.has_children():
+                    all_metrics += child_loss.get_metrics()
+                else:
+                    all_metrics.append((metric_name, child_loss))
+        return all_metrics
+
     def catalyst_callbacks(self):
         from catalyst.core import MetricCallback
-        leaf_losses = self.get_leaf_losses()
         callbacks = []
-        for leaf_loss in leaf_losses:
+        for leaf_loss in self.get_leaf_losses():
             callbacks.append(MetricCallback(f'loss_{leaf_loss.prefix}{leaf_loss.task_name}', leaf_loss))
+        for metric_name, metric in self.get_metrics():
+            callbacks.append(MetricCallback(f'{metric_name}_{metric.prefix}{metric.task_name}', metric))
         return callbacks
+
+
 

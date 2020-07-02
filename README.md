@@ -10,7 +10,7 @@ TODO:
 - [ ] Overall evaluation information
 - [ ] Per-task result interpretation
 - [ ] Overall interpretation
-- [ ] Per-task loss function `nn.Module`s
+- [x] Per-task loss function `nn.Module`s
 - [x] Overall loss function as `nn.Module`
 - [ ] Per-task metrics
 - [ ] Overall metrics
@@ -63,3 +63,4 @@ TODO:
 - [ ] Think of a better way to organize labels
 - [ ] Add the possibility to predict given the precondition is true (very useful for evaluation)
 - [ ] Test with very weird cases
+- [ ] Receptive field slicing

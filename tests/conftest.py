@@ -177,7 +177,7 @@ def interior_car_task():
             self.labels = labels
 
         def datasets(self, **kwargs) -> Dataset:
-            return TensorDataset(inputs, self.labels)
+            return TensorDataset(inputs, self.labels.unsqueeze(dim=1))
 
     class DummyClassificationTask(ClassificationTask):
 
