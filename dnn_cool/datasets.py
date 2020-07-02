@@ -40,13 +40,50 @@ class FlowDatasetDict:
         self.data = data
 
     def __add__(self, other):
-        self.data.update(other.data)
+        for key, value in other.data.items():
+            if key == 'gt':
+                if not ('gt' in self.data):
+                    self.data['gt'] = {}
+                self.data['gt'].update(other.data['gt'])
+            else:
+                self.data[key] = value
         return self
 
     def __getattr__(self, item):
         return FlowDatasetDict(self.prefix, {
-            item: self.data[self.prefix + item]
+            'key': self.prefix + item,
+            'precondition': self.data[self.prefix + item]
         })
+
+    def __or__(self, other):
+        gt_dict = {}
+        X, y = other.data['precondition']
+        gt_dict[other.data['key']] = y.bool()
+        if not ('gt' in self.data):
+            self.data['gt'] = {}
+        self.data['gt'].update(gt_dict)
+        return self
+
+    def __invert__(self):
+        X, y = self.data['precondition']
+        new_data = {
+            'key': self.data['key'],
+            'precondition': (X, y.bool())
+        }
+        return FlowDatasetDict(self.prefix, new_data)
+
+    def to_input_target(self):
+        X = {}
+        y = {}
+        for key, value in self.data.items():
+            if key == 'gt':
+                X[key] = value
+                continue
+            inputs, targets = value
+            # TODO: multi input processing
+            X['features'] = inputs
+            y[key] = targets
+        return X, y
 
 
 class FlowDataset(Dataset):
@@ -70,7 +107,7 @@ class FlowDataset(Dataset):
 
     def __getitem__(self, item):
         flow_dataset_dict = self.flow(self, IndexHolder(item), FlowDatasetDict(self.prefix, {}))
-        print(flow_dataset_dict)
+        return flow_dataset_dict.to_input_target()
 
     def __len__(self):
         return self.n

@@ -53,3 +53,5 @@ Task:
 - [ ] Think how suitable it would be to use scoping
 - [x] Fix bug with the results seem weird
 - [ ] Optimize inputs (so that it is not read multiple times)
+- [ ] Make good tests for cascading preconditions (especially for datasets).
+- [ ] Make sure immutability of objects is preserved

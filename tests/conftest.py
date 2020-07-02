@@ -204,9 +204,6 @@ def simple_nesting_linear_pair():
             out += self.positive_func(x.features) | out.is_positive
             return out
 
-        def datasets(self) -> Dataset:
-            pass
-
     class NegativeFlow(TaskFlow):
 
         def __init__(self, tasks):
@@ -216,9 +213,6 @@ def simple_nesting_linear_pair():
             out += self.is_positive(x.features)
             out += self.negative_func(x.features) | (~out.is_positive)
             return out
-
-        def datasets(self) -> Dataset:
-            pass
 
     class SimpleConditionalFlow(TaskFlow):
 
@@ -236,8 +230,8 @@ def simple_nesting_linear_pair():
     class IsPositiveDataset(Dataset):
 
         def __getitem__(self, item):
-            X_raw = Xs[item]
-            return X_raw, X_raw > 0.5
+            X_raw = Xs[item:item+1]
+            return X_raw, (X_raw > 0.5).float()
 
         def __len__(self):
             return len(Xs)
@@ -253,7 +247,7 @@ def simple_nesting_linear_pair():
     class PositiveFuncDataset(Dataset):
 
         def __getitem__(self, item):
-            X_raw = Xs[item]
+            X_raw = Xs[item: item+1]
             return X_raw, X_raw * 2
 
         def __len__(self):
@@ -271,7 +265,7 @@ def simple_nesting_linear_pair():
     class NegativeFuncDataset(Dataset):
 
         def __getitem__(self, item):
-            X_raw = Xs[item]
+            X_raw = Xs[item: item+1]
             return X_raw, X_raw * -11
 
         def __len__(self):
