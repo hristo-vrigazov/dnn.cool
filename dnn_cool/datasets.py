@@ -18,9 +18,10 @@ class FlowDatasetDecorator:
 
     def __call__(self, *args, **kwargs):
         index_holder = discover_index_holder(*args, **kwargs)
-        print(index_holder)
         key = self.prefix + self.task_name
-        return FlowDatasetDict(self.dataset[index_holder.item])
+        return FlowDatasetDict(self.prefix, {
+            key: self.dataset[index_holder.item]
+        })
 
 
 class IndexHolder:
@@ -34,8 +35,18 @@ class IndexHolder:
 
 class FlowDatasetDict:
 
-    def __init__(self, data):
+    def __init__(self, prefix, data):
+        self.prefix = prefix
         self.data = data
+
+    def __add__(self, other):
+        self.data.update(other.data)
+        return self
+
+    def __getattr__(self, item):
+        return FlowDatasetDict(self.prefix, {
+            item: self.data[self.prefix + item]
+        })
 
 
 class FlowDataset(Dataset):
@@ -51,14 +62,19 @@ class FlowDataset(Dataset):
         for key, task in task_flow.tasks.items():
             if not task.has_children():
                 instance = FlowDatasetDecorator(task, prefix)
+                self.n = len(instance.dataset)
             else:
                 instance = FlowDataset(task, prefix=f'{prefix}{task.get_name()}.')
             setattr(self, key, instance)
-
-            self.n = len(instance.dataset)
+        self.prefix = prefix
 
     def __getitem__(self, item):
-        flow_dataset_dict = self.flow(self, IndexHolder(item), FlowDatasetDict({}))
+        flow_dataset_dict = self.flow(self, IndexHolder(item), FlowDatasetDict(self.prefix, {}))
+        print(flow_dataset_dict)
 
     def __len__(self):
         return self.n
+
+    def __call__(self, *args, **kwargs):
+        index_holder = discover_index_holder(*args, **kwargs)
+        return self.flow(self, index_holder, FlowDatasetDict(self.prefix, {}))

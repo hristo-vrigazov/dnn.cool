@@ -239,6 +239,9 @@ def simple_nesting_linear_pair():
             X_raw = Xs[item]
             return X_raw, X_raw > 0.5
 
+        def __len__(self):
+            return len(Xs)
+
     class IsPositiveTask(BinaryClassificationTask):
 
         def __init__(self):
@@ -252,6 +255,9 @@ def simple_nesting_linear_pair():
         def __getitem__(self, item):
             X_raw = Xs[item]
             return X_raw, X_raw * 2
+
+        def __len__(self):
+            return len(Xs)
 
     class PositiveFuncTask(RegressionTask):
 
@@ -267,6 +273,9 @@ def simple_nesting_linear_pair():
         def __getitem__(self, item):
             X_raw = Xs[item]
             return X_raw, X_raw * -11
+
+        def __len__(self):
+            return len(Xs)
 
     class NegativeFuncTask(RegressionTask):
 
