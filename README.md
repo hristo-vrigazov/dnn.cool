@@ -64,3 +64,6 @@ TODO:
 - [ ] Add the possibility to predict given the precondition is true (very useful for evaluation)
 - [ ] Test with very weird cases
 - [ ] Receptive field slicing
+- [ ] Proper handling of multimetrics (not adding them one by one).
+- [ ] Debug why metrics are wrong
+

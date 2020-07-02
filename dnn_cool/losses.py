@@ -94,6 +94,8 @@ class TaskLossDecorator(nn.Module):
             return is_callback_invoked, loss_items
         precondition = squeeze_if_needed(precondition)
         metric_res = metric(outputs[precondition], targets[precondition])
+        if self.mode == 'metric':
+            return is_callback_invoked, metric_res
         if len(metric_res.shape) == 1:
             metric_res = metric_res.unsqueeze(dim=1)
         loss_items[precondition] = metric_res
@@ -162,11 +164,11 @@ class TaskFlowLoss(nn.Module):
         for key, task in self._task_flow.tasks.items():
             child_loss = copy(getattr(self, key))
             for metric_name, metric in task.metrics():
-                child_loss.metric = metric
-                child_loss.mode = 'metric'
                 if task.has_children():
                     all_metrics += child_loss.get_metrics()
                 else:
+                    child_loss.metric = metric
+                    child_loss.mode = 'metric'
                     all_metrics.append((metric_name, child_loss))
         return all_metrics
 

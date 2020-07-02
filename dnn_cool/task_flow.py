@@ -220,6 +220,17 @@ class ClassificationTask(Task):
     def loss(self, *args, **kwargs):
         return nn.CrossEntropyLoss(*args, **kwargs)
 
+    def metrics(self):
+        from catalyst.utils.metrics import accuracy
+
+        def single_result_accuracy(outputs, targets, **kwargs):
+            return accuracy(outputs, targets, **kwargs)[0]
+
+        return [
+            ('top_1_acc', partial(single_result_accuracy, topk=(1,), activation='Softmax')),
+            ('top_3_acc', partial(single_result_accuracy, topk=(3,), activation='Softmax')),
+        ]
+
 
 class RegressionTask(Task):
 
@@ -298,3 +309,9 @@ class TaskFlow(Task):
 
     def flow(self, x, out):
         raise NotImplementedError()
+
+    def metrics(self):
+        all_metrics = []
+        for task in self.tasks.values():
+            all_metrics += task.metrics()
+        return all_metrics
