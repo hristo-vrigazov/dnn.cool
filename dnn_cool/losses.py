@@ -60,28 +60,24 @@ def squeeze_if_needed(tensor):
     return tensor
 
 
-class TaskLossDecorator(nn.Module):
+class BaseMetricDecorator(nn.Module):
 
-    def __init__(self, task, child_reduction, prefix):
+    def __init__(self, task, prefix, metric):
         super().__init__()
         self.task_name = task.get_name()
         self.prefix = prefix
-        self.loss = task.loss(reduction=child_reduction)
-
-        self.mode = 'loss'
-        self.metric = None
+        self.metric = metric
 
     def forward(self, *args, **kwargs):
         is_callback_invoked, loss_flow_data = get_flow_data(*args, **kwargs)
-        func = self.loss if self.mode == 'loss' else self.metric
-        is_callback_invoked, loss_items = self.read_vectors(is_callback_invoked, loss_flow_data, func)
+        loss_items = self.read_vectors(loss_flow_data, self.metric)
 
         if is_callback_invoked:
             return loss_items.mean()
 
         return LossItems(loss_items)
 
-    def read_vectors(self, is_callback_invoked, loss_flow_data, metric):
+    def read_vectors(self, loss_flow_data, metric):
         key = self.prefix + self.task_name
         outputs = loss_flow_data.outputs[key]
         precondition = loss_flow_data.outputs.get(f'precondition|{key}', None)
@@ -89,17 +85,36 @@ class TaskLossDecorator(nn.Module):
         n = len(outputs)
         loss_items = torch.zeros(n, 1, dtype=outputs.dtype, device=outputs.device)
         if precondition is None:
-            return is_callback_invoked, metric(outputs, targets)
+            return metric(outputs, targets)
         if precondition.sum() == 0:
-            return is_callback_invoked, loss_items
+            return loss_items
         precondition = squeeze_if_needed(precondition)
         metric_res = metric(outputs[precondition], targets[precondition])
-        if self.mode == 'metric':
-            return is_callback_invoked, metric_res
+        return self.postprocess_results(loss_items, metric_res, precondition)
+
+    def postprocess_results(self, loss_items, metric_res, precondition):
+        raise NotImplementedError()
+
+
+class TaskLossDecorator(BaseMetricDecorator):
+
+    def __init__(self, task, child_reduction, prefix):
+        super().__init__(task, prefix, task.loss(reduction=child_reduction))
+
+    def postprocess_results(self, loss_items, metric_res, precondition):
         if len(metric_res.shape) == 1:
             metric_res = metric_res.unsqueeze(dim=1)
         loss_items[precondition] = metric_res
-        return is_callback_invoked, loss_items
+        return loss_items
+
+
+class MetricLossDecorator(BaseMetricDecorator):
+
+    def __init__(self, task, prefix, metric):
+        super().__init__(task, prefix, metric)
+
+    def postprocess_results(self, loss_items, metric_res, precondition):
+        return metric_res
 
 
 def any_value(outputs):
@@ -162,14 +177,13 @@ class TaskFlowLoss(nn.Module):
     def get_metrics(self):
         all_metrics = []
         for key, task in self._task_flow.tasks.items():
-            child_loss = copy(getattr(self, key))
+            child_loss = getattr(self, key)
             for metric_name, metric in task.metrics():
                 if task.has_children():
                     all_metrics += child_loss.get_metrics()
                 else:
-                    child_loss.metric = metric
-                    child_loss.mode = 'metric'
-                    all_metrics.append((metric_name, child_loss))
+                    metric_decorator = MetricLossDecorator(task, child_loss.prefix, metric)
+                    all_metrics.append((metric_name, metric_decorator))
         return all_metrics
 
     def catalyst_callbacks(self):
