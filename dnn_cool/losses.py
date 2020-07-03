@@ -99,7 +99,7 @@ class BaseMetricDecorator(nn.Module):
 class TaskLossDecorator(BaseMetricDecorator):
 
     def __init__(self, task, child_reduction, prefix):
-        super().__init__(task, prefix, task.loss(reduction=child_reduction))
+        super().__init__(task, prefix, task.get_loss(reduction=child_reduction))
 
     def postprocess_results(self, loss_items, metric_res, precondition):
         if len(metric_res.shape) == 1:
@@ -178,7 +178,7 @@ class TaskFlowLoss(nn.Module):
         all_metrics = []
         for key, task in self._task_flow.tasks.items():
             child_loss = getattr(self, key)
-            for metric_name, metric in task.metrics():
+            for metric_name, metric in task.get_metrics():
                 if task.has_children():
                     all_metrics += child_loss.get_metrics()
                 else:

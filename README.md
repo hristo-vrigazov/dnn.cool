@@ -72,3 +72,8 @@ TODO:
 - [ ] Augmentations helper
 - [ ] Incremental re-run
 - [ ] Support for classification special case handling.
+- [ ] Add and implement nice default metrics for different tasks.
+- [ ] Think of default values for different tasks.
+- [ ] Add per sample activation
+- [ ] Spend time thinking about user-friendliness of each class (think about what mistakes would people do?).
+- [ ] Good tests about possible gt leak

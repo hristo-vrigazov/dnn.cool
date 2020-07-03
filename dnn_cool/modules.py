@@ -91,8 +91,8 @@ class FlowDictDecorator(nn.Module):
         super().__init__()
         self.key = task.get_name()
         self.module = task.torch()
-        self.activation = task.activation()
-        self.decoder = task.decoder()
+        self.activation = task.get_activation()
+        self.decoder = task.get_decoder()
 
     def forward(self, *args, **kwargs):
         if self.training:

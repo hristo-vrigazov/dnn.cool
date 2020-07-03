@@ -1,11 +1,13 @@
 from abc import ABC
-from typing import Iterable, Dict, Optional
+from typing import Iterable, Dict, Optional, Callable, List, Tuple
 
 from torch import nn
 from torch.utils.data import Dataset
 
 from dnn_cool.datasets import FlowDataset
+from dnn_cool.decoders import threshold_binary, sort_declining
 from dnn_cool.losses import TaskFlowLoss
+from dnn_cool.metrics import single_result_accuracy
 from dnn_cool.modules import SigmoidAndMSELoss, Identity, NestedFC, TaskFlowModule
 from functools import partial
 
@@ -96,11 +98,10 @@ class NestedResult(Result):
         pass
 
 
-class Task:
+class ITask:
 
-    def __init__(self, name: str, module_options: Optional[Dict] = None):
+    def __init__(self, name: str):
         self.name = name
-        self.module_options = module_options if module_options is not None else {}
 
     def __call__(self, *args, **kwargs) -> Result:
         return NestedResult(task=self, key=self.name, value=self.do_call(*args, **kwargs))
@@ -111,19 +112,16 @@ class Task:
     def get_name(self):
         return self.name
 
-    def activation(self) -> Optional[nn.Module]:
-        pass
+    def get_activation(self) -> Optional[nn.Module]:
+        return None
 
-    def decoder(self):
-        pass
-
-    def encoder(self):
-        pass
+    def get_decoder(self):
+        return None
 
     def has_children(self):
         return False
 
-    def loss(self, *args, **kwargs):
+    def get_loss(self, *args, **kwargs):
         raise NotImplementedError()
 
     def torch(self):
@@ -140,102 +138,143 @@ class Task:
     def get_labels(self, **kwargs):
         raise NotImplementedError()
 
-    def metrics(self):
+    def get_metrics(self):
         return []
+
+
+class Task(ITask):
+
+    def __init__(self,
+                 name: str,
+                 activation: Optional[nn.Module],
+                 decoder: Callable,
+                 loss: Callable,
+                 module: nn.Module,
+                 inputs: Dataset,
+                 labels: Dataset,
+                 metrics: List[Tuple[str, Callable]],
+                 tracer_callable: Optional[Callable] = None):
+        super().__init__(name)
+        self._activation = activation
+        self._decoder = decoder
+        self._loss = loss
+        self._module = module
+        self._inputs = inputs
+        self._labels = labels
+        self._metrics = metrics
+        self._tracer_callable = tracer_callable
+
+    def do_call(self, *args, **kwargs):
+        if self._tracer_callable is None:
+            return
+        return self._tracer_callable()
+
+    def get_activation(self) -> Optional[nn.Module]:
+        return self._activation
+
+    def get_decoder(self):
+        return self._decoder
+
+    def get_loss(self, *args, **kwargs):
+        return self._loss(*args, **kwargs)
+
+    def torch(self):
+        return self._module
+
+    def get_inputs(self, *args, **kwargs):
+        return self._inputs
+
+    def get_labels(self, **kwargs):
+        return self._labels
+
+    def get_metrics(self):
+        return self._metrics
 
 
 class BinaryHardcodedTask(Task):
 
-    def do_call(self, *args, **kwargs) -> BooleanResult:
-        return BooleanResult(self, *args, **kwargs)
+    def __init__(self,
+                 name: str,
+                 labels: Dataset,
+                 activation: Optional[nn.Module] = None,
+                 decoder: Callable = None,
+                 loss: Callable = None,
+                 module: nn.Module = Identity(),
+                 inputs: Dataset = None,
+                 metrics = ()):
+        super().__init__(name, activation, decoder, loss, module, inputs, labels, metrics)
 
-    def torch(self):
-        return Identity()
 
-    def activation(self) -> Optional[nn.Module]:
-        return None
+class BoundedRegressionTask(Task):
+    """
+    Represents a regression task, where the labels are normalized between 0 and 1. Examples include bounding box top left
+    corners regression. Here are the defaults:
+    * activation - `nn.Sigmoid()` - so that the output is in `[0, 1]`
+    * loss - `SigmoidAndMSELoss` - sigmoid on the logits, then standard mean squared error loss.
+    """
 
-
-class LocalizationTask(Task):
-    def do_call(self, *args, **kwargs):
-        return LocalizationResult(self, *args, **kwargs)
-
-    def torch(self) -> nn.Module:
-        return nn.Linear(self.module_options['in_features'], 4, self.module_options.get('bias', True))
-
-    def activation(self) -> nn.Module:
-        return nn.Sigmoid()
-
-    def loss(self, *args, **kwargs):
-        return SigmoidAndMSELoss(*args, **kwargs)
+    def __init__(self,
+                 name: str,
+                 module: nn.Module,
+                 labels: Dataset,
+                 activation: Optional[nn.Module] = nn.Sigmoid(),
+                 decoder: Callable = None,
+                 loss=SigmoidAndMSELoss,
+                 inputs=None,
+                 metrics = ()):
+        super().__init__(name, activation, decoder, loss, module, inputs, labels, metrics)
 
 
 class BinaryClassificationTask(Task):
+    """
+    Represents a normal binary classification task. Labels should be between 0 and 1.
+    * activation - `nn.Sigmoid()`
+    * loss - ``nn.BCEWithLogitsLoss()`
+    """
+
+    def __init__(self,
+                 name: str,
+                 module: nn.Module,
+                 labels: Dataset,
+                 activation: Optional[nn.Module] = nn.Sigmoid(),
+                 decoder: Callable = threshold_binary,
+                 loss=nn.BCEWithLogitsLoss,
+                 inputs: Dataset = None,
+                 metrics = (
+                         ('acc_0.5', partial(single_result_accuracy, threshold=0.5, activation='Sigmoid')),
+                 )):
+        super().__init__(name, activation, decoder, loss, module, inputs, labels, metrics)
 
     def do_call(self, *args, **kwargs) -> BooleanResult:
         return BooleanResult(self, *args, **kwargs)
 
-    def torch(self) -> nn.Module:
-        return nn.Linear(self.module_options['in_features'], 1, self.module_options.get('bias', True))
-
-    def activation(self) -> nn.Module:
-        return nn.Sigmoid()
-
-    def decoder(self):
-        return self.decode
-
-    def decode(self, x):
-        return x > 0.5
-
-    def loss(self, *args, **kwargs):
-        return nn.BCEWithLogitsLoss(*args, **kwargs)
-
-    def metrics(self):
-        from catalyst.utils.metrics import accuracy
-
-        def single_result_accuracy(outputs, targets, threshold=0.5, activation='Sigmoid'):
-            return accuracy(outputs, targets, threshold=threshold, activation=activation)[0]
-
-        return [
-            ('acc_0.5', partial(single_result_accuracy, threshold=0.5, activation='Sigmoid'))
-        ]
-
 
 class ClassificationTask(Task):
+    """
+    Represents a classification task. Labels should be integers from 0 to N-1, where N is the number of classes
+    * activation - `nn.Softmax(dim=-1)`
+    * loss - `nn.CrossEntropyLoss()`
+    """
+
+    def __init__(self,
+                 name: str,
+                 module: nn.Module,
+                 inputs: Dataset,
+                 labels: Dataset,
+                 activation=nn.Softmax(dim=-1),
+                 decoder=sort_declining,
+                 loss=nn.CrossEntropyLoss,
+                 metrics = (
+                         ('top_1_acc', partial(single_result_accuracy, topk=(1,), activation='Softmax')),
+                         ('top_3_acc', partial(single_result_accuracy, topk=(3,), activation='Softmax')),
+                 )):
+        super().__init__(name, activation, decoder, loss, module, inputs, labels, metrics)
 
     def do_call(self, *args, **kwargs):
         return ClassificationResult(self, *args, **kwargs)
 
-    def torch(self) -> nn.Module:
-        return nn.Linear(self.module_options['in_features'],
-                         self.module_options['out_features'],
-                         self.module_options.get('bias', True))
 
-    def activation(self) -> nn.Module:
-        return nn.Softmax(dim=-1)
-
-    def decoder(self):
-        return self.decode
-
-    def decode(self, x):
-        return (-x).argsort(dim=1)
-
-    def loss(self, *args, **kwargs):
-        return nn.CrossEntropyLoss(*args, **kwargs)
-
-    def metrics(self):
-        from catalyst.utils.metrics import accuracy
-
-        def single_result_accuracy(outputs, targets, **kwargs):
-            return accuracy(outputs, targets, **kwargs)[0]
-
-        return [
-            ('top_1_acc', partial(single_result_accuracy, topk=(1,), activation='Softmax')),
-            ('top_3_acc', partial(single_result_accuracy, topk=(3,), activation='Softmax')),
-        ]
-
-
-class RegressionTask(Task):
+class RegressionTask(ITask):
 
     def __init__(self, name: str, module_options, activation_func):
         super().__init__(name, module_options)
@@ -249,16 +288,16 @@ class RegressionTask(Task):
                          self.module_options.get('out_features', 1),
                          self.module_options.get('bias', True))
 
-    def activation(self) -> nn.Module:
+    def get_activation(self) -> nn.Module:
         return self.activation_func
 
-    def loss(self, *args, **kwargs):
+    def get_loss(self, *args, **kwargs):
         if isinstance(self.activation_func, nn.Sigmoid):
             return SigmoidAndMSELoss(*args, **kwargs)
         return nn.MSELoss(*args, **kwargs)
 
 
-class NestedClassificationTask(Task):
+class NestedClassificationTask(ITask):
 
     def __init__(self, name, top_k, module_options):
         super().__init__(name, module_options)
@@ -267,7 +306,7 @@ class NestedClassificationTask(Task):
     def do_call(self, *args, **kwargs):
         return NestedClassificationResult(self, *args, **kwargs)
 
-    def loss(self, *args, **kwargs):
+    def get_loss(self, *args, **kwargs):
         pass
 
     def torch(self):
@@ -277,9 +316,9 @@ class NestedClassificationTask(Task):
                         self.top_k)
 
 
-class TaskFlow(Task):
+class TaskFlow(ITask):
 
-    def __init__(self, name, tasks: Iterable[Task]):
+    def __init__(self, name, tasks: Iterable[ITask]):
         super().__init__(name)
         self.tasks = {}
         for task in tasks:
@@ -295,10 +334,10 @@ class TaskFlow(Task):
     def do_call(self, *args, **kwargs):
         return NestedResult(task=self)
 
-    def activation(self) -> Optional[nn.Module]:
+    def get_activation(self) -> Optional[nn.Module]:
         pass
 
-    def loss(self, **kwargs):
+    def get_loss(self, **kwargs):
         return TaskFlowLoss(self, **kwargs)
 
     def torch(self):
@@ -313,8 +352,8 @@ class TaskFlow(Task):
     def flow(self, x, out):
         raise NotImplementedError()
 
-    def metrics(self):
+    def get_metrics(self):
         all_metrics = []
         for task in self.tasks.values():
-            all_metrics += task.metrics()
+            all_metrics += task.get_metrics()
         return all_metrics

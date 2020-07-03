@@ -7,7 +7,7 @@ from torch.utils.data import Dataset, DataLoader, TensorDataset
 
 from dnn_cool.datasets import FlowDataset
 from dnn_cool.modules import Identity
-from dnn_cool.task_flow import BinaryClassificationTask, TaskFlow, BinaryHardcodedTask, LocalizationTask, \
+from dnn_cool.task_flow import BinaryClassificationTask, TaskFlow, BinaryHardcodedTask, BoundedRegressionTask, \
     ClassificationTask, RegressionTask, NestedClassificationTask, RegressionTask
 
 
@@ -40,8 +40,8 @@ def carsbg():
                 name='carsbg_flow',
                 tasks=[
                     BinaryHardcodedTask(name='sliced'),
-                    LocalizationTask(name='car_localization', module_options=base_options),
-                    LocalizationTask(name='license_plate_localization', module_options=base_options),
+                    BoundedRegressionTask(name='car_localization', module_options=base_options),
+                    BoundedRegressionTask(name='license_plate_localization', module_options=base_options),
                     IsCarTask(name='is_car', module_options=base_options),
                     BinaryClassificationTask(name='has_license_plate', module_options=base_options),
                     ClassificationTask(name='brand', module_options={
@@ -184,36 +184,26 @@ def interior_car_task():
         def __len__(self):
             return len(self.inputs)
 
-
-    class BinaryThresholdedTask(BinaryClassificationTask):
-
-        def __init__(self, name, labels):
-            super().__init__(name, module_options={'in_features': 128})
-            self.labels = labels
-
-        def get_labels(self, **kwargs):
-            return self.labels.unsqueeze(dim=1)
-
-    class DummyClassificationTask(ClassificationTask):
-
-        def __init__(self, name: str, labels):
-            super().__init__(name, module_options={
-                'in_features': n_features,
-                'out_features': 3,
-                'bias': True
-            })
-            self.inputs = inputs
-            self.labels = labels
-
-        def get_labels(self, **kwargs):
-            return self.labels
-
-    camera_blocked_task = BinaryThresholdedTask('camera_blocked', camera_blocked.float())
-    driver_seat_empty_task = BinaryThresholdedTask('driver_seat_empty', driver_seat_empty.float())
-    passenger_seat_empty_task = BinaryThresholdedTask('passenger_seat_empty', passenger_seat_empty.float())
-    driver_has_seatbelt_task = BinaryThresholdedTask('driver_has_seatbelt', driver_has_seatbelt.float())
-    driver_uniform_type_task = DummyClassificationTask('driver_uniform_type', driver_uniform_type.long())
-    passenger_uniform_type_task = DummyClassificationTask('passenger_uniform_type', passenger_uniform_type.long())
+    camera_blocked_task = BinaryClassificationTask('camera_blocked',
+                                                   nn.Linear(n_features, out_features=1),
+                                                   labels=camera_blocked.float().unsqueeze(dim=1))
+    driver_seat_empty_task = BinaryClassificationTask('driver_seat_empty',
+                                                      nn.Linear(n_features, 1),
+                                                      driver_seat_empty.float().unsqueeze(dim=1))
+    passenger_seat_empty_task = BinaryClassificationTask('passenger_seat_empty',
+                                                         nn.Linear(n_features, 1),
+                                                         passenger_seat_empty.float().unsqueeze(dim=1))
+    driver_has_seatbelt_task = BinaryClassificationTask('driver_has_seatbelt',
+                                                        nn.Linear(n_features, 1),
+                                                        driver_has_seatbelt.float().unsqueeze(dim=1))
+    driver_uniform_type_task = ClassificationTask('driver_uniform_type',
+                                                  nn.Linear(n_features, 3),
+                                                  inputs=TensorDataset(inputs),
+                                                  labels=driver_uniform_type.long())
+    passenger_uniform_type_task = ClassificationTask('passenger_uniform_type',
+                                                     nn.Linear(n_features, 3),
+                                                     inputs=TensorDataset(inputs),
+                                                     labels=passenger_uniform_type.long())
 
     class DriverFlow(TaskFlow):
 

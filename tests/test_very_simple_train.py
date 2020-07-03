@@ -23,7 +23,7 @@ def test_passenger_example(interior_car_task):
     print(model)
 
     runner = SupervisedRunner()
-    criterion = task_flow.loss(parent_reduction='mean', child_reduction='none')
+    criterion = task_flow.get_loss(parent_reduction='mean', child_reduction='none')
     callbacks = criterion.catalyst_callbacks()
 
     with tempfile.TemporaryDirectory() as tmp_dir:
