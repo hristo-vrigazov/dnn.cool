@@ -60,11 +60,11 @@ def test_train_flow_nested(nested_carsbg):
         'car': torch.ones(4, 2560).float(),
         'common': torch.ones(4, 2560).float(),
         'lp': torch.ones(4, 2560).float(),
-        'sliced': torch.tensor([True, False, True, False]).bool(),
+        'sliced': torch.tensor([True, False, True, False]).unsqueeze(dim=1).bool(),
         'gt': {
-            'is_car': torch.ones(4).bool(),
+            'is_car': torch.ones(4, 1).bool(),
             'brand': torch.zeros(4, 1).long(),
-            'has_lp': torch.tensor([True, True, True, False]).bool(),
+            'has_lp': torch.tensor([True, True, True, False]).unsqueeze(dim=1).bool(),
         }
     }
 

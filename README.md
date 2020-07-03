@@ -12,8 +12,8 @@ TODO:
 - [ ] Overall interpretation
 - [x] Per-task loss function `nn.Module`s
 - [x] Overall loss function as `nn.Module`
-- [ ] Per-task metrics
-- [ ] Overall metrics
+- [x] Per-task metrics
+- [x] Overall metrics
 - [ ] Predictions per task
 - [ ] Freeze-all but task feature (including Batch Norm) - may include parameter group
 - [ ] Set learning rate per task feature
@@ -65,5 +65,7 @@ TODO:
 - [ ] Test with very weird cases
 - [ ] Receptive field slicing
 - [ ] Proper handling of multimetrics (not adding them one by one).
-- [ ] Debug why metrics are wrong
+- [x] Debug why metrics are wrong
+- [ ] Refactor decorators
+
 
