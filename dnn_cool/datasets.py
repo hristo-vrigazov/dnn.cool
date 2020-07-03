@@ -14,13 +14,13 @@ class FlowDatasetDecorator:
     def __init__(self, task, prefix):
         self.task_name = task.get_name()
         self.prefix = prefix
-        self.dataset = task.datasets()
+        self.labels = task.get_labels()
 
     def __call__(self, *args, **kwargs):
         index_holder = discover_index_holder(*args, **kwargs)
         key = self.prefix + self.task_name
         return FlowDatasetDict(self.prefix, {
-            key: self.dataset[index_holder.item]
+            key: self.labels[index_holder.item]
         })
 
 
@@ -57,7 +57,7 @@ class FlowDatasetDict:
 
     def __or__(self, other):
         gt_dict = {}
-        X, y = other.data['precondition']
+        y = other.data['precondition']
         gt_dict[other.data['key']] = y.bool()
         if not ('gt' in self.data):
             self.data['gt'] = {}
@@ -65,25 +65,25 @@ class FlowDatasetDict:
         return self
 
     def __invert__(self):
-        X, y = self.data['precondition']
+        y = self.data['precondition']
         new_data = {
             'key': self.data['key'],
-            'precondition': (X, y.bool())
+            'precondition': (y.bool())
         }
         return FlowDatasetDict(self.prefix, new_data)
 
     def to_input_target(self):
-        X = {}
+        # X = {}
         y = {}
         for key, value in self.data.items():
             if key == 'gt':
-                X[key] = value
+                # X[key] = value
                 continue
-            inputs, targets = value
+            targets = value
             # TODO: multi input processing
-            X['inputs'] = inputs
+            # X['inputs'] = inputs
             y[key] = targets
-        return X, y
+        return y
 
 
 class FlowDataset(Dataset):
@@ -99,7 +99,7 @@ class FlowDataset(Dataset):
         for key, task in task_flow.tasks.items():
             if not task.has_children():
                 instance = FlowDatasetDecorator(task, prefix)
-                self.n = len(instance.dataset)
+                self.n = len(instance.labels)
             else:
                 instance = FlowDataset(task, prefix=f'{prefix}{task.get_name()}.')
             setattr(self, key, instance)

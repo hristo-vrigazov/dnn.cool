@@ -176,8 +176,8 @@ def interior_car_task():
             super().__init__(name, module_options={'in_features': 128})
             self.labels = labels
 
-        def datasets(self, **kwargs) -> Dataset:
-            return TensorDataset(inputs, self.labels.unsqueeze(dim=1))
+        def get_labels(self, **kwargs):
+            return self.labels.unsqueeze(dim=1)
 
     class DummyClassificationTask(ClassificationTask):
 
@@ -190,8 +190,8 @@ def interior_car_task():
             self.inputs = inputs
             self.labels = labels
 
-        def datasets(self, **kwargs) -> Dataset:
-            return TensorDataset(inputs, self.labels)
+        def get_labels(self, **kwargs):
+            return self.labels
 
     camera_blocked_task = BinaryThresholdedTask('camera_blocked', camera_blocked.float())
     driver_seat_empty_task = BinaryThresholdedTask('driver_seat_empty', driver_seat_empty.float())

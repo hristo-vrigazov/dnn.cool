@@ -9,7 +9,7 @@ from torch import optim
 def test_passenger_example(interior_car_task):
     model, task_flow = interior_car_task
 
-    datasets = task_flow.datasets()
+    datasets = task_flow.get_labels()
     # TODO: use train/test split
     train_dataset = datasets
     val_dataset = datasets

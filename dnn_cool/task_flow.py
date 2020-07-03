@@ -134,7 +134,7 @@ class Task:
         """
         raise NotImplementedError()
 
-    def datasets(self, **kwargs) -> Dataset:
+    def get_labels(self, **kwargs):
         raise NotImplementedError()
 
     def metrics(self):
@@ -304,7 +304,7 @@ class TaskFlow(Task):
     def has_children(self):
         return True
 
-    def datasets(self, **kwargs) -> Dataset:
+    def get_labels(self, **kwargs) -> Dataset:
         return FlowDataset(self, **kwargs)
 
     def flow(self, x, out):
