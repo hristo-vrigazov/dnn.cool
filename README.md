@@ -17,7 +17,8 @@ TODO:
 - [ ] Predictions per task
 - [ ] Freeze-all but task feature (including Batch Norm) - may include parameter group
 - [ ] Set learning rate per task feature
-- [ ] Callbacks per task (for metrics, loss function, additional metrics, samples, etc.)
+- [x] Callbacks per task (for metrics, loss function, additional metrics, samples, etc.)
+- [ ] Interpretation callback
 - [ ] Sample decoded results per task
 - [ ] Handles missing labels correctly.
 - [x] Concept of per-task activation/decoding.
@@ -36,7 +37,7 @@ TODO:
 - [ ] Predict only for those, for which precondition is correct.
 - [ ] Allow custom entries in the FlowDict
 - [ ] Add to latex option (automatically generate loss functions in latex)
-- [ ] Think of way to handle properly the or operator.
+- [x] Think of way to handle properly the or operator.
 - [ ] Implement YOLO for example
 - [ ] Add possibility to add weights based on masks
 - [x] Correct handling when multiple precondition masks are present
@@ -49,16 +50,16 @@ TODO:
 - [ ] Rethink reduction and variable names
 - [ ] Compute only when precondition is True (will require precomputing)
 - [ ] Pass around kwargs for flexibility
-- [ ] Nested loss functions check and test
+- [x] Nested loss functions check and test
 - [ ] Support multilabel classification problem
-- [ ] Think how suitable it would be to use scoping
+- [x] Think how suitable it would be to use scoping
 - [x] Fix bug with the results seem weird
-- [ ] Optimize inputs (so that it is not read multiple times)
-- [ ] Make good tests for cascading preconditions (especially for datasets).
+- [y] Optimize inputs (so that it is not read multiple times)
+- [x] Make good tests for cascading preconditions (especially for datasets).
 - [ ] Make sure immutability of objects is preserved
 - [x] Performance issues
 - [ ] Documentation
-- [ ] Create a helper class for creating tasks (by trying to guess task type)
+- [ ] Create a helper class for creating tasks (by trying to guess task type) - e.g ProjectHelper
 - [ ] Think of useful methods
 - [ ] Think of a better way to organize labels
 - [ ] Add the possibility to predict given the precondition is true (very useful for evaluation)
@@ -66,6 +67,5 @@ TODO:
 - [ ] Receptive field slicing
 - [ ] Proper handling of multimetrics (not adding them one by one).
 - [x] Debug why metrics are wrong
-- [ ] Refactor decorators
-
-
+- [x] Refactor decorators
+- [ ] Use train/test split in tests
