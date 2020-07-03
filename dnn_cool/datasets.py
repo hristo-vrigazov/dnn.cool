@@ -106,6 +106,11 @@ class FlowDataset(Dataset):
     def __getitem__(self, item):
         flow_dataset_dict = self.flow(self, IndexHolder(item), FlowDatasetDict(self.prefix, {}))
         X = self._task_flow.get_inputs()[item]
+        # X has to be a dict, because we have to attach gt.
+        if not isinstance(X, dict):
+            X = {
+                'inputs': X
+            }
         return flow_dataset_dict.to_dict(X)
 
     def __len__(self):

@@ -14,7 +14,7 @@ TODO:
 - [x] Overall loss function as `nn.Module`
 - [x] Per-task metrics
 - [x] Overall metrics
-- [ ] Predictions per task
+- [x] Predictions per task
 - [ ] Freeze-all but task feature (including Batch Norm) - may include parameter group
 - [ ] Set learning rate per task feature
 - [x] Callbacks per task (for metrics, loss function, additional metrics, samples, etc.)
@@ -54,7 +54,7 @@ TODO:
 - [ ] Support multilabel classification problem
 - [x] Think how suitable it would be to use scoping
 - [x] Fix bug with the results seem weird
-- [y] Optimize inputs (so that it is not read multiple times)
+- [x] Optimize inputs (so that it is not read multiple times)
 - [x] Make good tests for cascading preconditions (especially for datasets).
 - [ ] Make sure immutability of objects is preserved
 - [x] Performance issues
@@ -71,3 +71,4 @@ TODO:
 - [ ] Use train/test split in tests
 - [ ] Augmentations helper
 - [ ] Incremental re-run
+- [ ] Support for classification special case handling.
