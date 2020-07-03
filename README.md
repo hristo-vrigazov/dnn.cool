@@ -70,4 +70,4 @@ TODO:
 - [x] Refactor decorators
 - [ ] Use train/test split in tests
 - [ ] Augmentations helper
-
+- [ ] Incremental re-run

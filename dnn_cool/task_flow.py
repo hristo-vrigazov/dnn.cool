@@ -134,6 +134,9 @@ class Task:
         """
         raise NotImplementedError()
 
+    def get_inputs(self, *args, **kwargs):
+        raise NotImplementedError()
+
     def get_labels(self, **kwargs):
         raise NotImplementedError()
 

@@ -11,16 +11,16 @@ def discover_index_holder(*args, **kwargs):
 
 class FlowDatasetDecorator:
 
-    def __init__(self, task, prefix):
+    def __init__(self, task, prefix, labels):
         self.task_name = task.get_name()
         self.prefix = prefix
-        self.labels = task.get_labels()
+        self.arr = labels
 
     def __call__(self, *args, **kwargs):
         index_holder = discover_index_holder(*args, **kwargs)
         key = self.prefix + self.task_name
         return FlowDatasetDict(self.prefix, {
-            key: self.labels[index_holder.item]
+            key: self.arr[index_holder.item]
         })
 
 
@@ -72,18 +72,15 @@ class FlowDatasetDict:
         }
         return FlowDatasetDict(self.prefix, new_data)
 
-    def to_input_target(self):
-        # X = {}
+    def to_dict(self, X):
         y = {}
         for key, value in self.data.items():
             if key == 'gt':
-                # X[key] = value
+                X[key] = value
                 continue
             targets = value
-            # TODO: multi input processing
-            # X['inputs'] = inputs
             y[key] = targets
-        return y
+        return X, y
 
 
 class FlowDataset(Dataset):
@@ -98,16 +95,18 @@ class FlowDataset(Dataset):
         self.n = None
         for key, task in task_flow.tasks.items():
             if not task.has_children():
-                instance = FlowDatasetDecorator(task, prefix)
-                self.n = len(instance.labels)
+                labels_instance = FlowDatasetDecorator(task, prefix, task.get_labels())
+                self.n = len(labels_instance.arr)
+                setattr(self, key, labels_instance)
             else:
                 instance = FlowDataset(task, prefix=f'{prefix}{task.get_name()}.')
-            setattr(self, key, instance)
+                setattr(self, key, instance)
         self.prefix = prefix
 
     def __getitem__(self, item):
         flow_dataset_dict = self.flow(self, IndexHolder(item), FlowDatasetDict(self.prefix, {}))
-        return flow_dataset_dict.to_input_target()
+        X = self._task_flow.get_inputs()[item]
+        return flow_dataset_dict.to_dict(X)
 
     def __len__(self):
         return self.n

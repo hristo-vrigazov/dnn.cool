@@ -170,6 +170,21 @@ def interior_car_task():
                           driver_uniform_type.float() * 3.,
                           passenger_uniform_type.float() * 7.), dim=1)
 
+    class Inputs(Dataset):
+
+        def __init__(self, key, inputs):
+            self.key = key
+            self.inputs = inputs
+
+        def __getitem__(self, item):
+            return {
+                self.key: self.inputs[item]
+            }
+
+        def __len__(self):
+            return len(self.inputs)
+
+
     class BinaryThresholdedTask(BinaryClassificationTask):
 
         def __init__(self, name, labels):
@@ -237,6 +252,9 @@ def interior_car_task():
             out += self.driver_flow(x) | (~out.camera_blocked)
             out += self.passenger_flow(x) | (~out.camera_blocked)
             return out
+
+        def get_inputs(self, *args, **kwargs):
+            return Inputs('inputs', inputs)
 
     flow = FullFlow()
 
