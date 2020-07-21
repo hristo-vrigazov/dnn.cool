@@ -1,6 +1,6 @@
 # dnn.cool
 
-Some dump stuff I am playing with.
+Some dumb stuff I am playing with.
 
 TODO:
 
