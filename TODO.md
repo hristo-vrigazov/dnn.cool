@@ -80,3 +80,4 @@ TODO:
 - [ ] Implement tracing for static analysis (later)
 - [ ] Create convincing synthetic dataset
 - [ ] Create real dataset by pseudo labeling
+- [ ] Rethink user-friendliness API
