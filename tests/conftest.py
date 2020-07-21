@@ -39,31 +39,15 @@ def carsbg():
             super().__init__(
                 name='carsbg_flow',
                 tasks=[
-                    BinaryHardcodedTask(name='sliced'),
-                    BoundedRegressionTask(name='car_localization', module_options=base_options),
-                    BoundedRegressionTask(name='license_plate_localization', module_options=base_options),
-                    IsCarTask(name='is_car', module_options=base_options),
-                    BinaryClassificationTask(name='has_license_plate', module_options=base_options),
-                    ClassificationTask(name='brand', module_options={
-                        'in_features': 2560,
-                        'out_features': 4,
-                        'bias': True
-                    }),
-                    ClassificationTask(name='color', module_options={
-                        'in_features': 2560,
-                        'out_features': 26,
-                        'bias': True
-                    }),
-                    RegressionTask(name='year', module_options={
-                        'in_features': 2560,
-                        'out_features': 1,
-                        'bias': True
-                    }, activation_func=nn.Sigmoid()),
-                    NestedClassificationTask(name='model', top_k=5, module_options={
-                        'in_features': 2560,
-                        'out_features_nested': [9, 15, 2, 12],
-                        'bias': True
-                    })
+                    BinaryHardcodedTask(name='sliced', module=nn.Linear(2560, 1), labels=None),
+                    BoundedRegressionTask(name='car_localization', module=nn.Linear(2560, 1), labels=None),
+                    BoundedRegressionTask(name='license_plate_localization', module=nn.Linear(2560, 1), labels=None),
+                    IsCarTask(name='is_car', module=nn.Linear(2560, 1), labels=None),
+                    BinaryClassificationTask(name='has_license_plate', module=nn.Linear(2560, 1), labels=None),
+                    ClassificationTask(name='brand', module=nn.Linear(2560, 8), inputs=None, labels=None),
+                    ClassificationTask(name='color', module=nn.Linear(2560, 5), inputs=None, labels=None),
+                    RegressionTask(name='year', activation_func=nn.Sigmoid()),
+                    NestedClassificationTask(name='model', top_k=5, module_options={})
                 ])
 
         def flow(self, x, out):
@@ -133,7 +117,7 @@ def nested_carsbg(carsbg):
         'in_features': 2560,
         'bias': True
     }
-    camera_blocked = BinaryClassificationTask(name='camera_blocked', module_options=module_options)
+    camera_blocked = BinaryClassificationTask(name='camera_blocked', labels=None, module=nn.Linear(2560, 1))
 
     class CameraBlockedCarsBgFlow(TaskFlow):
 

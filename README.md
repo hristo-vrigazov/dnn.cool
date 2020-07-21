@@ -77,3 +77,5 @@ TODO:
 - [ ] Add per sample activation
 - [ ] Spend time thinking about user-friendliness of each class (think about what mistakes would people do?).
 - [ ] Good tests about possible gt leak
+- [ ] Implement tracing for static analysis (later)
+- [ ] 

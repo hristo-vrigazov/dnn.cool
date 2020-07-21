@@ -167,7 +167,7 @@ class Task(ITask):
     def do_call(self, *args, **kwargs):
         if self._tracer_callable is None:
             return
-        return self._tracer_callable()
+        return self._tracer_callable(*args, **kwargs)
 
     def get_activation(self) -> Optional[nn.Module]:
         return self._activation
@@ -276,17 +276,15 @@ class ClassificationTask(Task):
 
 class RegressionTask(ITask):
 
-    def __init__(self, name: str, module_options, activation_func):
-        super().__init__(name, module_options)
+    def __init__(self, name: str, activation_func):
+        super().__init__(name)
         self.activation_func = activation_func
 
     def do_call(self, *args, **kwargs):
         return RegressionResult(self, *args, **kwargs)
 
     def torch(self):
-        return nn.Linear(self.module_options['in_features'],
-                         self.module_options.get('out_features', 1),
-                         self.module_options.get('bias', True))
+        return nn.Linear(128, 1)
 
     def get_activation(self) -> nn.Module:
         return self.activation_func
@@ -300,7 +298,7 @@ class RegressionTask(ITask):
 class NestedClassificationTask(ITask):
 
     def __init__(self, name, top_k, module_options):
-        super().__init__(name, module_options)
+        super().__init__(name)
         self.top_k = top_k
 
     def do_call(self, *args, **kwargs):
@@ -310,10 +308,7 @@ class NestedClassificationTask(ITask):
         pass
 
     def torch(self):
-        return NestedFC(self.module_options['in_features'],
-                        self.module_options['out_features_nested'],
-                        self.module_options['bias'],
-                        self.top_k)
+        return NestedFC(128, [9, 15, 2, 12], True, self.top_k)
 
 
 class TaskFlow(ITask):
