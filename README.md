@@ -1,6 +1,6 @@
 # dnn.cool
 
-
+Some dump stuff I am playing with.
 
 TODO:
 
@@ -78,4 +78,5 @@ TODO:
 - [ ] Spend time thinking about user-friendliness of each class (think about what mistakes would people do?).
 - [ ] Good tests about possible gt leak
 - [ ] Implement tracing for static analysis (later)
-- [ ] 
+- [ ] Create convincing synthetic dataset
+- [ ] Create real dataset by pseudo labeling
