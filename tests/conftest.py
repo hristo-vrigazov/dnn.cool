@@ -47,7 +47,7 @@ def carsbg():
                     ClassificationTask(name='brand', module=nn.Linear(2560, 8), inputs=None, labels=None),
                     ClassificationTask(name='color', module=nn.Linear(2560, 5), inputs=None, labels=None),
                     RegressionTask(name='year', activation_func=nn.Sigmoid()),
-                    NestedClassificationTask(name='model', top_k=5, module_options={})
+                    NestedClassificationTask(name='model', top_k=5)
                 ])
 
         def flow(self, x, out):

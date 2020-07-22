@@ -12,102 +12,10 @@ from dnn_cool.modules import SigmoidAndMSELoss, Identity, NestedFC, TaskFlowModu
 from functools import partial
 
 
-class Result:
-
-    def __init__(self, task, *args, **kwargs):
-        self.precondition = None
-        self.task = task
-        self.args = args
-        self.kwargs = kwargs
-
-    def __or__(self, result):
-        self.precondition = result
-        return self
-
-    def torch(self) -> nn.Module:
-        """
-        This method returns a new instance of a Pytorch module, which takes into account the precondition of the task.
-        In train mode, the precondition is evaluated based on the ground truth.
-        In eval mode, the precondition is evaluated based on the predictions for the precondition task.
-        :return:
-        """
-        return self.task.torch()
-
-
-class BooleanResult(Result):
-
-    def __init__(self, task, *args, **kwargs):
-        super().__init__(task, *args, **kwargs)
-
-    def __invert__(self):
-        return self
-
-    def __and__(self, other):
-        return self
-
-
-class LocalizationResult(Result):
-
-    def __init__(self, task, *args, **kwargs):
-        super().__init__(task, *args, **kwargs)
-
-
-class ClassificationResult(Result):
-
-    def __init__(self, task, *args, **kwargs):
-        super().__init__(task, *args, **kwargs)
-
-
-class NestedClassificationResult(Result):
-    def __init__(self, task, *args, **kwargs):
-        super().__init__(task, *args, **kwargs)
-
-
-class RegressionResult(Result):
-
-    def __init__(self, task, *args, **kwargs):
-        super().__init__(task, *args, **kwargs)
-
-
-class NestedResult(Result):
-
-    def __init__(self, task, *args, **kwargs):
-        super().__init__(task, *args, **kwargs)
-        self.res = {}
-        key = kwargs.get('key', None)
-        if key is not None:
-            self.res[key] = kwargs.get('value', None)
-
-    def __iadd__(self, other):
-        self.res.update(other.res)
-        return self
-
-    def __getattr__(self, attr):
-        return self.res[attr]
-
-    def __or__(self, result):
-        super().__or__(result)
-        for key, value in self.res.items():
-            self.res[key] = value | result
-        return self
-
-    def activation(self) -> nn.Module:
-        pass
-
-    def loss(self):
-        pass
-
-
 class ITask:
 
     def __init__(self, name: str):
         self.name = name
-
-    def __call__(self, *args, **kwargs) -> Result:
-        return NestedResult(task=self, key=self.name, value=self.do_call(*args, **kwargs))
-
-    def do_call(self, *args, **kwargs):
-        raise NotImplementedError()
 
     def get_name(self):
         return self.name
@@ -152,8 +60,7 @@ class Task(ITask):
                  module: nn.Module,
                  inputs: Dataset,
                  labels: Dataset,
-                 metrics: List[Tuple[str, Callable]],
-                 tracer_callable: Optional[Callable] = None):
+                 metrics: List[Tuple[str, Callable]]):
         super().__init__(name)
         self._activation = activation
         self._decoder = decoder
@@ -162,12 +69,6 @@ class Task(ITask):
         self._inputs = inputs
         self._labels = labels
         self._metrics = metrics
-        self._tracer_callable = tracer_callable
-
-    def do_call(self, *args, **kwargs):
-        if self._tracer_callable is None:
-            return
-        return self._tracer_callable(*args, **kwargs)
 
     def get_activation(self) -> Optional[nn.Module]:
         return self._activation
@@ -245,9 +146,6 @@ class BinaryClassificationTask(Task):
                  )):
         super().__init__(name, activation, decoder, loss, module, inputs, labels, metrics)
 
-    def do_call(self, *args, **kwargs) -> BooleanResult:
-        return BooleanResult(self, *args, **kwargs)
-
 
 class ClassificationTask(Task):
     """
@@ -280,9 +178,6 @@ class RegressionTask(ITask):
         super().__init__(name)
         self.activation_func = activation_func
 
-    def do_call(self, *args, **kwargs):
-        return RegressionResult(self, *args, **kwargs)
-
     def torch(self):
         return nn.Linear(128, 1)
 
@@ -297,12 +192,9 @@ class RegressionTask(ITask):
 
 class NestedClassificationTask(ITask):
 
-    def __init__(self, name, top_k, module_options):
+    def __init__(self, name, top_k):
         super().__init__(name)
         self.top_k = top_k
-
-    def do_call(self, *args, **kwargs):
-        return NestedClassificationResult(self, *args, **kwargs)
 
     def get_loss(self, *args, **kwargs):
         pass
@@ -321,13 +213,6 @@ class TaskFlow(ITask):
 
     def __getattr__(self, attr):
         return self.tasks[attr]
-
-    def trace_flow(self, x):
-        out = NestedResult(self)
-        return self.flow(x, out)
-
-    def do_call(self, *args, **kwargs):
-        return NestedResult(task=self)
 
     def get_activation(self) -> Optional[nn.Module]:
         pass

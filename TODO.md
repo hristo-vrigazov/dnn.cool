@@ -85,3 +85,4 @@ TODO:
 - [ ] Create real dataset by pseudo labeling
 - [ ] Rethink user-friendliness API
 - [ ] Revisit type hints
+- [ ] Auto guess task from column
