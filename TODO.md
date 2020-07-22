@@ -2,6 +2,10 @@
 
 Some dumb stuff I am playing with.
 
+DOING:
+
+- [ ] Create a helper class for creating tasks (by trying to guess task type) - e.g ProjectHelper
+
 TODO:
 
 - [x] Generate a `nn.Module` with `train` mode, which works correctly.
@@ -59,7 +63,6 @@ TODO:
 - [ ] Make sure immutability of objects is preserved
 - [x] Performance issues
 - [ ] Documentation
-- [ ] Create a helper class for creating tasks (by trying to guess task type) - e.g ProjectHelper
 - [ ] Think of useful methods
 - [ ] Think of a better way to organize labels
 - [ ] Add the possibility to predict given the precondition is true (very useful for evaluation)
@@ -81,3 +84,4 @@ TODO:
 - [ ] Create convincing synthetic dataset
 - [ ] Create real dataset by pseudo labeling
 - [ ] Rethink user-friendliness API
+- [ ] Revisit type hints

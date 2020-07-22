@@ -35,7 +35,7 @@ def test_passenger_example(interior_car_task):
             loaders=nested_loaders,
             callbacks=callbacks,
             logdir=tmp_dir,
-            num_epochs=100,
+            num_epochs=40,
         )
 
     loader = nested_loaders['valid']
