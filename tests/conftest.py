@@ -140,17 +140,3 @@ def interior_car_task():
 
     return InteriorMonitorModule(), flow
 
-
-@pytest.fixture(scope='package')
-def simple_df_project():
-    df_data = [
-        {'camera_blocked': True, 'door_open': True, 'uniform_type': 0, 'input': 0 },
-        {'camera_blocked': False, 'door_open': True, 'uniform_type': 1, 'input': 1 },
-        {'camera_blocked': False, 'door_open': True, 'uniform_type': 0, 'input': 2 },
-        {'camera_blocked': False, 'door_open': True, 'uniform_type': 2, 'input': 3 },
-        {'camera_blocked': True, 'door_open': True, 'uniform_type': 1, 'input': 4 },
-    ]
-
-    df = pd.DataFrame(df_data)
-
-    return Project(df, input_col='input', output_col=['camera_blocked', 'door_open', 'uniform_type'])

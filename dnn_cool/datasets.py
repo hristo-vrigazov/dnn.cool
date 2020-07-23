@@ -90,7 +90,7 @@ class FlowDataset(Dataset):
         # Save a reference to the flow function of the original class
         # We will then call it by replacing the self, this way effectively running
         # it with this class. And this class stores Pytorch modules as class attributes
-        self.flow = task_flow.__class__.flow
+        self.flow = task_flow.get_flow_func()
 
         self.n = None
         for key, task in task_flow.tasks.items():
@@ -105,7 +105,11 @@ class FlowDataset(Dataset):
 
     def __getitem__(self, item):
         flow_dataset_dict = self.flow(self, IndexHolder(item), FlowDatasetDict(self.prefix, {}))
-        X = self._task_flow.get_inputs()[item]
+        inputs = self._task_flow.get_inputs()
+        if inputs is None:
+            raise ValueError(f'Cannot build a dataset, since the inputs are not provided. You have to provide them'
+                             f' in the constructor of the TaskFlow class.')
+        X = inputs[item]
         # X has to be a dict, because we have to attach gt.
         if not isinstance(X, dict):
             X = {

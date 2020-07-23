@@ -5,7 +5,10 @@ from catalyst.dl import SupervisedRunner
 from torch.utils.data import DataLoader
 from torch import optim
 
+from dnn_cool.project import Project
 from dnn_cool.task_flow import TaskFlow
+
+import pandas as pd
 
 
 def test_passenger_example(interior_car_task):
@@ -52,13 +55,29 @@ def test_passenger_example(interior_car_task):
     print(pred, y)
 
 
-def test_project_example(simple_df_project):
+def test_project_example():
+    df_data = [
+        {'camera_blocked': True, 'door_open': True, 'uniform_type': 0, 'input': 0},
+        {'camera_blocked': False, 'door_open': True, 'uniform_type': 1, 'input': 1},
+        {'camera_blocked': False, 'door_open': True, 'uniform_type': 0, 'input': 2},
+        {'camera_blocked': False, 'door_open': True, 'uniform_type': 2, 'input': 3},
+        {'camera_blocked': True, 'door_open': True, 'uniform_type': 1, 'input': 4},
+    ]
+
+    df = pd.DataFrame(df_data)
+
+    project = Project(df, input_col='input', output_col=['camera_blocked', 'door_open', 'uniform_type'])
 
     def camera_not_blocked_flow(flow, x, out):
-        out += flow.uniform_type(x.features)
+        out += flow.camera_blocked(x.features)
+        out += flow.door_open(x.features) | (~out.camera_blocked)
+        out += flow.uniform_type(x.features) | out.door_open
         return out
 
-    simple_df_project.add_flow('camera_blocked_flow', flow_func=camera_not_blocked_flow)
+    project.add_flow('camera_blocked_flow', flow_func=camera_not_blocked_flow)
 
-    flow: TaskFlow = simple_df_project.get_full_flow()
+    flow: TaskFlow = project.get_full_flow()
     print(flow)
+
+    dataset = flow.get_labels()
+    print(dataset[0])

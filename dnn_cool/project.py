@@ -3,6 +3,8 @@ from typing import Union, Iterable, Optional, Dict, Callable
 from dnn_cool.task_flow import TaskFlow, BinaryClassificationTask, ClassificationTask
 from dataclasses import dataclass
 
+import torch
+
 
 @dataclass()
 class TypeGuesser:
@@ -28,7 +30,7 @@ class TypeToTaskConverter:
     }
 
     def convert(self, df, output_col, guessed_type):
-        return self.type_mapping[guessed_type](name=output_col, labels=df[output_col].values)
+        return self.type_mapping[guessed_type](name=output_col, labels=torch.tensor(df[output_col].values))
 
 
 def not_found_error_message(col, df):
