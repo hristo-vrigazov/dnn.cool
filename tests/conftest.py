@@ -6,7 +6,7 @@ from torch import nn
 from torch.utils.data import Dataset, TensorDataset
 
 from dnn_cool.modules import Identity
-from dnn_cool.project import MultiTaskProject
+from dnn_cool.project import Project
 from dnn_cool.task_flow import BinaryClassificationTask, TaskFlow, BinaryHardcodedTask, BoundedRegressionTask, \
     ClassificationTask, NestedClassificationTask, RegressionTask
 
@@ -274,4 +274,4 @@ def simple_df_project():
 
     df = pd.DataFrame(df_data)
 
-    return MultiTaskProject(df, input_col='input', output_col=['camera_blocked', 'door_open', 'uniform_type'])
+    return Project(df, input_col='input', output_col=['camera_blocked', 'door_open', 'uniform_type'])

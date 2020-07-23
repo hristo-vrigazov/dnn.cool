@@ -27,7 +27,7 @@ TODO:
 - [ ] Handles missing labels correctly.
 - [x] Concept of per-task activation/decoding.
 - [x] Overall activation/decoding (topological sorting, etc.).
-- [ ] Automatic per-task or overall hyperparameter tuning.
+- [ ] Automatic per-task or overall thresholds tuning.
 - [ ] Composite flows (e.g YOLO inside a classifier, etc.)
 - [ ] UI splitting helper
 - [ ] ONNX converter (if possible) - with static analysis.

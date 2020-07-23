@@ -51,4 +51,4 @@ def test_passenger_example(interior_car_task):
 
 
 def test_project_example(simple_df_project):
-    pass
+    simple_df_project
