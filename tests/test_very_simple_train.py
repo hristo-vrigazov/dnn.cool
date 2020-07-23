@@ -49,3 +49,6 @@ def test_passenger_example(interior_car_task):
     print(res.item())
     print(pred, y)
 
+
+def test_project_example(simple_df_project):
+    pass

@@ -1,14 +1,14 @@
-from typing import Dict
-
 import pytest
 import torch
-from torch import nn
-from torch.utils.data import Dataset, DataLoader, TensorDataset
+import pandas as pd
 
-from dnn_cool.datasets import FlowDataset
+from torch import nn
+from torch.utils.data import Dataset, TensorDataset
+
 from dnn_cool.modules import Identity
+from dnn_cool.project import MultiTaskProject
 from dnn_cool.task_flow import BinaryClassificationTask, TaskFlow, BinaryHardcodedTask, BoundedRegressionTask, \
-    ClassificationTask, RegressionTask, NestedClassificationTask, RegressionTask
+    ClassificationTask, NestedClassificationTask, RegressionTask
 
 
 @pytest.fixture(scope='package')
@@ -260,3 +260,18 @@ def interior_car_task():
             return self.flow_module(res)
 
     return InteriorMonitorModule(), flow
+
+
+@pytest.fixture(scope='package')
+def simple_df_project():
+    df_data = [
+        {'camera_blocked': True, 'door_open': True, 'uniform_type': 0, 'input': 0 },
+        {'camera_blocked': False, 'door_open': True, 'uniform_type': 1, 'input': 1 },
+        {'camera_blocked': False, 'door_open': True, 'uniform_type': 0, 'input': 2 },
+        {'camera_blocked': False, 'door_open': True, 'uniform_type': 2, 'input': 3 },
+        {'camera_blocked': True, 'door_open': True, 'uniform_type': 1, 'input': 4 },
+    ]
+
+    df = pd.DataFrame(df_data)
+
+    return MultiTaskProject(df, input_col='input', output_col=['camera_blocked', 'door_open', 'uniform_type'])
