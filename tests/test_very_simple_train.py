@@ -51,4 +51,9 @@ def test_passenger_example(interior_car_task):
 
 
 def test_project_example(simple_df_project):
-    simple_df_project
+
+    def camera_not_blocked_flow(flow, x, out):
+        out += flow.uniform_type(x.features)
+        return out
+
+    simple_df_project.add_flow('camera_blocked_flow', flow_func=camera_not_blocked_flow)

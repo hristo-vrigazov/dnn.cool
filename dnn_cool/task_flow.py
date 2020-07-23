@@ -205,11 +205,12 @@ class NestedClassificationTask(ITask):
 
 class TaskFlow(ITask):
 
-    def __init__(self, name, tasks: Iterable[ITask]):
+    def __init__(self, name, tasks: Iterable[ITask], flow_func=None):
         super().__init__(name)
         self.tasks = {}
         for task in tasks:
             self.tasks[task.get_name()] = task
+        self.__flow_func = flow_func
 
     def __getattr__(self, attr):
         return self.tasks[attr]
@@ -230,6 +231,8 @@ class TaskFlow(ITask):
         return FlowDataset(self, **kwargs)
 
     def flow(self, x, out):
+        if self.__flow_func is not None:
+            self.__flow_func(x, out)
         raise NotImplementedError()
 
     def get_metrics(self):
