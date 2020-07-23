@@ -53,7 +53,7 @@ TODO:
 - [ ] Add a lot of predefined tasks and flows
 - [ ] Rethink reduction and variable names
 - [ ] Compute only when precondition is True (will require precomputing)
-- [ ] Pass around kwargs for flexibility
+- [x] Pass around kwargs for flexibility
 - [x] Nested loss functions check and test
 - [ ] Support multilabel classification problem
 - [x] Think how suitable it would be to use scoping
@@ -86,3 +86,6 @@ TODO:
 - [ ] Rethink user-friendliness API
 - [ ] Revisit type hints
 - [ ] Auto guess task from column
+- [ ] Add the tasks from MMF
+- [ ] Add object detection tasks
+- [ ] Add NLP tasks
