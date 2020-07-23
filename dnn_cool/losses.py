@@ -132,7 +132,7 @@ class TaskFlowLoss(nn.Module):
         # Save a reference to the flow function of the original class
         # We will then call it by replacing the self, this way effectively running
         # it with this class. And this class stores Pytorch modules as class attributes
-        self.flow = task_flow.__class__.flow
+        self.flow = task_flow.get_flow_func()
 
         for key, task in task_flow.tasks.items():
             if not task.has_children():

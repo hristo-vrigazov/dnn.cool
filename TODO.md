@@ -4,7 +4,9 @@ Some dumb stuff I am playing with.
 
 DOING:
 
-- [ ] Create a helper class for creating tasks (by trying to guess task type) - e.g ProjectHelper
+- [ ] Create a helper class for creating tasks (by trying to guess task type) - e.g ProjectHelper.
+- [ ] Implement Inputs reader.
+- [ ] Use Python decorators as registers for flow.
 
 TODO:
 

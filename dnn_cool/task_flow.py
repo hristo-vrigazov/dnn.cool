@@ -223,8 +223,8 @@ class TaskFlow(ITask):
         if flow_func is not None:
             self._flow_func = flow_func
 
-    def __getattr__(self, attr):
-        return self.tasks[attr]
+    # def __getattr__(self, attr):
+    #     return self.tasks[attr]
 
     def get_activation(self) -> Optional[nn.Module]:
         pass
@@ -245,9 +245,9 @@ class TaskFlow(ITask):
         raise NotImplementedError()
 
     def get_flow_func(self):
-        if self._flow_func is None:
-            return self.__class__.flow
-        return self._flow_func
+        if hasattr(self, '_flow_func') and self._flow_func is not None:
+            return self._flow_func
+        return self.__class__.flow
 
     def get_metrics(self):
         all_metrics = []
