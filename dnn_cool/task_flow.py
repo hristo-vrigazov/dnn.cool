@@ -18,7 +18,7 @@ class Values:
 
 class ITask:
 
-    def __init__(self, name: str, inputs: Values):
+    def __init__(self, name: str, inputs):
         self.name = name
         self.__inputs = inputs
 
@@ -59,13 +59,13 @@ class Task(ITask):
 
     def __init__(self,
                  name: str,
-                 activation: Optional[nn.Module],
-                 decoder: Callable,
+                 labels,
                  loss: Callable,
-                 module: nn.Module,
-                 inputs: Values,
-                 labels: Values,
-                 metrics: List[Tuple[str, Callable]]):
+                 inputs = None,
+                 activation: Optional[nn.Module] = None,
+                 decoder: Callable = None,
+                 module: Optional[nn.Module] = Identity(),
+                 metrics: List[Tuple[str, Callable]] = ()):
         super().__init__(name, inputs)
         self._activation = activation
         self._decoder = decoder
@@ -101,14 +101,14 @@ class BinaryHardcodedTask(Task):
 
     def __init__(self,
                  name: str,
-                 labels: Values,
+                 labels,
+                 loss: Callable = None,
+                 inputs = None,
                  activation: Optional[nn.Module] = None,
                  decoder: Callable = None,
-                 loss: Callable = None,
                  module: nn.Module = Identity(),
-                 inputs: Values = None,
                  metrics=()):
-        super().__init__(name, activation, decoder, loss, module, inputs, labels, metrics)
+        super().__init__(name, labels, loss, inputs, activation, decoder, module, metrics)
 
 
 class BoundedRegressionTask(Task):
@@ -121,14 +121,14 @@ class BoundedRegressionTask(Task):
 
     def __init__(self,
                  name: str,
-                 module: nn.Module,
-                 labels: Values,
+                 labels,
+                 loss=SigmoidAndMSELoss,
+                 module=Identity(),
                  activation: Optional[nn.Module] = nn.Sigmoid(),
                  decoder: Callable = None,
-                 loss=SigmoidAndMSELoss,
                  inputs=None,
                  metrics=()):
-        super().__init__(name, activation, decoder, loss, module, inputs, labels, metrics)
+        super().__init__(name, labels, loss, inputs, activation, decoder, module, metrics)
 
 
 class BinaryClassificationTask(Task):
@@ -140,16 +140,16 @@ class BinaryClassificationTask(Task):
 
     def __init__(self,
                  name: str,
-                 module: nn.Module,
-                 labels: Values,
+                 labels,
+                 loss=nn.BCEWithLogitsLoss,
+                 inputs=None,
                  activation: Optional[nn.Module] = nn.Sigmoid(),
                  decoder: Callable = threshold_binary,
-                 loss=nn.BCEWithLogitsLoss,
-                 inputs: Values = None,
+                 module: nn.Module = Identity(),
                  metrics=(
                          ('acc_0.5', partial(single_result_accuracy, threshold=0.5, activation='Sigmoid')),
                  )):
-        super().__init__(name, activation, decoder, loss, module, inputs, labels, metrics)
+        super().__init__(name, labels, loss, inputs, activation, decoder, module, metrics)
 
 
 class ClassificationTask(Task):
@@ -161,17 +161,17 @@ class ClassificationTask(Task):
 
     def __init__(self,
                  name: str,
-                 module: nn.Module,
-                 inputs: Values,
-                 labels: Values,
+                 labels,
+                 loss=nn.CrossEntropyLoss,
+                 inputs=None,
                  activation=nn.Softmax(dim=-1),
                  decoder=sort_declining,
-                 loss=nn.CrossEntropyLoss,
+                 module: nn.Module = Identity(),
                  metrics=(
                          ('top_1_acc', partial(single_result_accuracy, topk=(1,), activation='Softmax')),
                          ('top_3_acc', partial(single_result_accuracy, topk=(3,), activation='Softmax')),
                  )):
-        super().__init__(name, activation, decoder, loss, module, inputs, labels, metrics)
+        super().__init__(name, labels, loss, inputs, activation, decoder, module, metrics)
 
 
 class RegressionTask(ITask):

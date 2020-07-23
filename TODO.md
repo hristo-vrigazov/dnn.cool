@@ -89,3 +89,5 @@ TODO:
 - [ ] Add the tasks from MMF
 - [ ] Add object detection tasks
 - [ ] Add NLP tasks
+- [ ] Can we convert the Task class to a dataclass to simplify everything?
+- [ ] Implement smart type guessing
