@@ -86,3 +86,6 @@ class Project:
 
     def get_all_tasks(self):
         return self.__leaf_tasks + self.__flow_tasks
+
+    def get_full_flow(self):
+        return self.__flow_tasks[-1]

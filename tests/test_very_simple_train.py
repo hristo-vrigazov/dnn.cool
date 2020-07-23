@@ -5,6 +5,8 @@ from catalyst.dl import SupervisedRunner
 from torch.utils.data import DataLoader
 from torch import optim
 
+from dnn_cool.task_flow import TaskFlow
+
 
 def test_passenger_example(interior_car_task):
     model, task_flow = interior_car_task
@@ -57,3 +59,6 @@ def test_project_example(simple_df_project):
         return out
 
     simple_df_project.add_flow('camera_blocked_flow', flow_func=camera_not_blocked_flow)
+
+    flow: TaskFlow = simple_df_project.get_full_flow()
+    print(flow)
