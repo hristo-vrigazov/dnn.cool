@@ -12,10 +12,15 @@ from dnn_cool.modules import SigmoidAndMSELoss, Identity, NestedFC, TaskFlowModu
 from functools import partial
 
 
+class Values:
+    pass
+
+
 class ITask:
 
-    def __init__(self, name: str):
+    def __init__(self, name: str, inputs: Values):
         self.name = name
+        self.__inputs = inputs
 
     def get_name(self):
         return self.name
@@ -41,7 +46,7 @@ class ITask:
         raise NotImplementedError()
 
     def get_inputs(self, *args, **kwargs):
-        raise NotImplementedError()
+        return self.__inputs
 
     def get_labels(self, **kwargs):
         raise NotImplementedError()
@@ -58,10 +63,10 @@ class Task(ITask):
                  decoder: Callable,
                  loss: Callable,
                  module: nn.Module,
-                 inputs: Dataset,
-                 labels: Dataset,
+                 inputs: Values,
+                 labels: Values,
                  metrics: List[Tuple[str, Callable]]):
-        super().__init__(name)
+        super().__init__(name, inputs)
         self._activation = activation
         self._decoder = decoder
         self._loss = loss
@@ -96,20 +101,20 @@ class BinaryHardcodedTask(Task):
 
     def __init__(self,
                  name: str,
-                 labels: Dataset,
+                 labels: Values,
                  activation: Optional[nn.Module] = None,
                  decoder: Callable = None,
                  loss: Callable = None,
                  module: nn.Module = Identity(),
-                 inputs: Dataset = None,
-                 metrics = ()):
+                 inputs: Values = None,
+                 metrics=()):
         super().__init__(name, activation, decoder, loss, module, inputs, labels, metrics)
 
 
 class BoundedRegressionTask(Task):
     """
-    Represents a regression task, where the labels are normalized between 0 and 1. Examples include bounding box top left
-    corners regression. Here are the defaults:
+    Represents a regression task, where the labels are normalized between 0 and 1. Examples include bounding box top
+    left corners regression. Here are the defaults:
     * activation - `nn.Sigmoid()` - so that the output is in `[0, 1]`
     * loss - `SigmoidAndMSELoss` - sigmoid on the logits, then standard mean squared error loss.
     """
@@ -117,12 +122,12 @@ class BoundedRegressionTask(Task):
     def __init__(self,
                  name: str,
                  module: nn.Module,
-                 labels: Dataset,
+                 labels: Values,
                  activation: Optional[nn.Module] = nn.Sigmoid(),
                  decoder: Callable = None,
                  loss=SigmoidAndMSELoss,
                  inputs=None,
-                 metrics = ()):
+                 metrics=()):
         super().__init__(name, activation, decoder, loss, module, inputs, labels, metrics)
 
 
@@ -136,12 +141,12 @@ class BinaryClassificationTask(Task):
     def __init__(self,
                  name: str,
                  module: nn.Module,
-                 labels: Dataset,
+                 labels: Values,
                  activation: Optional[nn.Module] = nn.Sigmoid(),
                  decoder: Callable = threshold_binary,
                  loss=nn.BCEWithLogitsLoss,
-                 inputs: Dataset = None,
-                 metrics = (
+                 inputs: Values = None,
+                 metrics=(
                          ('acc_0.5', partial(single_result_accuracy, threshold=0.5, activation='Sigmoid')),
                  )):
         super().__init__(name, activation, decoder, loss, module, inputs, labels, metrics)
@@ -157,26 +162,24 @@ class ClassificationTask(Task):
     def __init__(self,
                  name: str,
                  module: nn.Module,
-                 inputs: Dataset,
-                 labels: Dataset,
+                 inputs: Values,
+                 labels: Values,
                  activation=nn.Softmax(dim=-1),
                  decoder=sort_declining,
                  loss=nn.CrossEntropyLoss,
-                 metrics = (
+                 metrics=(
                          ('top_1_acc', partial(single_result_accuracy, topk=(1,), activation='Softmax')),
                          ('top_3_acc', partial(single_result_accuracy, topk=(3,), activation='Softmax')),
                  )):
         super().__init__(name, activation, decoder, loss, module, inputs, labels, metrics)
 
-    def do_call(self, *args, **kwargs):
-        return ClassificationResult(self, *args, **kwargs)
-
 
 class RegressionTask(ITask):
 
-    def __init__(self, name: str, activation_func):
-        super().__init__(name)
+    def __init__(self, name: str, inputs: Values, labels, activation_func):
+        super().__init__(name, inputs)
         self.activation_func = activation_func
+        self.labels = labels
 
     def torch(self):
         return nn.Linear(128, 1)
@@ -189,12 +192,16 @@ class RegressionTask(ITask):
             return SigmoidAndMSELoss(*args, **kwargs)
         return nn.MSELoss(*args, **kwargs)
 
+    def get_labels(self, **kwargs):
+        return self.labels
+
 
 class NestedClassificationTask(ITask):
 
-    def __init__(self, name, top_k):
-        super().__init__(name)
+    def __init__(self, name, inputs, labels, top_k):
+        super().__init__(name, inputs)
         self.top_k = top_k
+        self.labels = labels
 
     def get_loss(self, *args, **kwargs):
         pass
@@ -202,11 +209,14 @@ class NestedClassificationTask(ITask):
     def torch(self):
         return NestedFC(128, [9, 15, 2, 12], True, self.top_k)
 
+    def get_labels(self, **kwargs):
+        return self.labels
+
 
 class TaskFlow(ITask):
 
-    def __init__(self, name, tasks: Iterable[ITask], flow_func=None):
-        super().__init__(name)
+    def __init__(self, name, tasks: Iterable[ITask], inputs=None, flow_func=None):
+        super().__init__(name, inputs)
         self.tasks = {}
         for task in tasks:
             self.tasks[task.get_name()] = task

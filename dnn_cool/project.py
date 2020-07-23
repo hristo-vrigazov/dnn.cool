@@ -3,10 +3,6 @@ from typing import Union, Iterable, Optional, Dict, Callable
 from dnn_cool.task_flow import TaskFlow
 
 
-class Values:
-    pass
-
-
 class TypeGuesser:
     pass
 
