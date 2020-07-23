@@ -1,6 +1,6 @@
 from typing import Union, Iterable, Optional, Dict, Callable
 
-from dnn_cool.task_flow import TaskFlow, BinaryClassificationTask
+from dnn_cool.task_flow import TaskFlow, BinaryClassificationTask, ClassificationTask
 from dataclasses import dataclass
 
 
@@ -23,7 +23,8 @@ class TypeGuesser:
 @dataclass()
 class TypeToTaskConverter:
     type_mapping = {
-        'binary': BinaryClassificationTask
+        'binary': BinaryClassificationTask,
+        'category': ClassificationTask
     }
 
     def convert(self, df, output_col, guessed_type):
