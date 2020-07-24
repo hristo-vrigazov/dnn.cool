@@ -66,7 +66,7 @@ def test_project_example():
 
     df = pd.DataFrame(df_data)
 
-    project = Project(df, input_col='input', output_col=['camera_blocked', 'door_open', 'uniform_type'])
+    project = Project(df, input_col=['input'], output_col=['camera_blocked', 'door_open', 'uniform_type'])
 
     def camera_not_blocked_flow(flow, x, out):
         out += flow.camera_blocked(x.features)

@@ -91,15 +91,24 @@ def create_leaf_tasks(df, col, type_guesser, values_converter, task_converter):
         return [create_leaf_task(df, col, type_guesser, values_converter, task_converter)]
 
     res = []
-    for col in col:
-        res.append(create_leaf_task(df, col, type_guesser, values_converter, task_converter))
+    for col_s in col:
+        res.append(create_leaf_task(df, col_s, type_guesser, values_converter, task_converter))
     return res
 
 
-def read_inputs(df, input_col, type_guesser, values_converter, task_converter):
+def read_inputs(df, input_col, type_guesser, values_converter):
     if isinstance(input_col, str):
         values, values_type = create_values(df, input_col, type_guesser, values_converter)
         return values
+
+    keys = []
+    values = []
+    for col_s in input_col:
+        vals, _ = create_values(df, col_s, type_guesser, values_converter)
+        keys.extend(keys)
+        values.extend(values)
+
+    return Values(keys=keys, values=values)
 
 
 class Project:
@@ -113,7 +122,7 @@ class Project:
         assert_col_in_df(input_col, df)
         assert_col_in_df(output_col, df)
 
-        self.inputs = read_inputs(df, input_col, type_guesser, values_converter, task_converter)
+        self.inputs = read_inputs(df, input_col, type_guesser, values_converter)
         self.leaf_tasks = create_leaf_tasks(df, output_col, type_guesser, values_converter, task_converter)
         self.flow_tasks = []
 
