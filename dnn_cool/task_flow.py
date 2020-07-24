@@ -1,5 +1,5 @@
-from abc import ABC
-from typing import Iterable, Dict, Optional, Callable, List, Tuple
+from functools import partial
+from typing import Iterable, Optional, Callable, List, Tuple
 
 from torch import nn
 from torch.utils.data import Dataset
@@ -9,18 +9,13 @@ from dnn_cool.decoders import threshold_binary, sort_declining
 from dnn_cool.losses import TaskFlowLoss
 from dnn_cool.metrics import single_result_accuracy
 from dnn_cool.modules import SigmoidAndMSELoss, Identity, NestedFC, TaskFlowModule
-from functools import partial
-
-
-class Values:
-    pass
 
 
 class ITask:
 
     def __init__(self, name: str, inputs):
         self.name = name
-        self.__inputs = inputs
+        self.inputs = inputs
 
     def get_name(self):
         return self.name
@@ -46,7 +41,7 @@ class ITask:
         raise NotImplementedError()
 
     def get_inputs(self, *args, **kwargs):
-        return self.__inputs
+        return self.inputs
 
     def get_labels(self, **kwargs):
         raise NotImplementedError()
@@ -176,7 +171,7 @@ class ClassificationTask(Task):
 
 class RegressionTask(ITask):
 
-    def __init__(self, name: str, inputs: Values, labels, activation_func):
+    def __init__(self, name: str, inputs, labels, activation_func):
         super().__init__(name, inputs)
         self.activation_func = activation_func
         self.labels = labels

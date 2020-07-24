@@ -74,7 +74,7 @@ def test_project_example():
         out += flow.uniform_type(x.features) | out.door_open
         return out
 
-    project.add_flow('camera_blocked_flow', flow_func=camera_not_blocked_flow)
+    project.add_flow(camera_not_blocked_flow)
 
     flow: TaskFlow = project.get_full_flow()
     print(flow)
