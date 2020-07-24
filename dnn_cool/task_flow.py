@@ -43,7 +43,7 @@ class ITask:
     def get_inputs(self, *args, **kwargs):
         return self.inputs
 
-    def get_labels(self, **kwargs):
+    def get_dataset(self, **kwargs):
         raise NotImplementedError()
 
     def get_metrics(self):
@@ -85,7 +85,7 @@ class Task(ITask):
     def get_inputs(self, *args, **kwargs):
         return self._inputs
 
-    def get_labels(self, **kwargs):
+    def get_dataset(self, **kwargs):
         return self._labels
 
     def get_metrics(self):
@@ -187,7 +187,7 @@ class RegressionTask(ITask):
             return SigmoidAndMSELoss(*args, **kwargs)
         return nn.MSELoss(*args, **kwargs)
 
-    def get_labels(self, **kwargs):
+    def get_dataset(self, **kwargs):
         return self.labels
 
 
@@ -204,7 +204,7 @@ class NestedClassificationTask(ITask):
     def torch(self):
         return NestedFC(128, [9, 15, 2, 12], True, self.top_k)
 
-    def get_labels(self, **kwargs):
+    def get_dataset(self, **kwargs):
         return self.labels
 
 
@@ -233,7 +233,7 @@ class TaskFlow(ITask):
     def has_children(self):
         return True
 
-    def get_labels(self, **kwargs) -> Dataset:
+    def get_dataset(self, **kwargs) -> Dataset:
         return FlowDataset(self, **kwargs)
 
     def flow(self, x, out):

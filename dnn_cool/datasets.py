@@ -95,7 +95,7 @@ class FlowDataset(Dataset):
         self.n = None
         for key, task in task_flow.tasks.items():
             if not task.has_children():
-                labels_instance = FlowDatasetDecorator(task, prefix, task.get_labels())
+                labels_instance = FlowDatasetDecorator(task, prefix, task.get_dataset())
                 self.n = len(labels_instance.arr)
                 setattr(self, key, labels_instance)
             else:

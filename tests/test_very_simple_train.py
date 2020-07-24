@@ -14,7 +14,7 @@ import pandas as pd
 def test_passenger_example(interior_car_task):
     model, task_flow = interior_car_task
 
-    datasets = task_flow.get_labels()
+    datasets = task_flow.get_dataset()
     # TODO: use train/test split
     train_dataset = datasets
     val_dataset = datasets
@@ -66,7 +66,7 @@ def test_project_example():
 
     df = pd.DataFrame(df_data)
 
-    project = Project(df, input_col=['input'], output_col=['camera_blocked', 'door_open', 'uniform_type'])
+    project = Project(df, input_col='input', output_col=['camera_blocked', 'door_open', 'uniform_type'])
 
     def camera_not_blocked_flow(flow, x, out):
         out += flow.camera_blocked(x.features)
@@ -79,5 +79,5 @@ def test_project_example():
     flow: TaskFlow = project.get_full_flow()
     print(flow)
 
-    dataset = flow.get_labels()
+    dataset = flow.get_dataset()
     print(dataset[0])
