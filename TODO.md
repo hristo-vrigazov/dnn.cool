@@ -67,6 +67,7 @@ TODO:
 - [ ] Add object detection tasks
 - [ ] Add NLP tasks
 - [ ] Implement smart type guessing
+- [ ] Better handling of `get_inputs`, `get_labels` and `get_dataset`
 
 Done: 
 

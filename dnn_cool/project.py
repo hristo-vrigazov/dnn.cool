@@ -126,9 +126,9 @@ class Project:
         self.leaf_tasks = create_leaf_tasks(df, output_col, type_guesser, values_converter, task_converter)
         self.flow_tasks = []
 
-    def add_flow(self, flow_func, flow_name=None):
-        flow_name = flow_func.__name__ if flow_name is None else flow_name
-        flow = self.create_flow(flow_func, flow_name)
+    def add_flow(self, func, flow_name=None):
+        flow_name = func.__name__ if flow_name is None else flow_name
+        flow = self.create_flow(func, flow_name)
         self.flow_tasks.append(flow)
         return flow
 

@@ -68,13 +68,12 @@ def test_project_example():
 
     project = Project(df, input_col='input', output_col=['camera_blocked', 'door_open', 'uniform_type'])
 
+    @project.add_flow
     def camera_not_blocked_flow(flow, x, out):
         out += flow.camera_blocked(x.features)
         out += flow.door_open(x.features) | (~out.camera_blocked)
         out += flow.uniform_type(x.features) | out.door_open
         return out
-
-    project.add_flow(camera_not_blocked_flow)
 
     flow: TaskFlow = project.get_full_flow()
     print(flow)
