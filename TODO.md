@@ -68,6 +68,7 @@ TODO:
 - [ ] Implement smart type guessing
 - [ ] Better handling of `get_inputs`, `get_labels` and `get_dataset`
 - [ ] Are metrics computed only for when the preconditions are correct?
+- [ ] EfficientNet-based project helper
 
 Done: 
 

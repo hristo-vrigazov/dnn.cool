@@ -1,5 +1,8 @@
 import numpy as np
+import pandas as pd
 import cv2
+
+from functools import partial
 
 
 def generate_camera_blocked_image():
@@ -81,3 +84,27 @@ def generate_image_with_person():
     img, res = generate_door_open_image()
     img, res = draw_person(img, res)
     return img, res
+
+
+def generate_sample():
+    generators = [generate_camera_blocked_image,
+                  generate_door_open_image,
+                  partial(generate_door_closed_image, door_locked=True),
+                  partial(generate_door_closed_image, door_locked=False),
+                  generate_image_with_person]
+    choice = np.random.randint(0, len(generators), size=1)[0]
+    return generators[choice]()
+
+
+def create_df_and_images_tensor():
+    imgs = []
+    rows = []
+    for i in range(int(1e3)):
+        img, row = generate_sample()
+        imgs.append(img)
+        rows.append(row)
+
+    df = pd.DataFrame(rows)
+    df['img'] = np.arange(len(df)).astype(str) + '.jpg'
+    return imgs, df
+
