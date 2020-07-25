@@ -160,7 +160,8 @@ class FlowDict:
         """
         for key in self.res:
             current_precondition = self.preconditions.get(key, result.decoded)
-            self.preconditions[key] = current_precondition & result.decoded
+            precondition = current_precondition & result.decoded
+            self.preconditions[key] = precondition
         return self
 
     def __invert__(self):

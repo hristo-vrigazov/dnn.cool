@@ -16,6 +16,7 @@ import pandas as pd
 import numpy as np
 
 from dnn_cool.value_converters import binary_value_converter
+from dnn_cool.datasets import FlowDataset
 
 
 def test_passenger_example(interior_car_task):
