@@ -5,6 +5,8 @@ Some dumb stuff I am playing with.
 DOING:
 
 - [ ] Create convincing synthetic dataset
+- [ ] When using a project, store tasks in flows only when they are needed (will require tracing)
+- [ ] Fix bug with precondition accumulation when on the same flow
 
 TODO:
 
@@ -18,7 +20,6 @@ TODO:
 - [ ] Sample decoded results per task
 - [ ] Handles missing labels correctly.
 - [ ] Automatic per-task or overall thresholds tuning.
-- [ ] Composite flows (e.g YOLO inside a classifier, etc.)
 - [ ] UI splitting helper
 - [ ] ONNX converter (if possible) - with static analysis.
 - [ ] Test training a model with synthetic dataset.
@@ -72,7 +73,7 @@ TODO:
 - [ ] Implement smart values converter
 - [ ] Implement smart task converter
 - [ ] Handle different types when used as precondition, and as ground truth
-- [ ] When using a project, store tasks in flows only when they are needed (will require tracing)
+- [ ] Think of common ways users can shoot themselves in the foot, and add helper messages
 
 Done: 
 
@@ -102,3 +103,5 @@ Done:
 - [x] Concept of per-task activation/decoding.
 - [x] Overall activation/decoding (topological sorting, etc.).
 - [x] Use Python decorators as registers for flow.
+- [x] Composite flows (e.g YOLO inside a classifier, etc.)
+

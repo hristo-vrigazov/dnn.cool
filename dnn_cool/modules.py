@@ -257,7 +257,9 @@ class FlowDict:
             # if there is a parent precondition, then the child has to satisfy both his own and his parents'
             # preconditions.
             current_precondition = parent_value.logits.get(f'precondition|{key}', parent_precondition)
-            if parent_precondition is not None:
+            if current_precondition is None:
+                current_precondition = parent_precondition
+            elif parent_precondition is not None:
                 current_precondition &= parent_precondition
             all_keys.append(f'precondition|{full_path_key}')
             all_values.append(current_precondition)

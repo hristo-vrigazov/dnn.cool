@@ -1,15 +1,19 @@
 import tempfile
+from functools import partial
+
+import torch
 from collections import OrderedDict
 
 from catalyst.dl import SupervisedRunner
 from torch.utils.data import DataLoader
-from torch import optim
+from torch import optim, nn
 
 from dnn_cool.project import Project, TypeGuesser, ValuesConverter, TaskConverter
-from dnn_cool.task_flow import TaskFlow, BoundedRegressionTask
+from dnn_cool.task_flow import TaskFlow, BoundedRegressionTask, BinaryClassificationTask
 from dnn_cool.synthetic_dataset import create_df_and_images_tensor
 
 import pandas as pd
+import numpy as np
 
 from dnn_cool.value_converters import binary_value_converter
 
@@ -114,11 +118,20 @@ def test_synthetic_dataset():
     type_guesser.type_mapping['img'] = 'img'
 
     values_converter = ValuesConverter()
+    imgs /= 255
     values_converter.type_mapping['img'] = lambda x: imgs
     values_converter.type_mapping['binary'] = binary_value_converter
 
+    def bounded_regression_converter(values):
+        values = values.astype(float) / 64
+        values[np.isnan(values)] = -1
+        return torch.tensor(values).float().unsqueeze(dim=-1) / 64.
+
+    values_converter.type_mapping['continuous'] = bounded_regression_converter
+
     task_converter = TaskConverter()
-    task_converter.type_mapping['continuous'] = BoundedRegressionTask
+    task_converter.type_mapping['binary'] = partial(BinaryClassificationTask, module=nn.Linear(256, 1))
+    task_converter.type_mapping['continuous'] = partial(BoundedRegressionTask, module=nn.Linear(256, 1))
     project = Project(df, input_col='img', output_col=output_col,
                       type_guesser=type_guesser, values_converter=values_converter, task_converter=task_converter)
 
@@ -150,7 +163,7 @@ def test_synthetic_dataset():
         out += flow.door_open(x.features) | (~out.camera_blocked)
         out += flow.door_locked(x.features) | (~out.door_open)
         out += flow.person_present(x.features) | out.door_open
-        out += flow.person_regression(x.features) | out.person_present
+        out += flow.person_regression(x) | out.person_present
         return out
 
     flow: TaskFlow = project.get_full_flow()
@@ -159,3 +172,65 @@ def test_synthetic_dataset():
 
     module = flow.torch()
     print(module)
+
+    train_dataset = dataset
+    val_dataset = dataset
+    train_loader = DataLoader(train_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=False)
+    nested_loaders = OrderedDict({
+        'train': train_loader,
+        'valid': val_loader
+    })
+
+    runner = SupervisedRunner()
+    criterion = flow.get_loss(parent_reduction='mean', child_reduction='none')
+    callbacks = criterion.catalyst_callbacks()
+
+    class SecurityModule(nn.Module):
+
+        def __init__(self):
+            super().__init__()
+            self.seq = nn.Sequential(
+                nn.Conv2d(3, 64, kernel_size=5),
+                nn.Conv2d(64, 128, kernel_size=5),
+                nn.AvgPool2d(2),
+                nn.Conv2d(128, 128, kernel_size=5),
+                nn.Conv2d(128, 256, kernel_size=5),
+                nn.AvgPool2d(2),
+                nn.Conv2d(256, 256, kernel_size=5),
+                nn.AdaptiveAvgPool2d(1),
+                nn.Flatten(),
+            )
+
+            self.flow_module = full_flow.torch()
+
+        def forward(self, x):
+            res = {}
+            res['features'] = self.seq(x['img'])
+            res['gt'] = x['gt']
+            return self.flow_module(res)
+
+    model = SecurityModule()
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        print(tmp_dir)
+        runner.train(
+            model=model,
+            criterion=criterion,
+            optimizer=optim.Adam(model.parameters(), lr=1e-4),
+            loaders=nested_loaders,
+            callbacks=callbacks,
+            logdir=tmp_dir,
+            num_epochs=20,
+        )
+
+    loader = nested_loaders['valid']
+    X, y = next(iter(loader))
+    X = runner._batch2device(X, next(model.parameters()).device)
+    y = runner._batch2device(y, next(model.parameters()).device)
+    model = model.eval()
+
+    pred = model(X)
+    res = criterion(pred, y)
+    print(res.item())
+    print(pred, y)

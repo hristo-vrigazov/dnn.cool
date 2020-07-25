@@ -4,9 +4,5 @@ import torch
 
 def binary_value_converter(values):
     values[np.isnan(values.astype(float))] = -1
-    return torch.tensor(values.astype(float)).float()
+    return torch.tensor(values.astype(float)).float().unsqueeze(dim=-1)
 
-
-def bounded_regression_converter(values):
-    values[np.isnan(values.astype(float))] = -1
-    return torch.tensor(values).float()

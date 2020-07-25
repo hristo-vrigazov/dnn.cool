@@ -111,6 +111,28 @@ def read_inputs(df, input_col, type_guesser, values_converter):
     return Values(keys=keys, values=values)
 
 
+class UsedTasksTracer:
+
+    def __init__(self):
+        self.used_tasks = []
+
+    def __getattr__(self, item):
+        self.used_tasks.append(item)
+        return self
+
+    def __call__(self, *args, **kwargs):
+        return self
+
+    def __add__(self, other):
+        return self
+
+    def __invert__(self):
+        return self
+
+    def __or__(self, other):
+        return self
+
+
 class Project:
 
     def __init__(self, df,
@@ -126,15 +148,28 @@ class Project:
         self.leaf_tasks = create_leaf_tasks(df, output_col, type_guesser, values_converter, task_converter)
         self.flow_tasks = []
 
+        self._name_to_task = {}
+        for leaf_task in self.leaf_tasks:
+            self._name_to_task[leaf_task.get_name()] = leaf_task
+
+    def add_task_flow(self, task_flow: TaskFlow):
+        self.flow_tasks.append(task_flow)
+        self._name_to_task[task_flow.get_name()] = task_flow
+        return task_flow
+
     def add_flow(self, func, flow_name=None):
         flow_name = func.__name__ if flow_name is None else flow_name
         flow = self.create_flow(func, flow_name)
-        self.flow_tasks.append(flow)
-        return flow
+        return self.add_task_flow(flow)
 
     def create_flow(self, flow_func, flow_name=None):
         flow_name = flow_func.__name__ if flow_name is None else flow_name
-        return TaskFlow(flow_name, self.get_all_tasks(), flow_func, self.inputs)
+        used_tasks_tracer = UsedTasksTracer()
+        flow_func(used_tasks_tracer, UsedTasksTracer(), UsedTasksTracer())
+        used_tasks = []
+        for used_task_name in used_tasks_tracer.used_tasks:
+            used_tasks.append(self._name_to_task[used_task_name])
+        return TaskFlow(flow_name, used_tasks, flow_func, self.inputs)
 
     def get_all_tasks(self):
         return self.leaf_tasks + self.flow_tasks

@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import cv2
+import torch
 
 from functools import partial
 
@@ -100,13 +101,13 @@ def create_df_and_images_tensor():
     imgs = []
     rows = []
     names = []
-    for i in range(int(1e3)):
+    for i in range(int(1e5)):
         img, row = generate_sample()
-        imgs.append(img)
+        imgs.append(torch.tensor(img).permute(2, 0, 1))
         rows.append(row)
         names.append(f'{i}.jpg')
 
     df = pd.DataFrame(rows)
     df['img'] = names
-    return imgs, df
+    return torch.stack(imgs, dim=0).float() / 255., df
 
