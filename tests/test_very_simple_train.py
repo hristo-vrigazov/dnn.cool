@@ -5,10 +5,13 @@ from catalyst.dl import SupervisedRunner
 from torch.utils.data import DataLoader
 from torch import optim
 
-from dnn_cool.project import Project
-from dnn_cool.task_flow import TaskFlow
+from dnn_cool.project import Project, TypeGuesser, ValuesConverter, TaskConverter
+from dnn_cool.task_flow import TaskFlow, BoundedRegressionTask
+from dnn_cool.synthetic_dataset import create_df_and_images_tensor
 
 import pandas as pd
+
+from dnn_cool.value_converters import binary_value_converter
 
 
 def test_passenger_example(interior_car_task):
@@ -85,3 +88,74 @@ def test_project_example():
 
     dataset = flow.get_dataset()
     print(dataset[0])
+
+
+def test_synthetic_dataset():
+    imgs, df = create_df_and_images_tensor()
+
+    output_col = ['camera_blocked', 'door_open', 'person_present', 'door_locked',
+                  'face_x1', 'face_y1', 'face_w', 'face_h',
+                  'body_x1', 'body_y1', 'body_w', 'body_h']
+    type_guesser = TypeGuesser()
+    type_guesser.type_mapping['camera_blocked'] = 'binary'
+    type_guesser.type_mapping['door_open'] = 'binary'
+    type_guesser.type_mapping['person_present'] = 'binary'
+    type_guesser.type_mapping['door_locked'] = 'binary'
+
+    type_guesser.type_mapping['face_x1'] = 'continuous'
+    type_guesser.type_mapping['face_y1'] = 'continuous'
+    type_guesser.type_mapping['face_w'] = 'continuous'
+    type_guesser.type_mapping['face_h'] = 'continuous'
+
+    type_guesser.type_mapping['body_x1'] = 'continuous'
+    type_guesser.type_mapping['body_y1'] = 'continuous'
+    type_guesser.type_mapping['body_w'] = 'continuous'
+    type_guesser.type_mapping['body_h'] = 'continuous'
+    type_guesser.type_mapping['img'] = 'img'
+
+    values_converter = ValuesConverter()
+    values_converter.type_mapping['img'] = lambda x: imgs
+    values_converter.type_mapping['binary'] = binary_value_converter
+
+    task_converter = TaskConverter()
+    task_converter.type_mapping['continuous'] = BoundedRegressionTask
+    project = Project(df, input_col='img', output_col=output_col,
+                      type_guesser=type_guesser, values_converter=values_converter, task_converter=task_converter)
+
+    @project.add_flow
+    def face_regression(flow, x, out):
+        out += flow.face_x1(x.features)
+        out += flow.face_y1(x.features)
+        out += flow.face_w(x.features)
+        out += flow.face_h(x.features)
+        return out
+
+    @project.add_flow
+    def body_regression(flow, x, out):
+        out += flow.body_x1(x.features)
+        out += flow.body_y1(x.features)
+        out += flow.body_w(x.features)
+        out += flow.body_h(x.features)
+        return out
+
+    @project.add_flow
+    def person_regression(flow, x, out):
+        out += flow.face_regression(x)
+        out += flow.body_regression(x)
+        return out
+
+    @project.add_flow
+    def full_flow(flow, x, out):
+        out += flow.camera_blocked(x.features)
+        out += flow.door_open(x.features) | (~out.camera_blocked)
+        out += flow.door_locked(x.features) | (~out.door_open)
+        out += flow.person_present(x.features) | out.door_open
+        out += flow.person_regression(x.features) | out.person_present
+        return out
+
+    flow: TaskFlow = project.get_full_flow()
+
+    dataset = flow.get_dataset()
+
+    module = flow.torch()
+    print(module)

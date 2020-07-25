@@ -99,12 +99,14 @@ def generate_sample():
 def create_df_and_images_tensor():
     imgs = []
     rows = []
+    names = []
     for i in range(int(1e3)):
         img, row = generate_sample()
         imgs.append(img)
         rows.append(row)
+        names.append(f'{i}.jpg')
 
     df = pd.DataFrame(rows)
-    df['img'] = np.arange(len(df)).astype(str) + '.jpg'
+    df['img'] = names
     return imgs, df
 

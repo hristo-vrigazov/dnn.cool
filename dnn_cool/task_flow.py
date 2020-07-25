@@ -169,26 +169,17 @@ class ClassificationTask(Task):
         super().__init__(name, labels, loss, inputs, activation, decoder, module, metrics)
 
 
-class RegressionTask(ITask):
+class RegressionTask(Task):
 
-    def __init__(self, name: str, inputs, labels, activation_func):
-        super().__init__(name, inputs)
-        self.activation_func = activation_func
-        self.labels = labels
-
-    def torch(self):
-        return nn.Linear(128, 1)
-
-    def get_activation(self) -> nn.Module:
-        return self.activation_func
-
-    def get_loss(self, *args, **kwargs):
-        if isinstance(self.activation_func, nn.Sigmoid):
-            return SigmoidAndMSELoss(*args, **kwargs)
-        return nn.MSELoss(*args, **kwargs)
-
-    def get_dataset(self, **kwargs):
-        return self.labels
+    def __init__(self, name,
+                 labels,
+                 loss,
+                 inputs,
+                 activation,
+                 decoder,
+                 module,
+                 metrics):
+        super().__init__(name, labels, loss, inputs, activation, decoder, module, metrics)
 
 
 class NestedClassificationTask(ITask):

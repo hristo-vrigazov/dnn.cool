@@ -69,6 +69,10 @@ TODO:
 - [ ] Better handling of `get_inputs`, `get_labels` and `get_dataset`
 - [ ] Are metrics computed only for when the preconditions are correct?
 - [ ] EfficientNet-based project helper
+- [ ] Implement smart values converter
+- [ ] Implement smart task converter
+- [ ] Handle different types when used as precondition, and as ground truth
+- [ ] When using a project, store tasks in flows only when they are needed (will require tracing)
 
 Done: 
 
