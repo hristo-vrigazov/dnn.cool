@@ -70,9 +70,14 @@ def test_project_example():
 
     @project.add_flow
     def camera_not_blocked_flow(flow, x, out):
-        out += flow.camera_blocked(x.features)
-        out += flow.door_open(x.features) | (~out.camera_blocked)
+        out += flow.door_open(x.features)
         out += flow.uniform_type(x.features) | out.door_open
+        return out
+
+    @project.add_flow
+    def all_pipeline(flow, x, out):
+        out += flow.camera_blocked(x.features)
+        out += flow.camera_not_blocked_flow(x.features) | out.camera_blocked
         return out
 
     flow: TaskFlow = project.get_full_flow()

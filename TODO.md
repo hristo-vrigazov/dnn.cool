@@ -4,7 +4,7 @@ Some dumb stuff I am playing with.
 
 DOING:
 
-- [ ] Use Python decorators as registers for flow.
+- [ ] Create convincing synthetic dataset
 
 TODO:
 
@@ -58,7 +58,6 @@ TODO:
 - [ ] Spend time thinking about user-friendliness of each class (think about what mistakes would people do?).
 - [ ] Good tests about possible gt leak
 - [ ] Implement tracing for static analysis (later)
-- [ ] Create convincing synthetic dataset
 - [ ] Create real dataset by pseudo labeling
 - [ ] Rethink user-friendliness API
 - [ ] Revisit type hints
@@ -96,4 +95,4 @@ Done:
 - [x] Callbacks per task (for metrics, loss function, additional metrics, samples, etc.)
 - [x] Concept of per-task activation/decoding.
 - [x] Overall activation/decoding (topological sorting, etc.).
-
+- [x] Use Python decorators as registers for flow.
