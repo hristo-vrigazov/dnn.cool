@@ -143,6 +143,12 @@ class TaskFlowLoss(nn.Module):
             setattr(self, key, instance)
 
     def forward(self, *args):
+        """
+        TaskFlowLoss can be invoked either by giving two arguments: (outputs, targets), or bby giving a single
+        LossFlowData argument, which holds the outputs and the targets.
+        :param args:
+        :return:
+        """
         is_root = len(args) == 2
         if is_root:
             outputs, targets = args
