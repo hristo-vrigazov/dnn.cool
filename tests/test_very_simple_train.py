@@ -18,6 +18,7 @@ import numpy as np
 from dnn_cool.value_converters import binary_value_converter
 from dnn_cool.datasets import FlowDataset
 from dnn_cool.modules import FlowDict
+from dnn_cool.losses import LossFlowData
 
 
 def test_passenger_example(interior_car_task):
@@ -127,7 +128,7 @@ def test_synthetic_dataset():
     def bounded_regression_converter(values):
         values = values.astype(float) / 64
         values[np.isnan(values)] = -1
-        return torch.tensor(values).float().unsqueeze(dim=-1) / 64.
+        return torch.tensor(values).float().unsqueeze(dim=-1)
 
     values_converter.type_mapping['continuous'] = bounded_regression_converter
 

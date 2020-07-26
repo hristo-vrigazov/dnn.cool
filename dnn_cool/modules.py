@@ -178,15 +178,15 @@ class FlowDict:
         for key in self.res:
             current_precondition = self.preconditions.get(key, result.decoded)
             new_precondition = result.preconditions.get('decoded', result.decoded)
-            precondition = current_precondition & new_precondition
+            precondition = current_precondition & new_precondition & result.decoded
             self.preconditions[key] = precondition
             if self.res[key].is_leaf:
                 self.res[key].preconditions['decoded'] = precondition
         return self
 
     def __invert__(self):
+        preconditions = {'decoded': self.preconditions['decoded']} if 'decoded' in self.preconditions else {}
         res = {'decoded': ~self.decoded}
-        preconditions = {'decoded': ~self.preconditions['decoded']} if 'decoded' in self.preconditions else {}
         return self.__shallow_copy_keys(res, preconditions)
 
     def __and__(self, other):
