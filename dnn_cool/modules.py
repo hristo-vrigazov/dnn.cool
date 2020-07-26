@@ -1,5 +1,8 @@
-from typing import Dict
+import torch
 
+from typing import Dict, Union, Optional
+
+from dataclasses import dataclass, field
 from torch import nn
 
 
@@ -85,11 +88,12 @@ def find_gt_and_process_args_when_training(*args, **kwargs):
     return args, kwargs, select_gt(a_gt, k_gt)
 
 
-class FlowDictDecorator(nn.Module):
+class ModuleDecorator(nn.Module):
 
-    def __init__(self, task):
+    def __init__(self, task, prefix):
         super().__init__()
-        self.key = task.get_name()
+        self.prefix = prefix
+        self.task_name = task.get_name()
         self.module = task.torch()
         self.activation = task.get_activation()
         self.decoder = task.get_decoder()
@@ -97,7 +101,7 @@ class FlowDictDecorator(nn.Module):
     def forward(self, *args, **kwargs):
         if self.training:
             args, kwargs, gt = find_gt_and_process_args_when_training(*args, **kwargs)
-            decoded_logits = gt.get(self.key, None)
+            decoded_logits = gt.get(self.task_name, None)
         else:
             decoded_logits = None
 
@@ -106,186 +110,122 @@ class FlowDictDecorator(nn.Module):
 
         if decoded_logits is None:
             decoded_logits = self.decoder(activated_logits) if self.decoder is not None else activated_logits
+        key = self.prefix + self.task_name
+        return LeafModuleOutput(key, logits, activated_logits, decoded_logits)
 
-        return FlowDict({
-            self.key: FlowDict({
-                'logits': logits,
-                'activated': activated_logits,
-                'decoded': decoded_logits
-            }, is_leaf=True)
-        })
+
+@dataclass
+class LeafModuleOutput:
+    path: str
+    logits: torch.Tensor
+    activated: torch.Tensor
+    decoded: torch.Tensor
+    precondition: torch.Tensor = None
+
+    def add_to_composite(self, composite_module_output):
+        composite_module_output.logits[self.path] = self.logits
+        composite_module_output.activated[self.path] = self.activated
+        composite_module_output.decoded[self.path] = self.decoded
+        composite_module_output.preconditions[self.path] = self.precondition
+
+    def __or__(self, precondition: torch.Tensor):
+        """
+        Note: this has the meaning of a a precondition, not boolean or. Use the method `or_else` instead.
+        :param other: precondition tensor
+        :return: self
+        """
+        self.precondition = precondition
+        return self
+
+
+@dataclass
+class CompositeModuleOutput:
+    training: bool
+    gt: Dict[str, torch.Tensor]
+    prefix: str
+    path: str = ''
+    logits: Dict[str, torch.Tensor] = field(default_factory=lambda: {})
+    activated: Dict[str, torch.Tensor] = field(default_factory=lambda: {})
+    decoded: Dict[str, torch.Tensor] = field(default_factory=lambda: {})
+    preconditions: Dict[str, torch.Tensor] = field(default_factory=lambda: {})
+
+    def add_to_composite(self, other):
+        for key, value in self.logits.items():
+            assert key not in other.logits, f'The key {key} has been added twice in the same workflow!.'
+            other.logits[key] = value
+        for key, value in self.activated.items():
+            assert key not in other.activated, f'The key {key} has been added twice in the same workflow!.'
+            other.activated[key] = value
+        for key, value in self.decoded.items():
+            assert key not in other.decoded, f'The key {key} has been added twice in the same workflow!.'
+            other.decoded[key] = value
+        for key, value in self.preconditions.items():
+            assert key not in other.preconditions, f'The key {key} has been added twice in the same workflow!.'
+            other.preconditions[key] = value
+
+    def __iadd__(self, other):
+        other.add_to_composite(self)
+        return self
+
+    def __getattr__(self, item):
+        full_path = self.prefix + item
+        if self.training:
+            return self.gt[full_path]
+        return self.decoded[full_path]
+
+    def __or__(self, precondition: torch.Tensor):
+        """
+        Note: this has the meaning of a a precondition, not boolean or. Use the method `or_else` instead.
+        :param other: precondition tensor
+        :return: self
+        """
+        for key, value in self.preconditions.items():
+            current_precondition = self.preconditions.get(key)
+            if current_precondition is None:
+                self.preconditions[key] = precondition
+            else:
+                self.preconditions[key] &= precondition
+        return self
+
+    def reduce(self):
+        if len(self.prefix) == 0:
+            return self.logits
+        return self
+
+
+@dataclass
+class FeaturesDict:
+    data: Dict
+
+    def __init__(self, data):
+        self.data = data
+
+    def __getattr__(self, item):
+        return self.data[item]
 
 
 class TaskFlowModule(nn.Module):
 
-    def __init__(self, task_flow):
+    def __init__(self, task_flow, prefix=''):
         super().__init__()
         self._task_flow = task_flow
         # Save a reference to the flow function of the original class
         # We will then call it by replacing the self, this way effectively running
         # it with this class. And this class stores Pytorch modules as class attributes
         self.flow = task_flow.get_flow_func()
+        self.prefix = prefix
 
         for key, task in task_flow.tasks.items():
-            setattr(self, key, FlowDictDecorator(task))
+            if not task.has_children():
+                instance = ModuleDecorator(task, prefix)
+            else:
+                instance = TaskFlowModule(task, prefix=f'{prefix}{task.get_name()}.')
+            setattr(self, key, instance)
 
     def forward(self, x):
-        x['training'] = self.training
-        flow_dict_res = self.flow(self, FlowDict(x), FlowDict({}))
-        return flow_dict_res.flatten()
+        if isinstance(x, FeaturesDict):
+            x = x.data
 
-
-def merge_preconditions(self, other, op):
-    self_preconditions = self.preconditions.get('decoded')
-    other_preconditions = other.preconditions.get('decoded')
-
-    if self_preconditions is None and other_preconditions is None:
-        return {}
-
-    if self_preconditions is None:
-        return other_preconditions
-
-    if other_preconditions is None:
-        return self_preconditions
-
-    return {'decoded': op(self_preconditions, other_preconditions)}
-
-
-class FlowDict:
-
-    def __init__(self, res: Dict, is_leaf=False):
-        self.res = res
-        self.preconditions = {}
-        self.is_leaf = is_leaf
-
-    def __getattr__(self, attr):
-        if not ('training' in self.res):
-            return self.res[attr]
-        if not self.res['training']:
-            return self.res[attr]
-        return {
-            'value': self.res[attr],
-            'gt': self.res['gt'],
-        }
-
-    def __or__(self, result):
-        """
-        Note that this has the meaning of preconditioning, not boolean __or__. If you want to use boolean or,
-        use the `or_else` method.
-        :param result:
-        :return:
-        """
-        for key in self.res:
-            current_precondition = self.preconditions.get(key, result.decoded)
-            new_precondition = result.preconditions.get('decoded', result.decoded)
-            precondition = current_precondition & new_precondition & result.decoded
-            self.preconditions[key] = precondition
-            if self.res[key].is_leaf:
-                self.res[key].preconditions['decoded'] = precondition
-        return self
-
-    def __invert__(self):
-        preconditions = {'decoded': self.preconditions['decoded']} if 'decoded' in self.preconditions else {}
-        res = {'decoded': ~self.decoded}
-        return self.__shallow_copy_keys(res, preconditions)
-
-    def __and__(self, other):
-        res = {
-            'decoded': self.decoded & other.decoded
-        }
-
-        preconditions = merge_preconditions(self, other, lambda x, y: x & y)
-        return self.__shallow_copy_keys(res, preconditions)
-
-    def __getitem__(self, key):
-        return self.res[key]
-
-    def __setitem__(self, key, item):
-        self.res[key] = item
-
-    def __iter__(self):
-        return self.res.__iter__()
-
-    def __contains__(self, item):
-        return self.res.__contains__(item)
-
-    def __shallow_copy_keys(self, res, preconditions):
-        for key, value in self.res.items():
-            if key not in res:
-                res[key] = value
-        for key, value in self.preconditions.items():
-            if key not in preconditions:
-                preconditions[key] = value
-        return FlowDict(res, preconditions)
-
-    def or_else(self, other):
-        res = {
-            'decoded': self.decoded | other.decoded
-        }
-        return self.__shallow_copy_keys(res)
-
-    def __xor__(self, other):
-        res = {
-            'decoded': self.decoded ^ other.decoded
-        }
-        return self.__shallow_copy_keys(res)
-
-    def __sub__(self, other):
-        res = FlowDict({})
-        for key, value in self.res.items():
-            if key not in other.res:
-                res.res[key] = value
-        for key, value in self.preconditions.items():
-            if key not in other.preconditions:
-                res.preconditions[key] = value
-        return res
-
-    def __add__(self, other):
-        res = FlowDict({})
-        res.res.update(self.res)
-        res.res.update(other.res)
-        res.preconditions.update(self.preconditions)
-        res.preconditions.update(other.preconditions)
-        return res
-
-    def __iadd__(self, other):
-        self.res.update(other.res)
-        self.preconditions.update(other.preconditions)
-        return self
-
-    def flatten(self):
-        res = {}
-        for key, value in self.res.items():
-            keys, values = self._traverse(key, value, self.preconditions.get(key, None))
-            for i in range(len(keys)):
-                res[keys[i]] = values[i]
-
-        return res
-
-    def _traverse(self, parent_key, parent_value, parent_precondition):
-        is_leaf = not isinstance(parent_value.logits, dict)
-        if is_leaf:
-            res_keys = [parent_key]
-            res_values = [parent_value.logits]
-            if parent_precondition is not None:
-                res_keys.append(f'precondition|{parent_key}')
-                res_values.append(parent_precondition)
-            return res_keys, res_values
-
-        all_keys, all_values = [], []
-        for key, value in parent_value.logits.items():
-            if key.startswith('precondition|'):
-                continue
-            full_path_key = f'{parent_key}.{key}'
-            all_keys.append(full_path_key)
-            all_values.append(value)
-            # if there is a parent precondition, then the child has to satisfy both his own and his parents'
-            # preconditions.
-            current_precondition = parent_value.logits.get(f'precondition|{key}', parent_precondition)
-            if current_precondition is None:
-                current_precondition = parent_precondition
-            elif parent_precondition is not None:
-                current_precondition &= parent_precondition
-            all_keys.append(f'precondition|{full_path_key}')
-            all_values.append(current_precondition)
-        return all_keys, all_values
+        out = CompositeModuleOutput(training=self.training, gt=x.get('gt'), prefix=self.prefix)
+        composite_module_output = self.flow(self, FeaturesDict(x), out)
+        return composite_module_output.reduce()
