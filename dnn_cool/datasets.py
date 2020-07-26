@@ -104,6 +104,12 @@ class FlowDataset(Dataset):
         self.prefix = prefix
 
     def __getitem__(self, item):
+        """
+        This method is going to execute the flow given in the contructor, passing around the index variable `item` in
+        the class `IndexHolder`
+        :param item:
+        :return:
+        """
         flow_dataset_dict = self.flow(self, IndexHolder(item), FlowDatasetDict(self.prefix, {}))
         inputs = self._task_flow.get_inputs()
         if inputs is None:
