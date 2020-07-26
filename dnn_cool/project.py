@@ -172,7 +172,9 @@ class Project:
         flow_func(used_tasks_tracer, UsedTasksTracer(), UsedTasksTracer())
         used_tasks = []
         for used_task_name in used_tasks_tracer.used_tasks:
-            used_tasks.append(self._name_to_task[used_task_name])
+            task = self._name_to_task.get(used_task_name, None)
+            if task is not None:
+                used_tasks.append(task)
         return TaskFlow(flow_name, used_tasks, flow_func, self.inputs)
 
     def get_all_tasks(self):

@@ -15,6 +15,7 @@ from dnn_cool.synthetic_dataset import create_df_and_images_tensor
 import pandas as pd
 import numpy as np
 
+from dnn_cool.datasets import FlowDatasetDict
 from dnn_cool.value_converters import binary_value_converter
 
 

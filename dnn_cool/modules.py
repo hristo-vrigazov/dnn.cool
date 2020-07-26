@@ -114,13 +114,56 @@ class ModuleDecorator(nn.Module):
         return LeafModuleOutput(key, logits, activated_logits, decoded_logits)
 
 
+class Precondition:
+
+    def to_mask(self, data):
+        """
+        Returns a boolean tensor that can be used as a precondition
+        :param data: can come either from ground truth (during training), or from decoded predictions (when deployed)
+        :return:
+        """
+        raise NotImplementedError()
+
+    def __invert__(self):
+        return NegatedPrecondition(self)
+
+
+@dataclass()
+class NegatedPrecondition(Precondition):
+    precondition: Precondition
+
+    def to_mask(self, data):
+        mask = self.precondition.to_mask(data)
+        return ~mask
+
+
+@dataclass
+class LeafPrecondition(Precondition):
+    path: str
+
+    def to_mask(self, data):
+        return data[self.path]
+
+
+@dataclass()
+class NestedPrecondition(Precondition):
+    path: str
+    parent: Precondition
+
+    def to_mask(self, data):
+        mask = self.parent.to_mask(data)
+        precondition = data[self.path]
+        mask[~precondition] = False
+        return mask
+
+
 @dataclass
 class LeafModuleOutput:
     path: str
     logits: torch.Tensor
     activated: torch.Tensor
     decoded: torch.Tensor
-    precondition: torch.Tensor = None
+    precondition: Precondition = None
 
     def add_to_composite(self, composite_module_output):
         composite_module_output.logits[self.path] = self.logits
@@ -128,7 +171,7 @@ class LeafModuleOutput:
         composite_module_output.decoded[self.path] = self.decoded
         composite_module_output.preconditions[self.path] = self.precondition
 
-    def __or__(self, precondition: torch.Tensor):
+    def __or__(self, precondition: Precondition):
         """
         Note: this has the meaning of a a precondition, not boolean or. Use the method `or_else` instead.
         :param other: precondition tensor
@@ -147,7 +190,7 @@ class CompositeModuleOutput:
     logits: Dict[str, torch.Tensor] = field(default_factory=lambda: {})
     activated: Dict[str, torch.Tensor] = field(default_factory=lambda: {})
     decoded: Dict[str, torch.Tensor] = field(default_factory=lambda: {})
-    preconditions: Dict[str, torch.Tensor] = field(default_factory=lambda: {})
+    preconditions: Dict[str, Precondition] = field(default_factory=lambda: {})
 
     def add_to_composite(self, other):
         for key, value in self.logits.items():
@@ -169,11 +212,12 @@ class CompositeModuleOutput:
 
     def __getattr__(self, item):
         full_path = self.prefix + item
-        if self.training:
-            return self.gt[full_path]
-        return self.decoded[full_path]
+        parent_precondition = self.preconditions.get(full_path)
+        if parent_precondition is None:
+            return LeafPrecondition(path=full_path)
+        return NestedPrecondition(path=full_path, parent=parent_precondition)
 
-    def __or__(self, precondition: torch.Tensor):
+    def __or__(self, precondition: Precondition):
         """
         Note: this has the meaning of a a precondition, not boolean or. Use the method `or_else` instead.
         :param other: precondition tensor
@@ -189,7 +233,11 @@ class CompositeModuleOutput:
 
     def reduce(self):
         if len(self.prefix) == 0:
-            return self.logits
+            res = self.logits
+            for key, value in self.preconditions.items():
+                if value is not None:
+                    res[f'precondition|{key}'] = value.to_mask(self.gt)
+            return res
         return self
 
 
@@ -210,7 +258,7 @@ class TaskFlowModule(nn.Module):
         super().__init__()
         self._task_flow = task_flow
         # Save a reference to the flow function of the original class
-        # We will then call it by replacing the self, this way effectively running
+        # We wi.ll then call it by replacing the self, this way effectively running
         # it with this class. And this class stores Pytorch modules as class attributes
         self.flow = task_flow.get_flow_func()
         self.prefix = prefix
