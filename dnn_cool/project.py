@@ -53,12 +53,16 @@ class ValuesConverter:
 
 @dataclass()
 class TaskConverter:
+    col_mapping = {}
     type_mapping = {
         'binary': BinaryClassificationTask,
         'category': ClassificationTask
     }
 
     def to_task(self, output_col, guessed_type, values):
+        if output_col in self.col_mapping:
+            return self.col_mapping[output_col](name=output_col, labels=values)
+
         return self.type_mapping[guessed_type](name=output_col, labels=values)
 
 

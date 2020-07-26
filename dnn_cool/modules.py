@@ -50,7 +50,7 @@ class NestedFC(nn.Module):
         for i in range(n):
             res_for_parent = []
             for parent_index in parent_indices[i]:
-                res_for_parent.append(self.fcs[parent_index](features[i:i+1]))
+                res_for_parent.append(self.fcs[parent_index](features[i:i + 1]))
             res.append(res_for_parent)
         return res
 
@@ -112,7 +112,7 @@ class FlowDictDecorator(nn.Module):
                 'logits': logits,
                 'activated': activated_logits,
                 'decoded': decoded_logits
-            })
+            }, is_leaf=True)
         })
 
 
@@ -135,11 +135,28 @@ class TaskFlowModule(nn.Module):
         return flow_dict_res.flatten()
 
 
+def merge_preconditions(self, other, op):
+    self_preconditions = self.preconditions.get('decoded')
+    other_preconditions = other.preconditions.get('decoded')
+
+    if self_preconditions is None and other_preconditions is None:
+        return {}
+
+    if self_preconditions is None:
+        return other_preconditions
+
+    if other_preconditions is None:
+        return self_preconditions
+
+    return {'decoded': op(self_preconditions, other_preconditions)}
+
+
 class FlowDict:
 
-    def __init__(self, res: Dict):
+    def __init__(self, res: Dict, is_leaf=False):
         self.res = res
         self.preconditions = {}
+        self.is_leaf = is_leaf
 
     def __getattr__(self, attr):
         if not ('training' in self.res):
@@ -160,21 +177,25 @@ class FlowDict:
         """
         for key in self.res:
             current_precondition = self.preconditions.get(key, result.decoded)
-            precondition = current_precondition & result.decoded
+            new_precondition = result.preconditions.get('decoded', result.decoded)
+            precondition = current_precondition & new_precondition
             self.preconditions[key] = precondition
+            if self.res[key].is_leaf:
+                self.res[key].preconditions['decoded'] = precondition
         return self
 
     def __invert__(self):
-        res = {
-            'decoded': ~self.decoded
-        }
-        return self.__shallow_copy_keys(res)
+        res = {'decoded': ~self.decoded}
+        preconditions = {'decoded': ~self.preconditions['decoded']} if 'decoded' in self.preconditions else {}
+        return self.__shallow_copy_keys(res, preconditions)
 
     def __and__(self, other):
         res = {
             'decoded': self.decoded & other.decoded
         }
-        return self.__shallow_copy_keys(res)
+
+        preconditions = merge_preconditions(self, other, lambda x, y: x & y)
+        return self.__shallow_copy_keys(res, preconditions)
 
     def __getitem__(self, key):
         return self.res[key]
@@ -188,11 +209,14 @@ class FlowDict:
     def __contains__(self, item):
         return self.res.__contains__(item)
 
-    def __shallow_copy_keys(self, res):
+    def __shallow_copy_keys(self, res, preconditions):
         for key, value in self.res.items():
             if key not in res:
                 res[key] = value
-        return FlowDict(res)
+        for key, value in self.preconditions.items():
+            if key not in preconditions:
+                preconditions[key] = value
+        return FlowDict(res, preconditions)
 
     def or_else(self, other):
         res = {

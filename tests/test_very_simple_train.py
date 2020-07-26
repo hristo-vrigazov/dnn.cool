@@ -17,6 +17,7 @@ import numpy as np
 
 from dnn_cool.value_converters import binary_value_converter
 from dnn_cool.datasets import FlowDataset
+from dnn_cool.modules import FlowDict
 
 
 def test_passenger_example(interior_car_task):
@@ -131,8 +132,21 @@ def test_synthetic_dataset():
     values_converter.type_mapping['continuous'] = bounded_regression_converter
 
     task_converter = TaskConverter()
-    task_converter.type_mapping['binary'] = partial(BinaryClassificationTask, module=nn.Linear(256, 1))
-    task_converter.type_mapping['continuous'] = partial(BoundedRegressionTask, module=nn.Linear(256, 1))
+    task_converter.col_mapping['camera_blocked'] = partial(BinaryClassificationTask, module=nn.Linear(256, 1))
+    task_converter.col_mapping['door_open'] = partial(BinaryClassificationTask, module=nn.Linear(256, 1))
+    task_converter.col_mapping['person_present'] = partial(BinaryClassificationTask, module=nn.Linear(256, 1))
+    task_converter.col_mapping['door_locked'] = partial(BinaryClassificationTask, module=nn.Linear(256, 1))
+
+    task_converter.col_mapping['face_x1'] = partial(BoundedRegressionTask, module=nn.Linear(256, 1))
+    task_converter.col_mapping['face_y1'] = partial(BoundedRegressionTask, module=nn.Linear(256, 1))
+    task_converter.col_mapping['face_w'] = partial(BoundedRegressionTask, module=nn.Linear(256, 1))
+    task_converter.col_mapping['face_h'] = partial(BoundedRegressionTask, module=nn.Linear(256, 1))
+
+    task_converter.col_mapping['body_x1'] = partial(BoundedRegressionTask, module=nn.Linear(256, 1))
+    task_converter.col_mapping['body_y1'] = partial(BoundedRegressionTask, module=nn.Linear(256, 1))
+    task_converter.col_mapping['body_w'] = partial(BoundedRegressionTask, module=nn.Linear(256, 1))
+    task_converter.col_mapping['body_h'] = partial(BoundedRegressionTask, module=nn.Linear(256, 1))
+
     project = Project(df, input_col='img', output_col=output_col,
                       type_guesser=type_guesser, values_converter=values_converter, task_converter=task_converter)
 
