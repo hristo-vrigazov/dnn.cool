@@ -212,6 +212,7 @@ def test_synthetic_dataset():
                 nn.Conv2d(128, 256, kernel_size=5),
                 nn.AvgPool2d(2),
                 nn.Conv2d(256, 256, kernel_size=5),
+                nn.Conv2d(256, 256, kernel_size=5),
                 nn.AdaptiveAvgPool2d(1),
                 nn.Flatten(),
             )
@@ -235,7 +236,7 @@ def test_synthetic_dataset():
             loaders=nested_loaders,
             callbacks=callbacks,
             logdir=tmp_dir,
-            num_epochs=20,
+            num_epochs=2,
         )
 
     loader = nested_loaders['valid']

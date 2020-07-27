@@ -114,45 +114,66 @@ class ModuleDecorator(nn.Module):
         return LeafModuleOutput(key, logits, activated_logits, decoded_logits)
 
 
-class Precondition:
+class Condition:
+
+    def get_precondition(self, data):
+        raise NotImplementedError()
 
     def to_mask(self, data):
-        """
-        Returns a boolean tensor that can be used as a precondition
-        :param data: can come either from ground truth (during training), or from decoded predictions (when deployed)
-        :return:
-        """
         raise NotImplementedError()
 
     def __invert__(self):
-        return NegatedPrecondition(self)
-
-
-@dataclass()
-class NegatedPrecondition(Precondition):
-    precondition: Precondition
-
-    def to_mask(self, data):
-        mask = self.precondition.to_mask(data)
-        return ~mask
+        return NegatedCondition(self)
 
 
 @dataclass
-class LeafPrecondition(Precondition):
+class OnesCondition(Condition):
     path: str
 
+    def get_precondition(self, data):
+        return OnesCondition(self.path)
+
     def to_mask(self, data):
-        return data[self.path]
+        return torch.ones_like(data[self.path])
 
 
 @dataclass()
-class NestedPrecondition(Precondition):
-    path: str
-    parent: Precondition
+class NegatedCondition(Condition):
+    precondition: Condition
+
+    def get_precondition(self, data):
+        return self.precondition.get_precondition(data)
 
     def to_mask(self, data):
-        mask = self.parent.to_mask(data)
-        precondition = data[self.path]
+        mask = self.precondition.to_mask(data)
+        precondition = self.get_precondition(data).to_mask(data)
+        mask[~precondition] = False
+        mask[precondition] = ~mask[precondition]
+        return mask
+
+
+@dataclass
+class LeafCondition(Condition):
+    path: str
+
+    def get_precondition(self, data):
+        return OnesCondition(self.path)
+
+    def to_mask(self, data):
+        return data[self.path].clone()
+
+
+@dataclass()
+class NestedCondition(Condition):
+    path: str
+    parent: Condition
+
+    def get_precondition(self, data):
+        return self.parent
+
+    def to_mask(self, data):
+        mask = data[self.path].clone()
+        precondition = self.get_precondition(data).to_mask(data)
         mask[~precondition] = False
         return mask
 
@@ -163,7 +184,7 @@ class LeafModuleOutput:
     logits: torch.Tensor
     activated: torch.Tensor
     decoded: torch.Tensor
-    precondition: Precondition = None
+    precondition: Condition = None
 
     def add_to_composite(self, composite_module_output):
         composite_module_output.logits[self.path] = self.logits
@@ -171,7 +192,7 @@ class LeafModuleOutput:
         composite_module_output.decoded[self.path] = self.decoded
         composite_module_output.preconditions[self.path] = self.precondition
 
-    def __or__(self, precondition: Precondition):
+    def __or__(self, precondition: Condition):
         """
         Note: this has the meaning of a a precondition, not boolean or. Use the method `or_else` instead.
         :param other: precondition tensor
@@ -190,7 +211,7 @@ class CompositeModuleOutput:
     logits: Dict[str, torch.Tensor] = field(default_factory=lambda: {})
     activated: Dict[str, torch.Tensor] = field(default_factory=lambda: {})
     decoded: Dict[str, torch.Tensor] = field(default_factory=lambda: {})
-    preconditions: Dict[str, Precondition] = field(default_factory=lambda: {})
+    preconditions: Dict[str, Condition] = field(default_factory=lambda: {})
 
     def add_to_composite(self, other):
         for key, value in self.logits.items():
@@ -214,10 +235,10 @@ class CompositeModuleOutput:
         full_path = self.prefix + item
         parent_precondition = self.preconditions.get(full_path)
         if parent_precondition is None:
-            return LeafPrecondition(path=full_path)
-        return NestedPrecondition(path=full_path, parent=parent_precondition)
+            return LeafCondition(path=full_path)
+        return NestedCondition(path=full_path, parent=parent_precondition)
 
-    def __or__(self, precondition: Precondition):
+    def __or__(self, precondition: Condition):
         """
         Note: this has the meaning of a a precondition, not boolean or. Use the method `or_else` instead.
         :param other: precondition tensor
@@ -228,7 +249,7 @@ class CompositeModuleOutput:
             if current_precondition is None:
                 self.preconditions[key] = precondition
             else:
-                self.preconditions[key] &= precondition
+                self.preconditions[key] = NestedCondition(key, precondition)
         return self
 
     def reduce(self):
