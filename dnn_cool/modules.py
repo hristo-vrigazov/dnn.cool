@@ -271,10 +271,12 @@ class CompositeModuleOutput:
 
     def reduce(self):
         if len(self.prefix) == 0:
-            res = self.logits
+            inference_without_gt = self.gt is None
+            preconditions_source = self.decoded if inference_without_gt else self.gt
+            res = self.decoded if inference_without_gt else self.logits
             for key, value in self.preconditions.items():
                 if value is not None:
-                    res[f'precondition|{key}'] = value.to_mask(self.gt)
+                    res[f'precondition|{key}'] = value.to_mask(preconditions_source)
             return res
         return self
 

@@ -4,13 +4,16 @@ Some dumb stuff I am playing with.
 
 DOING:
 
-- [ ] Add assertions for training
-- [ ] Implement some common decoders
-- [ ] Implement some common metrics
-- [ ] Implement inference when we don't have ground truth
+- [ ] Treelib explanation
 
 TODO:
 
+- [ ] Add assertions for training tests
+- [ ] Implement some common decoders
+- [ ] Implement some common metrics
+- [ ] Implement inference when we don't have ground truth
+- [ ] Improve test coverage, especially the user-friendliness part
+- [ ] Cleaner loss function reducing - separate methods for reduced and non-reduced loss
 - [ ] Per-task evaluation information, given that precondition is working correctly.
 - [ ] Overall evaluation information
 - [ ] Per-task result interpretation
@@ -24,7 +27,6 @@ TODO:
 - [ ] UI splitting helper
 - [ ] ONNX converter (if possible) - with static analysis.
 - [ ] Test training a model with synthetic dataset.
-- [ ] Treelib explanation
 - [ ] Grad-CAM per branch
 - [ ] Cleaner representations for results
 - [ ] Work on error messages
@@ -108,3 +110,4 @@ Done:
 - [x] Create convincing synthetic dataset
 - [x] When using a project, store tasks in flows only when they are needed (will require tracing)
 - [x] Fix bug with precondition accumulation when on the same flow
+- [x] Add test for predicting on an example and showing decoded
