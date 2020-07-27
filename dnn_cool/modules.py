@@ -125,6 +125,9 @@ class Condition:
     def __invert__(self):
         return NegatedCondition(self)
 
+    def __and__(self, other):
+        return AndCondition(self, other)
+
 
 @dataclass
 class OnesCondition(Condition):
@@ -176,6 +179,20 @@ class NestedCondition(Condition):
         precondition = self.get_precondition(data).to_mask(data)
         mask[~precondition] = False
         return mask
+
+
+@dataclass()
+class AndCondition(Condition):
+    condition_one: Condition
+    condition_two: Condition
+
+    def get_precondition(self, data):
+        return self.condition_one.get_precondition(data) & self.condition_two.get_precondition(data)
+
+    def to_mask(self, data):
+        mask_one = self.condition_one.to_mask(data)
+        mask_two = self.condition_two.to_mask(data)
+        return mask_one & mask_two
 
 
 @dataclass
@@ -249,7 +266,7 @@ class CompositeModuleOutput:
             if current_precondition is None:
                 self.preconditions[key] = precondition
             else:
-                self.preconditions[key] = NestedCondition(key, precondition)
+                self.preconditions[key] &= precondition
         return self
 
     def reduce(self):
