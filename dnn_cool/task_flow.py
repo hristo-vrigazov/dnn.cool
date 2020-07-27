@@ -209,12 +209,6 @@ class TaskFlow(ITask):
         if flow_func is not None:
             self._flow_func = flow_func
 
-    # def __getattr__(self, attr):
-    #     return self.tasks[attr]
-
-    def get_activation(self) -> Optional[nn.Module]:
-        pass
-
     def get_loss(self, **kwargs):
         return TaskFlowLoss(self, **kwargs)
 

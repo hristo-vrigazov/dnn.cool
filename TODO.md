@@ -4,9 +4,10 @@ Some dumb stuff I am playing with.
 
 DOING:
 
-- [ ] Create convincing synthetic dataset
-- [ ] When using a project, store tasks in flows only when they are needed (will require tracing)
-- [ ] Fix bug with precondition accumulation when on the same flow
+- [ ] Add assertions for training
+- [ ] Implement some common decoders
+- [ ] Implement some common metrics
+- [ ] Implement inference when we don't have ground truth
 
 TODO:
 
@@ -104,4 +105,6 @@ Done:
 - [x] Overall activation/decoding (topological sorting, etc.).
 - [x] Use Python decorators as registers for flow.
 - [x] Composite flows (e.g YOLO inside a classifier, etc.)
-
+- [x] Create convincing synthetic dataset
+- [x] When using a project, store tasks in flows only when they are needed (will require tracing)
+- [x] Fix bug with precondition accumulation when on the same flow
