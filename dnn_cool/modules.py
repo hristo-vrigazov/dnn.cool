@@ -221,10 +221,8 @@ class LeafModuleOutput:
 
 @dataclass
 class CompositeModuleOutput:
-    training: bool
     gt: Dict[str, torch.Tensor]
     prefix: str
-    path: str = ''
     logits: Dict[str, torch.Tensor] = field(default_factory=lambda: {})
     activated: Dict[str, torch.Tensor] = field(default_factory=lambda: {})
     decoded: Dict[str, torch.Tensor] = field(default_factory=lambda: {})
@@ -269,7 +267,7 @@ class CompositeModuleOutput:
                 self.preconditions[key] &= precondition
         return self
 
-    def reduce(self):
+    def reduce(self, reduce_full_results):
         if len(self.prefix) == 0:
             inference_without_gt = self.gt is None
             preconditions_source = self.decoded if inference_without_gt else self.gt
@@ -316,8 +314,6 @@ class TaskFlowModule(nn.Module):
         if isinstance(x, FeaturesDict):
             x = x.data
 
-        out = CompositeModuleOutput(training=self.training,
-                                    gt=x.get('gt'),
-                                    prefix=self.prefix)
+        out = CompositeModuleOutput(gt=x.get('gt'), prefix=self.prefix)
         composite_module_output = self.flow(self, FeaturesDict(x), out)
-        return composite_module_output.reduce()
+        return composite_module_output.reduce(self.return_full_results)
