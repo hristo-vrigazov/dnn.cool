@@ -9,6 +9,7 @@ from dnn_cool.decoders import threshold_binary, sort_declining
 from dnn_cool.losses import TaskFlowLoss
 from dnn_cool.metrics import single_result_accuracy
 from dnn_cool.modules import SigmoidAndMSELoss, Identity, NestedFC, TaskFlowModule
+from dnn_cool.treelib import TreeLibExplainer
 
 
 class ITask:
@@ -234,3 +235,6 @@ class TaskFlow(ITask):
         for task in self.tasks.values():
             all_metrics += task.get_metrics()
         return all_metrics
+
+    def get_treelib_explainer(self):
+        return TreeLibExplainer(self)

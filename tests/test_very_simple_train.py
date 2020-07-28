@@ -222,7 +222,7 @@ def synthenic_dataset_preparation():
 
 
 def test_synthetic_dataset(synthenic_dataset_preparation):
-    callbacks, criterion, model, nested_loaders, runner, flow = synthenic_dataset_preparation, df
+    callbacks, criterion, model, nested_loaders, runner, flow, df = synthenic_dataset_preparation
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         print(tmp_dir)
@@ -266,6 +266,11 @@ def test_inference_synthetic(synthenic_dataset_preparation):
 
     res = model(X)
 
+    treelib_explainer = flow.get_treelib_explainer()
+
+    tree = treelib_explainer(res)
+    tree.show()
+    
     for key in res:
         res[key] = res[key].item()
     print(pd.Series(res))

@@ -310,10 +310,14 @@ class TaskFlowModule(nn.Module):
                 instance = TaskFlowModule(task, prefix=f'{prefix}{task.get_name()}.')
             setattr(self, key, instance)
 
+        self.return_full_results = False
+
     def forward(self, x):
         if isinstance(x, FeaturesDict):
             x = x.data
 
-        out = CompositeModuleOutput(training=self.training, gt=x.get('gt'), prefix=self.prefix)
+        out = CompositeModuleOutput(training=self.training,
+                                    gt=x.get('gt'),
+                                    prefix=self.prefix)
         composite_module_output = self.flow(self, FeaturesDict(x), out)
         return composite_module_output.reduce()
