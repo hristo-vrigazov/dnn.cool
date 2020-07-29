@@ -255,24 +255,19 @@ def test_inference_synthetic(synthenic_dataset_preparation):
     ckpt = load_checkpoint('/home/hvrigazov/dnn.cool/tests/security_logs/checkpoints/best_full.pth')
     unpack_checkpoint(ckpt, model)
 
-    idx = 1
-    X, y = dataset[idx]
-    del X['gt']
+    for idx in range(16):
+        X, y = dataset[idx]
+        del X['gt']
 
-    for key in X:
-        if key == 'gt':
-            continue
-        X[key] = X[key].unsqueeze(dim=0)
+        for key in X:
+            if key == 'gt':
+                continue
+            X[key] = X[key].unsqueeze(dim=0)
 
-    model = model.eval()
-    res = model(X)
+        model = model.eval()
+        res = model(X)
 
-    treelib_explainer = flow.get_treelib_explainer()
+        treelib_explainer = flow.get_treelib_explainer()
 
-    tree = treelib_explainer(res)
-    tree.show()
-    
-    for key in res:
-        res[key] = res[key].item()
-    print(pd.Series(res))
-    print(df.iloc[idx])
+        tree = treelib_explainer(res)
+        tree.show()
