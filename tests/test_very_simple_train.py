@@ -1,5 +1,6 @@
 import tempfile
 import pytest
+import matplotlib.pyplot as plt
 from collections import OrderedDict
 from functools import partial
 
@@ -113,7 +114,6 @@ def synthenic_dataset_preparation():
     type_guesser.type_mapping['body_h'] = 'continuous'
     type_guesser.type_mapping['img'] = 'img'
     values_converter = ValuesConverter()
-    imgs /= 255
     values_converter.type_mapping['img'] = lambda x: imgs
     values_converter.type_mapping['binary'] = binary_value_converter
 
@@ -252,10 +252,13 @@ def test_inference_synthetic(synthenic_dataset_preparation):
     callbacks, criterion, model, nested_loaders, runner, flow, df = synthenic_dataset_preparation
     dataset = flow.get_dataset()
 
+    n = 4 * torch.cuda.device_count()
+    loader = DataLoader(dataset, batch_size=n, shuffle=False)
+
     ckpt = load_checkpoint('/home/hvrigazov/dnn.cool/tests/security_logs/checkpoints/best_full.pth')
     unpack_checkpoint(ckpt, model)
 
-    X, y = next(iter(nested_loaders['valid']))
+    X, y = next(iter(loader))
     del X['gt']
 
     model = model.eval()
@@ -266,19 +269,7 @@ def test_inference_synthetic(synthenic_dataset_preparation):
     tree = treelib_explainer(res)
     tree.show()
 
-    # for idx in range(16):
-    #     X, y = dataset[idx]
-    #     del X['gt']
-    #
-    #     for key in X:
-    #         if key == 'gt':
-    #             continue
-    #         X[key] = X[key].unsqueeze(dim=0)
-    #
-    #     model = model.eval()
-    #     res = model(X)
-    #
-    #     treelib_explainer = flow.get_treelib_explainer()
-    #
-    #     tree = treelib_explainer(res)
-    #     tree.show()
+    for i in range(n):
+        img = (dataset[i][0]['img'].permute(1, 2, 0).cpu().numpy() * 255).astype(np.uint8)
+        plt.imshow(img)
+        plt.show()

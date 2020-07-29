@@ -35,7 +35,8 @@ class TreeExplanation:
         if self.start_node is None:
             return other
         parent = self.start_node.identifier if other.precondition is None else other.precondition.path
-        self.tree.paste(parent, other.tree)
+        if parent in self.tree:
+            self.tree.paste(parent, other.tree)
         return self
 
     def __getattr__(self, item):
@@ -59,11 +60,17 @@ class LeafExplainer:
         decoded = results.module_output.decoded[path][results.idx].detach().cpu().numpy()
         activated = results.module_output.activated[path][results.idx].detach().cpu().numpy()
         logits = results.module_output.logits[path][results.idx].detach().cpu().numpy()
-
-        description = f'{self.task_name} | decoded: {decoded}, activated: {activated}, logits: {logits}'
+        precondition = results.module_output.preconditions.get(path)
+        if precondition is not None:
+            precondition = precondition[results.idx][0].item()
 
         tree = Tree()
-        start_node = tree.create_node(description, f'inp_{results.idx}.{path}')
+        should_create_node = (precondition is None) or (precondition is True)
+        if should_create_node:
+            description = f'{self.task_name} | decoded: {decoded}, activated: {activated}, logits: {logits}'
+            start_node = tree.create_node(description, f'inp_{results.idx}.{path}')
+        else:
+            start_node = None
         return TreeExplanation(tree, start_node, results, self.prefix)
 
 
@@ -118,6 +125,11 @@ class TreeExplainer:
         start_node = tree.create_node(tag=self.task_name, identifier=f'inp_{x.idx}.{self.prefix}.{self.task_name}')
         out = TreeExplanation(tree, start_node=start_node, results=x, prefix=f'inp_{x.idx}.{self.prefix}')
         out = self.flow(self, x, out)
+
+        no_new_nodes_added = (len(out.tree.nodes) == 1) and (out.start_node.identifier in out.tree)
+        # if all the nodes of a nested flow are empty, remove the whole flow node.
+        if no_new_nodes_added:
+            out.tree = Tree()
         if len(self.prefix) == 0:
             return out.tree
         return out

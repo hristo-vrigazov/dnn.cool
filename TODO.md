@@ -4,7 +4,6 @@ Some dumb stuff I am playing with.
 
 DOING:
 
-- [ ] Treelib explanation
 
 TODO:
 
@@ -78,6 +77,7 @@ TODO:
 - [ ] Handle different types when used as precondition, and as ground truth
 - [ ] Think of common ways users can shoot themselves in the foot, and add helper messages
 - [ ] Make sure multiple inputs are correctly handled.
+- [ ] Test nested FC layers
 
 Done: 
 
@@ -112,3 +112,4 @@ Done:
 - [x] When using a project, store tasks in flows only when they are needed (will require tracing)
 - [x] Fix bug with precondition accumulation when on the same flow
 - [x] Add test for predicting on an example and showing decoded
+- [x] Treelib explanation
