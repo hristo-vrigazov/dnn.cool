@@ -1,7 +1,7 @@
-from copy import copy
-
 import torch
 from torch import nn
+
+from dnn_cool.utils import any_value
 
 
 class LossFlowData:
@@ -115,12 +115,6 @@ class MetricLossDecorator(BaseMetricDecorator):
 
     def postprocess_results(self, loss_items, metric_res, precondition):
         return metric_res
-
-
-def any_value(outputs):
-    for key, value in outputs.items():
-        if not key.startswith('precondition'):
-            return value
 
 
 class TaskFlowLoss(nn.Module):

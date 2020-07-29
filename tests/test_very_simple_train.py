@@ -264,6 +264,7 @@ def test_inference_synthetic(synthenic_dataset_preparation):
             continue
         X[key] = X[key].unsqueeze(dim=0)
 
+    model = model.eval()
     res = model(X)
 
     treelib_explainer = flow.get_treelib_explainer()
