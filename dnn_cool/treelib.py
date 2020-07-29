@@ -60,10 +60,10 @@ class LeafExplainer:
         activated = results.module_output.activated[path][results.idx].detach().cpu().numpy()
         logits = results.module_output.logits[path][results.idx].detach().cpu().numpy()
 
-        description = f'{path} | decoded: {decoded}, activated: {activated}, logits: {logits}'
+        description = f'{self.task_name} | decoded: {decoded}, activated: {activated}, logits: {logits}'
 
         tree = Tree()
-        start_node = tree.create_node(description, path)
+        start_node = tree.create_node(description, f'inp_{results.idx}.{path}')
         return TreeExplanation(tree, start_node, results, self.prefix)
 
 
@@ -104,9 +104,9 @@ class TreeExplainer:
             batch_node = tree.create_node(tag='batch', identifier='batch')
             for i in range(n):
                 inp_tree = Tree()
-                inp_node = inp_tree.create_node(tag=f'inp {i}', identifier=f'inp_{i}')
+                inp_node = inp_tree.create_node(tag=f'inp {i}', identifier=f'inp_{i}.{self.prefix}')
                 x_for_id = Results(x.module_output, i)
-                out = TreeExplanation(inp_tree, inp_node, x_for_id, f'{self.prefix}')
+                out = TreeExplanation(inp_tree, inp_node, x_for_id, f'inp_{i}.')
                 out = self.flow(self, x_for_id, out)
                 tree.paste(batch_node.identifier, out.tree)
 
@@ -115,8 +115,8 @@ class TreeExplainer:
             return TreeExplanation(tree, start_node=batch_node, results=x, prefix=self.prefix)
 
         tree = Tree()
-        start_node = tree.create_node(tag=self.task_name, identifier=self.prefix + self.task_name)
-        out = TreeExplanation(tree, start_node=start_node, results=x, prefix=self.prefix)
+        start_node = tree.create_node(tag=self.task_name, identifier=f'inp_{x.idx}.{self.prefix}.{self.task_name}')
+        out = TreeExplanation(tree, start_node=start_node, results=x, prefix=f'inp_{x.idx}.{self.prefix}')
         out = self.flow(self, x, out)
         if len(self.prefix) == 0:
             return out.tree
