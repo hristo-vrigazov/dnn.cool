@@ -77,6 +77,7 @@ TODO:
 - [ ] Implement smart task converter
 - [ ] Handle different types when used as precondition, and as ground truth
 - [ ] Think of common ways users can shoot themselves in the foot, and add helper messages
+- [ ] Make sure multiple inputs are correctly handled.
 
 Done: 
 

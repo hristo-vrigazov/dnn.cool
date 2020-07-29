@@ -1,6 +1,4 @@
-from dataclasses import dataclass, field
-from typing import List
-
+from dataclasses import dataclass
 from treelib import Tree
 
 from dnn_cool.utils import any_value
@@ -16,6 +14,36 @@ def find_results_for_treelib(*args, **kwargs):
             return arg
 
 
+@dataclass
+class Precondition:
+    path: str
+
+    def __invert__(self):
+        return self
+
+
+class TreeExplanation:
+
+    def __init__(self, tree, start_node):
+        self.tree = tree
+        self.start_node = start_node
+        self.precondition = None
+
+    def __iadd__(self, other):
+        if self.start_node is None:
+            return other
+        parent = self.start_node.identifier if other.precondition is None else other.precondition.path
+        self.tree.paste(parent, other.tree)
+        return self
+
+    def __getattr__(self, item):
+        return Precondition(item)
+
+    def __or__(self, precondition: Precondition):
+        self.precondition = precondition
+        return self
+
+
 class TreeLibExplainer:
 
     def __init__(self, task, prefix):
@@ -29,12 +57,20 @@ class TreeLibExplainer:
         decoded = results.module_output.decoded[path][results.idx].detach().cpu().numpy()
         activated = results.module_output.activated[path][results.idx].detach().cpu().numpy()
         logits = results.module_output.logits[path][results.idx].detach().cpu().numpy()
+        precondition = results.module_output.preconditions.get(path)
+        # TODO: In the future, maybe it will be useful to delegate to tasks for explanations
+        if precondition is not None:
+            precondition = bool(precondition[results.idx].detach().cpu().numpy()[0])
+        precondition = (precondition is None) or precondition
 
         description = f'{path} | decoded: {decoded}, activated: {activated}, logits: {logits}'
 
         tree = Tree()
-        tree.create_node(description, path)
-        return tree
+        if precondition:
+            start_node = tree.create_node(description, path)
+        else:
+            start_node = None
+        return TreeExplanation(tree, start_node)
 
 
 class ResultsForTreelib:
@@ -48,18 +84,6 @@ class ResultsForTreelib:
         return self
 
 
-class TreeExplanation:
-
-    def __init__(self, start_node):
-        self.tree = Tree()
-        self.start_node = start_node
-        self.tree.add_node(start_node)
-
-    def __iadd__(self, other):
-        self.tree.paste(self.start_node.identifier, other)
-        self.tree.show()
-
-
 class CompositeTreeLibExplainer:
 
     def __init__(self, task_flow, prefix=''):
@@ -67,6 +91,7 @@ class CompositeTreeLibExplainer:
 
         self.flow = task_flow.get_flow_func()
         self.prefix = prefix
+        self.task_name = task_flow.get_name()
 
         for key, task in task_flow.tasks.items():
             if not task.has_children():
@@ -84,14 +109,22 @@ class CompositeTreeLibExplainer:
             tree = Tree()
             batch_node = tree.create_node(tag='batch', identifier='batch')
             for i in range(n):
-                inp_node = tree.create_node(tag=f'inp {i}', identifier=f'inp_{i}', parent=batch_node)
+                inp_tree = Tree()
+                inp_node = inp_tree.create_node(tag=f'inp {i}', identifier=f'inp_{i}')
                 x_for_id = ResultsForTreelib(x.module_output, i)
-                out = TreeExplanation(inp_node)
+                out = TreeExplanation(inp_tree, inp_node)
                 out = self.flow(self, x_for_id, out)
-                sub_tree = out.reduce()
-                tree.paste(batch_node, sub_tree)
-            return tree
+                tree.paste(batch_node, out.tree)
 
-        out = TreeExplanation()
+            if len(self.prefix) == 0:
+                return tree
+            return TreeExplanation(tree, start_node=batch_node)
+
+        tree = Tree()
+        start_node = tree.create_node(tag=self.task_name, identifier=self.prefix + self.task_name)
+        out = TreeExplanation(tree, start_node=start_node)
         out = self.flow(self, x, out)
-        return out.reduce()
+        if len(self.prefix) == 0:
+            return out.tree
+        return out
+
