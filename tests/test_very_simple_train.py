@@ -10,21 +10,29 @@ import torch
 from catalyst.dl import SupervisedRunner
 from catalyst.utils import load_checkpoint, unpack_checkpoint
 from torch import optim, nn
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 
 from dnn_cool.project import Project, TypeGuesser, ValuesConverter, TaskConverter
 from dnn_cool.synthetic_dataset import create_df_and_images_tensor
 from dnn_cool.task_flow import TaskFlow, BoundedRegressionTask, BinaryClassificationTask
 from dnn_cool.value_converters import binary_value_converter
+from sklearn.model_selection import train_test_split
+
+
+def split_dataset(dataset):
+    X, y = np.arange(len(dataset)), np.arange(len(dataset))
+    train_indices, test_indices, _, _ = train_test_split(X, y, test_size=0.2)
+    train_dataset = Subset(dataset, train_indices)
+    val_dataset = Subset(dataset, test_indices)
+    return train_dataset, val_dataset
 
 
 def test_passenger_example(interior_car_task):
     model, task_flow = interior_car_task
 
-    datasets = task_flow.get_dataset()
-    # TODO: use train/test split
-    train_dataset = datasets
-    val_dataset = datasets
+    dataset = task_flow.get_dataset()
+
+    train_dataset, val_dataset = split_dataset(dataset)
     train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
     nested_loaders = OrderedDict({
@@ -62,6 +70,7 @@ def test_passenger_example(interior_car_task):
     print(pred, y)
 
 
+
 def test_project_example():
     df_data = [
         {'camera_blocked': True, 'door_open': True, 'uniform_type': 0, 'input': 0},
@@ -92,6 +101,7 @@ def test_project_example():
 
     dataset = flow.get_dataset()
     print(dataset[0])
+
 
 @pytest.fixture
 def synthenic_dataset_preparation():
@@ -178,10 +188,7 @@ def synthenic_dataset_preparation():
 
     flow: TaskFlow = project.get_full_flow()
     dataset = flow.get_dataset()
-    module = flow.torch()
-    print(module)
-    train_dataset = dataset
-    val_dataset = dataset
+    train_dataset, val_dataset = split_dataset(dataset)
     train_loader = DataLoader(train_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=False)
     nested_loaders = OrderedDict({

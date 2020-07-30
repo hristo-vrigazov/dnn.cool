@@ -182,3 +182,6 @@ class Project:
 
     def get_full_flow(self):
         return self.flow_tasks[-1]
+
+    def get_task(self, task_name):
+        return self._name_to_task[task_name]

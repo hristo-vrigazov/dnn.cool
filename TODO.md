@@ -5,7 +5,6 @@ Some dumb stuff I am playing with.
 DOING:
 
 - [ ] Use train/test split in tests
-- [ ] Better handling of `get_inputs`, `get_labels` and `get_dataset`
 
 
 TODO:
@@ -23,7 +22,6 @@ TODO:
 - [ ] Freeze-all but task feature (including Batch Norm) - may include parameter group
 - [ ] Set learning rate per task feature
 - [ ] Interpretation callback
-- [ ] Sample decoded results per task
 - [ ] Handles missing labels correctly.
 - [ ] Automatic per-task or overall thresholds tuning.
 - [ ] UI splitting helper
@@ -79,7 +77,8 @@ TODO:
 - [ ] Think of common ways users can shoot themselves in the foot, and add helper messages
 - [ ] Make sure multiple inputs are correctly handled.
 - [ ] Test nested FC layers
-- [ ] Test visualizations
+- [ ] Readable/visual result implemenetation - draw bounding boxes, etc.
+- [ ] Add precondition builder for tasks other than binary classification task.
 
 Done: 
 
@@ -115,3 +114,8 @@ Done:
 - [x] Fix bug with precondition accumulation when on the same flow
 - [x] Add test for predicting on an example and showing decoded
 - [x] Treelib explanation
+- [x] Test visualizations
+- [x] Better handling of `get_inputs`, `get_labels` and `get_dataset`
+- [x] Sample decoded results per task
+
+
