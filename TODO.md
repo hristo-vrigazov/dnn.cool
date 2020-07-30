@@ -4,21 +4,20 @@ Some dumb stuff I am playing with.
 
 DOING:
 
-- [ ] Use train/test split in tests
-
+- [ ] Per-task result interpretation
+- [ ] Overall interpretation
+- [ ] Cleaner loss function reducing - separate methods for reduced and non-reduced loss
+- [ ] Publish best/worst images to Tensorboard
+- [ ] Grad-CAM per branch
 
 TODO:
 
-- [ ] Add assertions for training tests
 - [ ] Implement some common decoders
 - [ ] Implement some common metrics
 - [ ] Implement inference when we don't have ground truth
 - [ ] Improve test coverage, especially the user-friendliness part
-- [ ] Cleaner loss function reducing - separate methods for reduced and non-reduced loss
 - [ ] Per-task evaluation information, given that precondition is working correctly.
 - [ ] Overall evaluation information
-- [ ] Per-task result interpretation
-- [ ] Overall interpretation
 - [ ] Freeze-all but task feature (including Batch Norm) - may include parameter group
 - [ ] Set learning rate per task feature
 - [ ] Interpretation callback
@@ -27,7 +26,6 @@ TODO:
 - [ ] UI splitting helper
 - [ ] ONNX converter (if possible) - with static analysis.
 - [ ] Test training a model with synthetic dataset.
-- [ ] Grad-CAM per branch
 - [ ] Cleaner representations for results
 - [ ] Work on error messages
 - [ ] Predict only for those, for which precondition is correct.
@@ -68,7 +66,7 @@ TODO:
 - [ ] Add the tasks from MMF
 - [ ] Add object detection tasks
 - [ ] Add NLP tasks
-- [ ] Implement smart type guessing
+- [ ] Implement smart type guessingusd 
 - [ ] Are metrics computed only for when the preconditions are correct?
 - [ ] EfficientNet-based project helper
 - [ ] Implement smart values converter
@@ -79,6 +77,7 @@ TODO:
 - [ ] Test nested FC layers
 - [ ] Readable/visual result implemenetation - draw bounding boxes, etc.
 - [ ] Add precondition builder for tasks other than binary classification task.
+- [ ] Add default supervised runner.
 
 Done: 
 
@@ -117,5 +116,7 @@ Done:
 - [x] Test visualizations
 - [x] Better handling of `get_inputs`, `get_labels` and `get_dataset`
 - [x] Sample decoded results per task
+- [x] Use train/test split in tests
+- [x] Add assertions for training tests
 
 
