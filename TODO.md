@@ -4,8 +4,6 @@ Some dumb stuff I am playing with.
 
 DOING:
 
-- [ ] Per-task result interpretation
-- [ ] Overall interpretation
 - [ ] Publish best/worst images to Tensorboard
 - [ ] Combine Grad-CAM with best/worst in Tensorboard
 - [ ] Grad-CAM per branch
@@ -79,6 +77,7 @@ TODO:
 - [ ] Add precondition builder for tasks other than binary classification task.
 - [ ] Add default supervised runner.
 - [ ] Implement common loss functions with their `per_sample` equivalent.
+- [ ] Distillation utils
 
 Done: 
 
@@ -120,5 +119,6 @@ Done:
 - [x] Use train/test split in tests
 - [x] Add assertions for training tests
 - [x] Cleaner loss function reducing - separate methods for reduced and non-reduced loss
-
+- [x] Per-task result interpretation
+- [x] Overall interpretation
 

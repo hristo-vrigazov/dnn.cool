@@ -101,7 +101,7 @@ def create_df_and_images_tensor():
     imgs = []
     rows = []
     names = []
-    for i in range(int(1e5)):
+    for i in range(int(1e4)):
         img, row = generate_sample()
         imgs.append(torch.tensor(img).permute(2, 0, 1))
         rows.append(row)

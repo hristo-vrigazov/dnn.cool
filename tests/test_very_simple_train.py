@@ -7,11 +7,12 @@ from functools import partial
 import numpy as np
 import pandas as pd
 import torch
-from catalyst.dl import SupervisedRunner
+from catalyst.dl import SupervisedRunner, InferCallback
 from catalyst.utils import load_checkpoint, unpack_checkpoint
 from torch import optim, nn
 from torch.utils.data import DataLoader, Subset
 
+from dnn_cool.catalyst_utils import InterpretationCallback
 from dnn_cool.project import Project, TypeGuesser, ValuesConverter, TaskConverter
 from dnn_cool.synthetic_dataset import create_df_and_images_tensor
 from dnn_cool.task_flow import TaskFlow, BoundedRegressionTask, BinaryClassificationTask
@@ -68,7 +69,6 @@ def test_passenger_example(interior_car_task):
     res = criterion(pred, y)
     print(res.item())
     print(pred, y)
-
 
 
 def test_project_example():
@@ -195,7 +195,7 @@ def synthenic_dataset_preparation():
         'train': train_loader,
         'valid': val_loader
     })
-    runner = SupervisedRunner()
+    runner = SupervisedRunner(output_key=None)
     criterion = flow.get_loss()
     callbacks = criterion.catalyst_callbacks()
 
@@ -281,3 +281,20 @@ def test_inference_synthetic(synthenic_dataset_preparation):
         plt.imshow(img)
         plt.title(f'Img {i}')
         plt.show()
+
+
+def test_interpretation_synthetic(synthenic_dataset_preparation):
+    callbacks, criterion, model, nested_loaders, runner, flow, df = synthenic_dataset_preparation
+
+    loaders = OrderedDict({'infer': nested_loaders['valid']})
+
+    ckpt = load_checkpoint('/home/hvrigazov/dnn.cool/tests/security_logs/checkpoints/best_full.pth')
+    unpack_checkpoint(ckpt, model)
+
+    callbacks = OrderedDict([("labels", InterpretationCallback(flow))])
+    runner.infer(model,
+                 loaders,
+                 callbacks=callbacks)
+
+    interpretations = callbacks["labels"].interpretations
+    print(interpretations)
