@@ -4,6 +4,9 @@ Some dumb stuff I am playing with.
 
 DOING:
 
+- [ ] Use train/test split in tests
+- [ ] Better handling of `get_inputs`, `get_labels` and `get_dataset`
+
 
 TODO:
 
@@ -51,7 +54,6 @@ TODO:
 - [ ] Test with very weird cases
 - [ ] Receptive field slicing
 - [ ] Proper handling of multimetrics (not adding them one by one).
-- [ ] Use train/test split in tests
 - [ ] Augmentations helper
 - [ ] Incremental re-run
 - [ ] Support for classification special case handling.
@@ -69,7 +71,6 @@ TODO:
 - [ ] Add object detection tasks
 - [ ] Add NLP tasks
 - [ ] Implement smart type guessing
-- [ ] Better handling of `get_inputs`, `get_labels` and `get_dataset`
 - [ ] Are metrics computed only for when the preconditions are correct?
 - [ ] EfficientNet-based project helper
 - [ ] Implement smart values converter
@@ -78,6 +79,7 @@ TODO:
 - [ ] Think of common ways users can shoot themselves in the foot, and add helper messages
 - [ ] Make sure multiple inputs are correctly handled.
 - [ ] Test nested FC layers
+- [ ] Test visualizations
 
 Done: 
 

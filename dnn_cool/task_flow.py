@@ -4,7 +4,7 @@ from typing import Iterable, Optional, Callable, List, Tuple
 from torch import nn
 from torch.utils.data import Dataset
 
-from dnn_cool.datasets import FlowDataset
+from dnn_cool.datasets import FlowDataset, LeafTaskDataset
 from dnn_cool.decoders import threshold_binary, sort_declining
 from dnn_cool.losses import TaskFlowLoss
 from dnn_cool.metrics import single_result_accuracy
@@ -43,6 +43,9 @@ class ITask:
 
     def get_inputs(self, *args, **kwargs):
         return self.inputs
+
+    def get_labels(self, *args, **kwargs):
+        raise NotImplementedError()
 
     def get_dataset(self, **kwargs):
         raise NotImplementedError()
@@ -86,8 +89,11 @@ class Task(ITask):
     def get_inputs(self, *args, **kwargs):
         return self._inputs
 
-    def get_dataset(self, **kwargs):
+    def get_labels(self, *args, **kwargs):
         return self._labels
+
+    def get_dataset(self, **kwargs):
+        return LeafTaskDataset(self._inputs, self._labels)
 
     def get_metrics(self):
         return self._metrics
@@ -238,3 +244,9 @@ class TaskFlow(ITask):
 
     def get_treelib_explainer(self):
         return TreeExplainer(self)
+
+    def get_labels(self, *args, **kwargs):
+        all_labels = []
+        for task in self.tasks.values():
+            all_labels += task.get_labels()
+        return all_labels

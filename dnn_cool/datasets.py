@@ -1,6 +1,21 @@
 from torch.utils.data.dataset import Dataset
 
 
+class LeafTaskDataset(Dataset):
+
+    def __init__(self, inputs, labels):
+        self.inputs = inputs
+        self.labels = labels
+        assert len(self.inputs) == len(self.labels), f'The provided inputs and labels are of different length: ' \
+            f'{len(self.inputs)} and {len(self.labels)}'
+
+    def __getitem__(self, item):
+        return self.inputs[item], self.labels[item]
+
+    def __len__(self):
+        return len(self.inputs)
+
+
 def discover_index_holder(*args, **kwargs):
     all_args = [*args, *kwargs.values()]
 
@@ -95,7 +110,7 @@ class FlowDataset(Dataset):
         self.n = None
         for key, task in task_flow.tasks.items():
             if not task.has_children():
-                labels_instance = FlowDatasetDecorator(task, prefix, task.get_dataset())
+                labels_instance = FlowDatasetDecorator(task, prefix, task.get_labels())
                 self.n = len(labels_instance.arr)
                 setattr(self, key, labels_instance)
             else:
