@@ -99,7 +99,8 @@ class BaseMetricDecorator(nn.Module):
 class TaskLossDecorator(BaseMetricDecorator):
 
     def __init__(self, task, child_reduction, prefix):
-        super().__init__(task, prefix, task.get_loss(reduction=child_reduction))
+        loss = task.get_loss() if child_reduction == 'mean' else task.get_per_sample_loss()
+        super().__init__(task, prefix, loss)
 
     def postprocess_results(self, loss_items, metric_res, precondition):
         if len(metric_res.shape) == 1:

@@ -43,7 +43,7 @@ def test_passenger_example(interior_car_task):
     print(model)
 
     runner = SupervisedRunner()
-    criterion = task_flow.get_loss(parent_reduction='mean', child_reduction='none')
+    criterion = task_flow.get_loss()
     callbacks = criterion.catalyst_callbacks()
 
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -196,7 +196,7 @@ def synthenic_dataset_preparation():
         'valid': val_loader
     })
     runner = SupervisedRunner()
-    criterion = flow.get_loss(parent_reduction='mean', child_reduction='none')
+    criterion = flow.get_loss()
     callbacks = criterion.catalyst_callbacks()
 
     class SecurityModule(nn.Module):

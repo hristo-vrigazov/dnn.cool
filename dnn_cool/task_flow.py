@@ -30,7 +30,10 @@ class ITask:
     def has_children(self):
         return False
 
-    def get_loss(self, *args, **kwargs):
+    def get_loss(self):
+        raise NotImplementedError()
+
+    def get_per_sample_loss(self):
         raise NotImplementedError()
 
     def torch(self):
@@ -60,7 +63,8 @@ class Task(ITask):
                  name: str,
                  labels,
                  loss: Callable,
-                 inputs = None,
+                 per_sample_loss: Callable,
+                 inputs=None,
                  activation: Optional[nn.Module] = None,
                  decoder: Callable = None,
                  module: Optional[nn.Module] = Identity(),
@@ -69,6 +73,7 @@ class Task(ITask):
         self._activation = activation
         self._decoder = decoder
         self._loss = loss
+        self._per_sample_loss = per_sample_loss
         self._module = module
         self._inputs = inputs
         self._labels = labels
@@ -80,8 +85,11 @@ class Task(ITask):
     def get_decoder(self):
         return self._decoder
 
-    def get_loss(self, *args, **kwargs):
-        return self._loss(*args, **kwargs)
+    def get_loss(self):
+        return self._loss
+
+    def get_per_sample_loss(self):
+        return self._per_sample_loss
 
     def torch(self):
         return self._module
@@ -105,12 +113,13 @@ class BinaryHardcodedTask(Task):
                  name: str,
                  labels,
                  loss: Callable = None,
-                 inputs = None,
+                 per_sample_loss: Callable = None,
+                 inputs=None,
                  activation: Optional[nn.Module] = None,
                  decoder: Callable = None,
                  module: nn.Module = Identity(),
                  metrics=()):
-        super().__init__(name, labels, loss, inputs, activation, decoder, module, metrics)
+        super().__init__(name, labels, loss, per_sample_loss, inputs, activation, decoder, module, metrics)
 
 
 class BoundedRegressionTask(Task):
@@ -124,13 +133,14 @@ class BoundedRegressionTask(Task):
     def __init__(self,
                  name: str,
                  labels,
-                 loss=SigmoidAndMSELoss,
+                 loss=SigmoidAndMSELoss(reduction='mean'),
+                 per_sample_loss=SigmoidAndMSELoss(reduction='none'),
                  module=Identity(),
                  activation: Optional[nn.Module] = nn.Sigmoid(),
                  decoder: Callable = None,
                  inputs=None,
                  metrics=()):
-        super().__init__(name, labels, loss, inputs, activation, decoder, module, metrics)
+        super().__init__(name, labels, loss, per_sample_loss, inputs, activation, decoder, module, metrics)
 
 
 class BinaryClassificationTask(Task):
@@ -143,7 +153,8 @@ class BinaryClassificationTask(Task):
     def __init__(self,
                  name: str,
                  labels,
-                 loss=nn.BCEWithLogitsLoss,
+                 loss=nn.BCEWithLogitsLoss(reduction='mean'),
+                 per_sample_loss=nn.BCEWithLogitsLoss(reduction='none'),
                  inputs=None,
                  activation: Optional[nn.Module] = nn.Sigmoid(),
                  decoder: Callable = threshold_binary,
@@ -151,7 +162,7 @@ class BinaryClassificationTask(Task):
                  metrics=(
                          ('acc_0.5', partial(single_result_accuracy, threshold=0.5, activation='Sigmoid')),
                  )):
-        super().__init__(name, labels, loss, inputs, activation, decoder, module, metrics)
+        super().__init__(name, labels, loss, per_sample_loss, inputs, activation, decoder, module, metrics)
 
 
 class ClassificationTask(Task):
@@ -164,7 +175,8 @@ class ClassificationTask(Task):
     def __init__(self,
                  name: str,
                  labels,
-                 loss=nn.CrossEntropyLoss,
+                 loss=nn.CrossEntropyLoss(reduction='mean'),
+                 per_sample_loss=nn.CrossEntropyLoss(reduction='none'),
                  inputs=None,
                  activation=nn.Softmax(dim=-1),
                  decoder=sort_declining,
@@ -173,37 +185,7 @@ class ClassificationTask(Task):
                          ('top_1_acc', partial(single_result_accuracy, topk=(1,), activation='Softmax')),
                          ('top_3_acc', partial(single_result_accuracy, topk=(3,), activation='Softmax')),
                  )):
-        super().__init__(name, labels, loss, inputs, activation, decoder, module, metrics)
-
-
-class RegressionTask(Task):
-
-    def __init__(self, name,
-                 labels,
-                 loss,
-                 inputs,
-                 activation,
-                 decoder,
-                 module,
-                 metrics):
-        super().__init__(name, labels, loss, inputs, activation, decoder, module, metrics)
-
-
-class NestedClassificationTask(ITask):
-
-    def __init__(self, name, inputs, labels, top_k):
-        super().__init__(name, inputs)
-        self.top_k = top_k
-        self.labels = labels
-
-    def get_loss(self, *args, **kwargs):
-        pass
-
-    def torch(self):
-        return NestedFC(128, [9, 15, 2, 12], True, self.top_k)
-
-    def get_dataset(self, **kwargs):
-        return self.labels
+        super().__init__(name, labels, loss, per_sample_loss, inputs, activation, decoder, module, metrics)
 
 
 class TaskFlow(ITask):
@@ -216,8 +198,11 @@ class TaskFlow(ITask):
         if flow_func is not None:
             self._flow_func = flow_func
 
-    def get_loss(self, **kwargs):
-        return TaskFlowLoss(self, **kwargs)
+    def get_loss(self):
+        return TaskFlowLoss(self, parent_reduction='mean', child_reduction='per_sample')
+
+    def get_per_sample_loss(self):
+        return TaskFlowLoss(self, parent_reduction='per_sample', child_reduction='per_sample')
 
     def torch(self):
         return TaskFlowModule(self)

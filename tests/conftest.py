@@ -1,14 +1,9 @@
 import pytest
 import torch
-import pandas as pd
-
 from torch import nn
 from torch.utils.data import Dataset, TensorDataset
 
-from dnn_cool.modules import Identity
-from dnn_cool.project import Project
-from dnn_cool.task_flow import BinaryClassificationTask, TaskFlow, BinaryHardcodedTask, BoundedRegressionTask, \
-    ClassificationTask, NestedClassificationTask, RegressionTask
+from dnn_cool.task_flow import BinaryClassificationTask, TaskFlow, ClassificationTask
 
 
 @pytest.fixture(scope='package')

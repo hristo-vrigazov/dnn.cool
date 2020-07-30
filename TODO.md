@@ -6,8 +6,8 @@ DOING:
 
 - [ ] Per-task result interpretation
 - [ ] Overall interpretation
-- [ ] Cleaner loss function reducing - separate methods for reduced and non-reduced loss
 - [ ] Publish best/worst images to Tensorboard
+- [ ] Combine Grad-CAM with best/worst in Tensorboard
 - [ ] Grad-CAM per branch
 
 TODO:
@@ -78,6 +78,7 @@ TODO:
 - [ ] Readable/visual result implemenetation - draw bounding boxes, etc.
 - [ ] Add precondition builder for tasks other than binary classification task.
 - [ ] Add default supervised runner.
+- [ ] Implement common loss functions with their `per_sample` equivalent.
 
 Done: 
 
@@ -118,5 +119,6 @@ Done:
 - [x] Sample decoded results per task
 - [x] Use train/test split in tests
 - [x] Add assertions for training tests
+- [x] Cleaner loss function reducing - separate methods for reduced and non-reduced loss
 
 
