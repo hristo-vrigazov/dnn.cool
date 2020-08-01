@@ -5,6 +5,7 @@ from dnn_cool.task_flow import TaskFlow
 from torch import optim
 
 from functools import partial
+from time import time
 
 
 class DnnCoolSupervisedRunner(SupervisedRunner):
@@ -17,6 +18,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         self.default_callbacks = self.default_criterion.catalyst_callbacks()
         self.default_optimizer = partial(optim.AdamW, lr=1e-4)
         self.default_scheduler = ReduceLROnPlateau
+        self.default_logdir = f'./logdir_{self.task_flow.get_name()}_{time()}'
 
         if early_stop:
             self.default_callbacks.append(EarlyStoppingCallback(patience=5))
@@ -32,5 +34,10 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
 
         if not 'scheduler' in kwargs:
             kwargs['scheduler'] = self.default_scheduler(kwargs['optimizer'])
+
+        if not 'logdir' in kwargs:
+            kwargs['logdir'] = self.default_logdir
+
+        kwargs['num_epochs'] = kwargs.get('num_epochs', 50)
 
         super().train(*args, **kwargs)

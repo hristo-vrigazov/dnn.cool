@@ -5,7 +5,7 @@ Some dumb stuff I am playing with.
 DOING:
 
 - [ ] Add default supervised runner.
-- [ ] Publish best/worst images to Tensorboard
+- [ ] Publish best/worst inputs to Tensorboard (using InterpretationCallback)
 - [ ] Combine Grad-CAM with best/worst in Tensorboard
 - [ ] Grad-CAM per branch
 

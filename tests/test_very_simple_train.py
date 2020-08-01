@@ -285,12 +285,7 @@ def test_interpretation_synthetic(synthenic_dataset_preparation):
 def test_synthetic_dataset_default_runner(synthenic_dataset_preparation):
     callbacks, criterion, model, nested_loaders, runner, flow, df = synthenic_dataset_preparation
 
-    runner.train(
-        model=model,
-        loaders=nested_loaders,
-        logdir='./security_logs',
-        num_epochs=2,
-    )
+    runner.train(model=model, loaders=nested_loaders)
 
     print_any_prediction(criterion, model, nested_loaders, runner)
 
