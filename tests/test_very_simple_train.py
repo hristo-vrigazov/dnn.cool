@@ -195,7 +195,7 @@ def synthenic_dataset_preparation():
         'train': train_loader,
         'valid': val_loader
     })
-    runner = SupervisedRunner(output_key=None)
+    runner = project.runner()
     criterion = flow.get_loss()
     callbacks = criterion.catalyst_callbacks()
 

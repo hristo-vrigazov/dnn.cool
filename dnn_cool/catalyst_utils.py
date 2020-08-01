@@ -30,7 +30,7 @@ class InterpretationCallback(Callback):
         self.interpretations = self._initialize_interpretations()
 
     def on_batch_end(self, state: State):
-        outputs = state.batch_out
+        outputs = state.batch_out['logits']
         targets = state.batch_in['targets']
         self.interpretations['overall'].append(to_numpy(self.overall_loss(outputs, targets)))
 

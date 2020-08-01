@@ -1,5 +1,6 @@
 from typing import Union, Iterable, Optional, Dict, Callable
 
+from dnn_cool.runner import DnnCoolSupervisedRunner
 from dnn_cool.task_flow import TaskFlow, BinaryClassificationTask, ClassificationTask
 from dataclasses import dataclass
 
@@ -185,3 +186,6 @@ class Project:
 
     def get_task(self, task_name):
         return self._name_to_task[task_name]
+
+    def runner(self):
+        return DnnCoolSupervisedRunner(self.get_full_flow())

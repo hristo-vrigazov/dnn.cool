@@ -4,6 +4,7 @@ Some dumb stuff I am playing with.
 
 DOING:
 
+- [ ] Add default supervised runner.
 - [ ] Publish best/worst images to Tensorboard
 - [ ] Combine Grad-CAM with best/worst in Tensorboard
 - [ ] Grad-CAM per branch
@@ -75,9 +76,9 @@ TODO:
 - [ ] Test nested FC layers
 - [ ] Readable/visual result implemenetation - draw bounding boxes, etc.
 - [ ] Add precondition builder for tasks other than binary classification task.
-- [ ] Add default supervised runner.
 - [ ] Implement common loss functions with their `per_sample` equivalent.
 - [ ] Distillation utils
+- [ ] Weightwatcher add
 
 Done: 
 
