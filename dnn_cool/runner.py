@@ -94,3 +94,9 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
             'valid': val_loader
         })
         return loaders
+
+    def batch_to_device(self, batch, device):
+        return super()._batch2device(batch, device)
+
+    def batch_to_model_device(self, batch, model):
+        return super()._batch2device(batch, next(model.parameters()).device)
