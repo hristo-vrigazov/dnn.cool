@@ -59,16 +59,7 @@ def test_passenger_example(interior_car_task):
             num_epochs=40,
         )
 
-    loader = nested_loaders['valid']
-    X, y = next(iter(loader))
-    X = runner._batch2device(X, next(model.parameters()).device)
-    y = runner._batch2device(y, next(model.parameters()).device)
-    model = model.eval()
-
-    pred = model(X)
-    res = criterion(pred, y)
-    print(res.item())
-    print(pred, y)
+    print_any_prediction(criterion, model, nested_loaders, runner)
 
 
 def test_project_example():
@@ -243,16 +234,7 @@ def test_synthetic_dataset(synthenic_dataset_preparation):
             num_epochs=2,
         )
 
-    loader = nested_loaders['valid']
-    X, y = next(iter(loader))
-    X = runner._batch2device(X, next(model.parameters()).device)
-    y = runner._batch2device(y, next(model.parameters()).device)
-    model = model.eval()
-
-    pred = model(X)
-    res = criterion(pred, y)
-    print(res.item())
-    print(pred, y)
+    print_any_prediction(criterion, model, nested_loaders, runner)
 
 
 def test_inference_synthetic(synthenic_dataset_preparation):
@@ -298,3 +280,28 @@ def test_interpretation_synthetic(synthenic_dataset_preparation):
 
     interpretations = callbacks["labels"].interpretations
     print(interpretations)
+
+
+def test_synthetic_dataset_default_runner(synthenic_dataset_preparation):
+    callbacks, criterion, model, nested_loaders, runner, flow, df = synthenic_dataset_preparation
+
+    runner.train(
+        model=model,
+        loaders=nested_loaders,
+        logdir='./security_logs',
+        num_epochs=2,
+    )
+
+    print_any_prediction(criterion, model, nested_loaders, runner)
+
+
+def print_any_prediction(criterion, model, nested_loaders, runner):
+    loader = nested_loaders['valid']
+    X, y = next(iter(loader))
+    X = runner._batch2device(X, next(model.parameters()).device)
+    y = runner._batch2device(y, next(model.parameters()).device)
+    model = model.eval()
+    pred = model(X)
+    res = criterion(pred, y)
+    print(res.item())
+    print(pred, y)
