@@ -1,4 +1,4 @@
-from catalyst.dl import SupervisedRunner
+from catalyst.dl import SupervisedRunner, EarlyStoppingCallback
 
 from dnn_cool.task_flow import TaskFlow
 from torch import optim
@@ -8,13 +8,16 @@ from functools import partial
 
 class DnnCoolSupervisedRunner(SupervisedRunner):
 
-    def __init__(self, task_flow: TaskFlow):
+    def __init__(self, task_flow: TaskFlow, early_stop: bool):
         super().__init__()
         self.task_flow = task_flow
 
         self.default_criterion = self.task_flow.get_loss()
         self.default_callbacks = self.default_criterion.catalyst_callbacks()
         self.default_optimizer = partial(optim.AdamW, lr=1e-4)
+
+        if early_stop:
+            self.default_callbacks.append(EarlyStoppingCallback(patience=5))
 
     def train(self, *args, **kwargs):
         kwargs['criterion'] = kwargs.get('criterion', self.default_criterion)

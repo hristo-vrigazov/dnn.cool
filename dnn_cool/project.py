@@ -187,5 +187,5 @@ class Project:
     def get_task(self, task_name):
         return self._name_to_task[task_name]
 
-    def runner(self):
-        return DnnCoolSupervisedRunner(self.get_full_flow())
+    def runner(self, early_stop=True):
+        return DnnCoolSupervisedRunner(self.get_full_flow(), early_stop)
