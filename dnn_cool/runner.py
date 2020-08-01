@@ -1,5 +1,6 @@
 from collections import OrderedDict
 
+import torch
 from catalyst.dl import SupervisedRunner, EarlyStoppingCallback
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
@@ -60,8 +61,8 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         train_indices, test_indices, val_indices = self.train_test_val_indices
         train_dataset = TransformedSubset(dataset, train_indices)
         val_dataset = TransformedSubset(dataset, val_indices)
-        train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
-        val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
+        train_loader = DataLoader(train_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=False)
         loaders = OrderedDict({
             'train': train_loader,
             'valid': val_loader
