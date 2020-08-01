@@ -1,10 +1,11 @@
 from collections import OrderedDict
 
 import torch
-from catalyst.dl import SupervisedRunner, EarlyStoppingCallback
+from catalyst.dl import SupervisedRunner, EarlyStoppingCallback, InferCallback, State
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 
+from dnn_cool.catalyst_utils import InterpretationCallback
 from dnn_cool.task_flow import TaskFlow
 from torch import optim
 
@@ -12,6 +13,19 @@ from functools import partial
 from time import time
 
 from dnn_cool.utils import TransformedSubset
+
+
+class InferDictCallback(InferCallback):
+
+    def __init__(self, out_key='logits', *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.out_key = out_key
+
+    def on_batch_end(self, state: State):
+        dct = state.batch_out[self.out_key]
+        dct = {key: value.detach().cpu().numpy() for key, value in dct.items()}
+        for key, value in dct.items():
+            self.predictions[key].append(value)
 
 
 class DnnCoolSupervisedRunner(SupervisedRunner):
@@ -52,6 +66,18 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
             kwargs['loaders'] = self.get_default_loaders()
 
         super().train(*args, **kwargs)
+
+    def infer(self, *args, **kwargs):
+        default_loaders = OrderedDict({'infer': self.get_default_loaders()['valid']})
+        kwargs['loaders'] = kwargs.get('loaders', default_loaders)
+        default_callbacks = OrderedDict([("interpretation", InterpretationCallback(self.task_flow)),
+                                         ("inference", InferDictCallback())])
+        kwargs['callbacks'] = kwargs.get('callbacks', default_callbacks)
+
+        super().infer(*args, **kwargs)
+        results = kwargs['callbacks']['inference'].predictions
+        interpretation = kwargs['callbacks']['interpretation'].interpretations
+        return results, interpretation
 
     def get_default_loaders(self):
         dataset = self.task_flow.get_dataset()

@@ -7,13 +7,14 @@ from functools import partial
 import numpy as np
 import pandas as pd
 import torch
-from catalyst.dl import SupervisedRunner
+from catalyst.dl import SupervisedRunner, InferCallback
 from catalyst.utils import load_checkpoint, unpack_checkpoint
 from torch import optim, nn
 from torch.utils.data import DataLoader
 
 from dnn_cool.catalyst_utils import InterpretationCallback
 from dnn_cool.project import Project, TypeGuesser, ValuesConverter, TaskConverter
+from dnn_cool.runner import InferDictCallback
 from dnn_cool.synthetic_dataset import create_df_and_images_tensor
 from dnn_cool.task_flow import TaskFlow, BoundedRegressionTask, BinaryClassificationTask
 from dnn_cool.utils import split_dataset, torch_split_dataset
@@ -270,12 +271,15 @@ def test_interpretation_synthetic(synthenic_dataset_preparation):
     ckpt = load_checkpoint('/home/hvrigazov/dnn.cool/tests/security_logs/checkpoints/best_full.pth')
     unpack_checkpoint(ckpt, model)
 
-    callbacks = OrderedDict([("labels", InterpretationCallback(flow))])
-    runner.infer(model,
-                 loaders,
-                 callbacks=callbacks)
+    callbacks = OrderedDict([
+        ("interpretation", InterpretationCallback(flow)),
+        ("inference", InferDictCallback())
+    ])
+    r = runner.infer(model,
+                     loaders=loaders,
+                     callbacks=callbacks)
 
-    interpretations = callbacks["labels"].interpretations
+    interpretations = callbacks["interpretation"].interpretations
     print(interpretations)
 
 
@@ -285,6 +289,15 @@ def test_synthetic_dataset_default_runner(synthenic_dataset_preparation):
     runner.train(model=model)
 
     print_any_prediction(criterion, model, nested_loaders, runner)
+
+
+def test_interpretation_default_runner(synthenic_dataset_preparation):
+    callbacks, criterion, model, nested_loaders, runner, flow, df = synthenic_dataset_preparation
+
+    predictions, interpretations = runner.infer(model=model)
+
+    print(interpretations)
+    print(predictions)
 
 
 def print_any_prediction(criterion, model, nested_loaders, runner):
