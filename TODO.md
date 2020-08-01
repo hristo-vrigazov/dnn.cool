@@ -4,10 +4,10 @@ Some dumb stuff I am playing with.
 
 DOING:
 
-- [ ] Add default supervised runner.
 - [ ] Publish best/worst inputs to Tensorboard (using InterpretationCallback)
 - [ ] Combine Grad-CAM with best/worst in Tensorboard
 - [ ] Grad-CAM per branch
+- [ ] Cleaner/reusable API for type guessing, value conversion and task conversion.
 
 TODO:
 
@@ -122,4 +122,5 @@ Done:
 - [x] Cleaner loss function reducing - separate methods for reduced and non-reduced loss
 - [x] Per-task result interpretation
 - [x] Overall interpretation
+- [x] Add default supervised runner.
 
