@@ -1,10 +1,12 @@
-from typing import Union, Iterable, Optional, Dict, Callable
+from dataclasses import dataclass
+from typing import Union, Iterable, Tuple
+
+import torch
+import numpy as np
 
 from dnn_cool.runner import DnnCoolSupervisedRunner
 from dnn_cool.task_flow import TaskFlow, BinaryClassificationTask, ClassificationTask
-from dataclasses import dataclass
-
-import torch
+from dnn_cool.utils import train_test_val_split
 
 
 class Values:
@@ -145,7 +147,8 @@ class Project:
                  output_col: Union[str, Iterable[str]],
                  type_guesser: TypeGuesser = TypeGuesser(),
                  values_converter: ValuesConverter = ValuesConverter(),
-                 task_converter: TaskConverter = TaskConverter()):
+                 task_converter: TaskConverter = TaskConverter(),
+                 train_test_val_indices: Tuple[np.ndarray, np.ndarray, np.ndarray] = None):
         assert_col_in_df(input_col, df)
         assert_col_in_df(output_col, df)
 
@@ -156,6 +159,9 @@ class Project:
         self._name_to_task = {}
         for leaf_task in self.leaf_tasks:
             self._name_to_task[leaf_task.get_name()] = leaf_task
+        if train_test_val_indices is None:
+            train_test_val_indices = train_test_val_split(df)
+        self.train_test_val_indices = train_test_val_indices
 
     def add_task_flow(self, task_flow: TaskFlow):
         self.flow_tasks.append(task_flow)
@@ -188,4 +194,4 @@ class Project:
         return self._name_to_task[task_name]
 
     def runner(self, early_stop=True):
-        return DnnCoolSupervisedRunner(self.get_full_flow(), early_stop)
+        return DnnCoolSupervisedRunner(self.get_full_flow(), self.train_test_val_indices, early_stop)

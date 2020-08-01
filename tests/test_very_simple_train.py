@@ -7,25 +7,17 @@ from functools import partial
 import numpy as np
 import pandas as pd
 import torch
-from catalyst.dl import SupervisedRunner, InferCallback
+from catalyst.dl import SupervisedRunner
 from catalyst.utils import load_checkpoint, unpack_checkpoint
 from torch import optim, nn
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader
 
 from dnn_cool.catalyst_utils import InterpretationCallback
 from dnn_cool.project import Project, TypeGuesser, ValuesConverter, TaskConverter
 from dnn_cool.synthetic_dataset import create_df_and_images_tensor
 from dnn_cool.task_flow import TaskFlow, BoundedRegressionTask, BinaryClassificationTask
+from dnn_cool.utils import split_dataset, torch_split_dataset
 from dnn_cool.value_converters import binary_value_converter
-from sklearn.model_selection import train_test_split
-
-
-def split_dataset(dataset):
-    X, y = np.arange(len(dataset)), np.arange(len(dataset))
-    train_indices, test_indices, _, _ = train_test_split(X, y, test_size=0.2)
-    train_dataset = Subset(dataset, train_indices)
-    val_dataset = Subset(dataset, test_indices)
-    return train_dataset, val_dataset
 
 
 def test_passenger_example(interior_car_task):
@@ -33,7 +25,7 @@ def test_passenger_example(interior_car_task):
 
     dataset = task_flow.get_dataset()
 
-    train_dataset, val_dataset = split_dataset(dataset)
+    train_dataset, val_dataset = torch_split_dataset(dataset)
     train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
     nested_loaders = OrderedDict({
@@ -64,6 +56,11 @@ def test_passenger_example(interior_car_task):
 
 def test_project_example():
     df_data = [
+        {'camera_blocked': True, 'door_open': True, 'uniform_type': 0, 'input': 0},
+        {'camera_blocked': False, 'door_open': True, 'uniform_type': 1, 'input': 1},
+        {'camera_blocked': False, 'door_open': True, 'uniform_type': 0, 'input': 2},
+        {'camera_blocked': False, 'door_open': True, 'uniform_type': 2, 'input': 3},
+        {'camera_blocked': True, 'door_open': True, 'uniform_type': 1, 'input': 4},
         {'camera_blocked': True, 'door_open': True, 'uniform_type': 0, 'input': 0},
         {'camera_blocked': False, 'door_open': True, 'uniform_type': 1, 'input': 1},
         {'camera_blocked': False, 'door_open': True, 'uniform_type': 0, 'input': 2},
@@ -179,7 +176,7 @@ def synthenic_dataset_preparation():
 
     flow: TaskFlow = project.get_full_flow()
     dataset = flow.get_dataset()
-    train_dataset, val_dataset = split_dataset(dataset)
+    train_dataset, val_dataset = torch_split_dataset(dataset)
     train_loader = DataLoader(train_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=False)
     nested_loaders = OrderedDict({
@@ -285,7 +282,7 @@ def test_interpretation_synthetic(synthenic_dataset_preparation):
 def test_synthetic_dataset_default_runner(synthenic_dataset_preparation):
     callbacks, criterion, model, nested_loaders, runner, flow, df = synthenic_dataset_preparation
 
-    runner.train(model=model, loaders=nested_loaders)
+    runner.train(model=model)
 
     print_any_prediction(criterion, model, nested_loaders, runner)
 
