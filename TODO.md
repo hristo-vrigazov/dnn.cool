@@ -11,6 +11,8 @@ DOING:
 
 TODO:
 
+- [ ] Redesign value converter, task converter, tensorboard converter, etc.
+- [ ] Clean separation of tests for low-level API and high-level API
 - [ ] Implement some common decoders
 - [ ] Implement some common metrics
 - [ ] Implement inference when we don't have ground truth
@@ -79,6 +81,7 @@ TODO:
 - [ ] Implement common loss functions with their `per_sample` equivalent.
 - [ ] Distillation utils
 - [ ] Weightwatcher add
+- [ ] Noobj stuff in YOLO
 
 Done: 
 

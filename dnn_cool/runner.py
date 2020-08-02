@@ -70,23 +70,21 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
     def infer(self, *args, **kwargs):
         default_loaders = OrderedDict({'infer': self.get_default_loaders()['valid']})
         kwargs['loaders'] = kwargs.get('loaders', default_loaders)
-        default_callbacks = OrderedDict([("interpretation", InterpretationCallback(self.task_flow)),
+        kwargs['logdir'] = kwargs.get('logdir', self.default_logdir)
+        interpretation_callback = InterpretationCallback(self.task_flow, self.get_datasets(), kwargs['logdir'])
+        default_callbacks = OrderedDict([("interpretation", interpretation_callback),
                                          ("inference", InferDictCallback())])
         kwargs['callbacks'] = kwargs.get('callbacks', default_callbacks)
-
+        del kwargs['logdir']
         super().infer(*args, **kwargs)
         results = kwargs['callbacks']['inference'].predictions
         interpretation = kwargs['callbacks']['interpretation'].interpretations
         return results, interpretation
 
     def get_default_loaders(self):
-        dataset = self.task_flow.get_dataset()
-        if self.train_test_val_indices is None:
-            raise ValueError(f'You must supply either a `loaders` parameter, or give `train_test_val_indices` via'
-                             f'constructor.')
-        train_indices, test_indices, val_indices = self.train_test_val_indices
-        train_dataset = TransformedSubset(dataset, train_indices)
-        val_dataset = TransformedSubset(dataset, val_indices)
+        datasets = self.get_datasets()
+        train_dataset = datasets['train']
+        val_dataset = datasets['valid']
         train_loader = DataLoader(train_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=True)
         val_loader = DataLoader(val_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=False)
         loaders = OrderedDict({
@@ -94,6 +92,22 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
             'valid': val_loader
         })
         return loaders
+
+    def get_datasets(self):
+        dataset = self.task_flow.get_dataset()
+        if self.train_test_val_indices is None:
+            raise ValueError(f'You must supply either a `loaders` parameter, or give `train_test_val_indices` via'
+                             f'constructor.')
+        train_indices, test_indices, val_indices = self.train_test_val_indices
+        train_dataset = TransformedSubset(dataset, train_indices)
+        val_dataset = TransformedSubset(dataset, val_indices)
+        test_dataset = TransformedSubset(dataset, test_indices)
+        return {
+            'train': train_dataset,
+            'valid': val_dataset,
+            'test': test_dataset,
+            'infer': val_dataset
+        }
 
     def batch_to_device(self, batch, device):
         return super()._batch2device(batch, device)

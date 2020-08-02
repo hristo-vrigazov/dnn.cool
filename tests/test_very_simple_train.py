@@ -1,4 +1,6 @@
 import tempfile
+from pathlib import Path
+
 import pytest
 import matplotlib.pyplot as plt
 from collections import OrderedDict
@@ -214,11 +216,16 @@ def synthenic_dataset_preparation():
             return self.flow_module(res)
 
     model = SecurityModule()
-    return callbacks, criterion, model, nested_loaders, runner, flow, df
+    datasets = {
+        'train': train_dataset,
+        'valid': val_dataset,
+        'infer': val_dataset
+    }
+    return callbacks, criterion, model, nested_loaders, runner, flow, df, datasets
 
 
 def test_synthetic_dataset(synthenic_dataset_preparation):
-    callbacks, criterion, model, nested_loaders, runner, flow, df = synthenic_dataset_preparation
+    callbacks, criterion, model, nested_loaders, runner, flow, df, val_dataset = synthenic_dataset_preparation
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         print(tmp_dir)
@@ -236,7 +243,7 @@ def test_synthetic_dataset(synthenic_dataset_preparation):
 
 
 def test_inference_synthetic(synthenic_dataset_preparation):
-    callbacks, criterion, model, nested_loaders, runner, flow, df = synthenic_dataset_preparation
+    callbacks, criterion, model, nested_loaders, runner, flow, df, val_dataset = synthenic_dataset_preparation
     dataset = flow.get_dataset()
 
     n = 4 * torch.cuda.device_count()
@@ -264,7 +271,7 @@ def test_inference_synthetic(synthenic_dataset_preparation):
 
 
 def test_interpretation_synthetic(synthenic_dataset_preparation):
-    callbacks, criterion, model, nested_loaders, runner, flow, df = synthenic_dataset_preparation
+    callbacks, criterion, model, nested_loaders, runner, flow, df, val_dataset = synthenic_dataset_preparation
 
     loaders = OrderedDict({'infer': nested_loaders['valid']})
 
@@ -272,19 +279,20 @@ def test_interpretation_synthetic(synthenic_dataset_preparation):
     unpack_checkpoint(ckpt, model)
 
     callbacks = OrderedDict([
-        ("interpretation", InterpretationCallback(flow)),
+        ("interpretation", InterpretationCallback(flow, val_dataset, logdir='./security_logs')),
         ("inference", InferDictCallback())
     ])
     r = runner.infer(model,
                      loaders=loaders,
-                     callbacks=callbacks)
+                     callbacks=callbacks,
+                     logdir='./security_logs')
 
     interpretations = callbacks["interpretation"].interpretations
     print(interpretations)
 
 
 def test_synthetic_dataset_default_runner(synthenic_dataset_preparation):
-    callbacks, criterion, model, nested_loaders, runner, flow, df = synthenic_dataset_preparation
+    callbacks, criterion, model, nested_loaders, runner, flow, df, datasets = synthenic_dataset_preparation
 
     runner.train(model=model)
 
@@ -292,7 +300,7 @@ def test_synthetic_dataset_default_runner(synthenic_dataset_preparation):
 
 
 def test_interpretation_default_runner(synthenic_dataset_preparation):
-    callbacks, criterion, model, nested_loaders, runner, flow, df = synthenic_dataset_preparation
+    callbacks, criterion, model, nested_loaders, runner, flow, df, datasetsls = synthenic_dataset_preparation
 
     predictions, interpretations = runner.infer(model=model)
 
