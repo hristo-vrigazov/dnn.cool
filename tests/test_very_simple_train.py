@@ -97,6 +97,20 @@ def test_project_example():
 
 @pytest.fixture
 def synthenic_dataset_preparation():
+    def bounded_regression_converter(values):
+        values = values.astype(float) / 64
+        values[np.isnan(values)] = -1
+        return torch.tensor(values).float().unsqueeze(dim=-1)
+
+    def bounded_regression_decoder(values):
+        return values * 64
+
+    def bounded_regression_task(name, labels):
+        return BoundedRegressionTask(name, labels, module=nn.Linear(256, 1), decoder=bounded_regression_decoder)
+
+    def binary_classification_task(name, labels):
+        return BinaryClassificationTask(name, labels, module=nn.Linear(256, 1))
+
     imgs, df = create_df_and_images_tensor()
     output_col = ['camera_blocked', 'door_open', 'person_present', 'door_locked',
                   'face_x1', 'face_y1', 'face_w', 'face_h',
@@ -118,32 +132,12 @@ def synthenic_dataset_preparation():
     values_converter = ValuesConverter()
     values_converter.type_mapping['img'] = lambda x: imgs
     values_converter.type_mapping['binary'] = binary_value_converter
-
-    def bounded_regression_converter(values):
-        values = values.astype(float) / 64
-        values[np.isnan(values)] = -1
-        return torch.tensor(values).float().unsqueeze(dim=-1)
-
-    def bounded_regression_decoder(values):
-        return values * 64
-
-    def bounded_regression_task():
-        return partial(BoundedRegressionTask, module=nn.Linear(256, 1), decoder=bounded_regression_decoder)
-
     values_converter.type_mapping['continuous'] = bounded_regression_converter
+
     task_converter = TaskConverter()
-    task_converter.col_mapping['camera_blocked'] = partial(BinaryClassificationTask, module=nn.Linear(256, 1))
-    task_converter.col_mapping['door_open'] = partial(BinaryClassificationTask, module=nn.Linear(256, 1))
-    task_converter.col_mapping['person_present'] = partial(BinaryClassificationTask, module=nn.Linear(256, 1))
-    task_converter.col_mapping['door_locked'] = partial(BinaryClassificationTask, module=nn.Linear(256, 1))
-    task_converter.col_mapping['face_x1'] = bounded_regression_task()
-    task_converter.col_mapping['face_y1'] = bounded_regression_task()
-    task_converter.col_mapping['face_w'] = bounded_regression_task()
-    task_converter.col_mapping['face_h'] = bounded_regression_task()
-    task_converter.col_mapping['body_x1'] = bounded_regression_task()
-    task_converter.col_mapping['body_y1'] = bounded_regression_task()
-    task_converter.col_mapping['body_w'] = bounded_regression_task()
-    task_converter.col_mapping['body_h'] = bounded_regression_task()
+
+    task_converter.type_mapping['binary'] = binary_classification_task
+    task_converter.type_mapping['continuous'] = bounded_regression_task
 
     converters = Converters()
     converters.task = task_converter
