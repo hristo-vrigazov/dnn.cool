@@ -32,7 +32,10 @@ def create_leaf_task(df, col, type_guesser, values_converter, task_converter):
     return task
 
 
-def create_leaf_tasks(df, col, type_guesser, values_converter, task_converter):
+def create_leaf_tasks(df, col, converters):
+    type_guesser = converters.type
+    values_converter = converters.values
+    task_converter = converters.task
     if isinstance(col, str):
         return [create_leaf_task(df, col, type_guesser, values_converter, task_converter)]
 
@@ -42,7 +45,9 @@ def create_leaf_tasks(df, col, type_guesser, values_converter, task_converter):
     return res
 
 
-def read_inputs(df, input_col, type_guesser, values_converter):
+def read_inputs(df, input_col, converters):
+    type_guesser = converters.type
+    values_converter = converters.values
     if isinstance(input_col, str):
         values, values_type = create_values(df, input_col, type_guesser, values_converter)
         return values
@@ -89,8 +94,8 @@ class Project:
         assert_col_in_df(input_col, df)
         assert_col_in_df(output_col, df)
 
-        self.inputs = read_inputs(df, input_col, converters.type, converters.values)
-        self.leaf_tasks = create_leaf_tasks(df, output_col, converters.type, converters.values, converters.task)
+        self.inputs = read_inputs(df, input_col, converters)
+        self.leaf_tasks = create_leaf_tasks(df, output_col, converters)
         self.flow_tasks = []
 
         self._name_to_task = {}
