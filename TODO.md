@@ -5,13 +5,13 @@ Some dumb stuff I am playing with.
 DOING:
 
 - [ ] Publish best/worst inputs to Tensorboard (using InterpretationCallback)
+- [ ] Cleaner/reusable API for type guessing, value conversion and task conversion.
+- [ ] Redesign value converter, task converter, tensorboard converter, etc.
 - [ ] Combine Grad-CAM with best/worst in Tensorboard
 - [ ] Grad-CAM per branch
-- [ ] Cleaner/reusable API for type guessing, value conversion and task conversion.
 
 TODO:
 
-- [ ] Redesign value converter, task converter, tensorboard converter, etc.
 - [ ] Clean separation of tests for low-level API and high-level API
 - [ ] Implement some common decoders
 - [ ] Implement some common metrics

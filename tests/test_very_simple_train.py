@@ -15,7 +15,8 @@ from torch import optim, nn
 from torch.utils.data import DataLoader
 
 from dnn_cool.catalyst_utils import InterpretationCallback
-from dnn_cool.project import Project, TypeGuesser, ValuesConverter, TaskConverter
+from dnn_cool.project import Project
+from dnn_cool.converters import TypeGuesser, ValuesConverter, TaskConverter
 from dnn_cool.runner import InferDictCallback
 from dnn_cool.synthetic_dataset import create_df_and_images_tensor
 from dnn_cool.task_flow import TaskFlow, BoundedRegressionTask, BinaryClassificationTask
