@@ -312,8 +312,8 @@ def test_interpretation_default_runner(synthenic_dataset_preparation):
 def print_any_prediction(criterion, model, nested_loaders, runner):
     loader = nested_loaders['valid']
     X, y = next(iter(loader))
-    X = runner.batch_to_model_device(X, model)
-    y = runner.batch_to_model_device(y, model)
+    X = runner._batch2device(X, next(model.parameters()).device)
+    y = runner._batch2device(y, next(model.parameters()).device)
     model = model.eval()
     pred = model(X)
     res = criterion(pred, y)
