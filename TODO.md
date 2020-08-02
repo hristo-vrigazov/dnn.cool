@@ -5,7 +5,6 @@ Some dumb stuff I am playing with.
 DOING:
 
 - [ ] Publish best/worst inputs to Tensorboard (using InterpretationCallback)
-- [ ] Cleaner/reusable API for type guessing, value conversion and task conversion.
 - [ ] Redesign value converter, task converter, tensorboard converter, etc.
 - [ ] Combine Grad-CAM with best/worst in Tensorboard
 - [ ] Grad-CAM per branch
@@ -126,4 +125,4 @@ Done:
 - [x] Per-task result interpretation
 - [x] Overall interpretation
 - [x] Add default supervised runner.
-
+- [x] Cleaner/reusable API for type guessing, value conversion and task conversion.
