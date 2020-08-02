@@ -131,4 +131,4 @@ class Project:
         return self._name_to_task[task_name]
 
     def runner(self, early_stop=True):
-        return DnnCoolSupervisedRunner(self.get_full_flow(), self.train_test_val_indices, early_stop)
+        return DnnCoolSupervisedRunner(self, early_stop)

@@ -30,9 +30,9 @@ class InferDictCallback(InferCallback):
 
 class DnnCoolSupervisedRunner(SupervisedRunner):
 
-    def __init__(self, task_flow: TaskFlow, train_test_val_indices=None, early_stop: bool = True):
+    def __init__(self, project, early_stop: bool = True):
         super().__init__()
-        self.task_flow = task_flow
+        self.task_flow = project.get_full_flow()
 
         self.default_criterion = self.task_flow.get_loss()
         self.default_callbacks = self.default_criterion.catalyst_callbacks()
@@ -43,7 +43,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         if early_stop:
             self.default_callbacks.append(EarlyStoppingCallback(patience=5))
 
-        self.train_test_val_indices = train_test_val_indices
+        self.train_test_val_indices = project.train_test_val_indices
 
     def train(self, *args, **kwargs):
         kwargs['criterion'] = kwargs.get('criterion', self.default_criterion)
