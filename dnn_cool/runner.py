@@ -71,7 +71,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         default_loaders = OrderedDict({'infer': self.get_default_loaders()['valid']})
         kwargs['loaders'] = kwargs.get('loaders', default_loaders)
         kwargs['logdir'] = kwargs.get('logdir', self.default_logdir)
-        interpretation_callback = InterpretationCallback(self.task_flow, self.get_datasets(), kwargs['logdir'])
+        interpretation_callback = InterpretationCallback(self.task_flow, self.get_default_datasets(), kwargs['logdir'])
         default_callbacks = OrderedDict([("interpretation", interpretation_callback),
                                          ("inference", InferDictCallback())])
         kwargs['callbacks'] = kwargs.get('callbacks', default_callbacks)
@@ -82,7 +82,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         return results, interpretation
 
     def get_default_loaders(self):
-        datasets = self.get_datasets()
+        datasets = self.get_default_datasets()
         train_dataset = datasets['train']
         val_dataset = datasets['valid']
         train_loader = DataLoader(train_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=True)
@@ -93,7 +93,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         })
         return loaders
 
-    def get_datasets(self):
+    def get_default_datasets(self):
         dataset = self.task_flow.get_dataset()
         if self.train_test_val_indices is None:
             raise ValueError(f'You must supply either a `loaders` parameter, or give `train_test_val_indices` via'

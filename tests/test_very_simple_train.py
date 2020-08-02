@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 
 from dnn_cool.catalyst_utils import InterpretationCallback
 from dnn_cool.project import Project
-from dnn_cool.converters import TypeGuesser, ValuesConverter, TaskConverter
+from dnn_cool.converters import TypeGuesser, ValuesConverter, TaskConverter, Converters
 from dnn_cool.runner import InferDictCallback
 from dnn_cool.synthetic_dataset import create_df_and_images_tensor
 from dnn_cool.task_flow import TaskFlow, BoundedRegressionTask, BinaryClassificationTask
@@ -144,8 +144,12 @@ def synthenic_dataset_preparation():
     task_converter.col_mapping['body_y1'] = bounded_regression_task()
     task_converter.col_mapping['body_w'] = bounded_regression_task()
     task_converter.col_mapping['body_h'] = bounded_regression_task()
-    project = Project(df, input_col='img', output_col=output_col,
-                      type_guesser=type_guesser, values_converter=values_converter, task_converter=task_converter)
+
+    converters = Converters()
+    converters.task = task_converter
+    converters.type = type_guesser
+    converters.values = values_converter
+    project = Project(df, input_col='img', output_col=output_col, converters=converters)
 
     @project.add_flow
     def face_regression(flow, x, out):

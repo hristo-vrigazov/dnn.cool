@@ -2,7 +2,7 @@ from typing import Union, Iterable, Tuple
 
 import numpy as np
 
-from dnn_cool.converters import Values, TypeGuesser, ValuesConverter, TaskConverter
+from dnn_cool.converters import Values, TypeGuesser, ValuesConverter, TaskConverter, Converters
 from dnn_cool.runner import DnnCoolSupervisedRunner
 from dnn_cool.task_flow import TaskFlow
 from dnn_cool.utils import train_test_val_split
@@ -84,15 +84,13 @@ class Project:
     def __init__(self, df,
                  input_col: Union[str, Iterable[str]],
                  output_col: Union[str, Iterable[str]],
-                 type_guesser: TypeGuesser = TypeGuesser(),
-                 values_converter: ValuesConverter = ValuesConverter(),
-                 task_converter: TaskConverter = TaskConverter(),
+                 converters: Converters = Converters(),
                  train_test_val_indices: Tuple[np.ndarray, np.ndarray, np.ndarray] = None):
         assert_col_in_df(input_col, df)
         assert_col_in_df(output_col, df)
 
-        self.inputs = read_inputs(df, input_col, type_guesser, values_converter)
-        self.leaf_tasks = create_leaf_tasks(df, output_col, type_guesser, values_converter, task_converter)
+        self.inputs = read_inputs(df, input_col, converters.type, converters.values)
+        self.leaf_tasks = create_leaf_tasks(df, output_col, converters.type, converters.values, converters.task)
         self.flow_tasks = []
 
         self._name_to_task = {}
