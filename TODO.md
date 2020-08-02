@@ -6,6 +6,7 @@ DOING:
 
 - [ ] Publish best/worst inputs to Tensorboard (using InterpretationCallback)
 - [ ] Redesign value converter, task converter, tensorboard converter, etc.
+- [ ] Store project related stuff in a directory (indices of split, etc.)
 - [ ] Combine Grad-CAM with best/worst in Tensorboard
 - [ ] Grad-CAM per branch
 
@@ -115,7 +116,7 @@ Done:
 - [x] When using a project, store tasks in flows only when they are needed (will require tracing)
 - [x] Fix bug with precondition accumulation when on the same flow
 - [x] Add test for predicting on an example and showing decoded
-- [x] Treelib explanation
+- [x] Treelib explanationh
 - [x] Test visualizations
 - [x] Better handling of `get_inputs`, `get_labels` and `get_dataset`
 - [x] Sample decoded results per task

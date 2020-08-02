@@ -270,7 +270,7 @@ def test_inference_synthetic(synthenic_dataset_preparation):
 
 
 def test_interpretation_synthetic(synthenic_dataset_preparation):
-    callbacks, criterion, model, nested_loaders, runner, flow, df, val_dataset = synthenic_dataset_preparation
+    callbacks, criterion, model, nested_loaders, runner, flow, df, datasets = synthenic_dataset_preparation
 
     loaders = OrderedDict({'infer': nested_loaders['valid']})
 
@@ -278,7 +278,7 @@ def test_interpretation_synthetic(synthenic_dataset_preparation):
     unpack_checkpoint(ckpt, model)
 
     callbacks = OrderedDict([
-        ("interpretation", InterpretationCallback(flow, val_dataset, logdir='./security_logs')),
+        ("interpretation", InterpretationCallback(flow, datasets, logdir='./security_logs')),
         ("inference", InferDictCallback())
     ])
     r = runner.infer(model,
