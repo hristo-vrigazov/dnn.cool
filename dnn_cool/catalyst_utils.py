@@ -1,13 +1,11 @@
 from pathlib import Path
 
 import numpy as np
-import os
-
 from catalyst.core import Callback, CallbackOrder, State
+from catalyst.utils.tools.tensorboard import SummaryWriter
 
 from dnn_cool.losses import LossFlowData
 from dnn_cool.task_flow import TaskFlow
-from catalyst.utils.tools.tensorboard import SummaryWriter
 
 
 def to_numpy(tensor):
