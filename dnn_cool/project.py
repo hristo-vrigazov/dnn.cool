@@ -20,42 +20,37 @@ def assert_col_in_df(col, df):
             assert col_s in df, not_found_error_message(col_s, df)
 
 
-def create_values(df, output_col, type_guesser, values_converter):
-    values_type = type_guesser.guess(df, output_col)
-    values = values_converter.to_values(df, output_col, values_type)
+def create_values(df, output_col, converters):
+    values_type = converters.type.guess(df, output_col)
+    values = converters.values.to_values(df, output_col, values_type)
     return values, values_type
 
 
-def create_leaf_task(df, col, type_guesser, values_converter, task_converter):
-    values, values_type = create_values(df, col, type_guesser, values_converter)
-    task = task_converter.to_task(col, values_type, values.values[0])
+def create_leaf_task(df, col, converters):
+    values, values_type = create_values(df, col, converters)
+    task = converters.task.to_task(col, values_type, values.values[0])
     return task
 
 
 def create_leaf_tasks(df, col, converters):
-    type_guesser = converters.type
-    values_converter = converters.values
-    task_converter = converters.task
     if isinstance(col, str):
-        return [create_leaf_task(df, col, type_guesser, values_converter, task_converter)]
+        return [create_leaf_task(df, col, converters)]
 
     res = []
     for col_s in col:
-        res.append(create_leaf_task(df, col_s, type_guesser, values_converter, task_converter))
+        res.append(create_leaf_task(df, col_s, converters))
     return res
 
 
 def read_inputs(df, input_col, converters):
-    type_guesser = converters.type
-    values_converter = converters.values
     if isinstance(input_col, str):
-        values, values_type = create_values(df, input_col, type_guesser, values_converter)
+        values, values_type = create_values(df, input_col, converters)
         return values
 
     keys = []
     values = []
     for col_s in input_col:
-        vals, _ = create_values(df, col_s, type_guesser, values_converter)
+        vals, _ = create_values(df, col_s, converters)
         keys.extend(keys)
         values.extend(values)
 
