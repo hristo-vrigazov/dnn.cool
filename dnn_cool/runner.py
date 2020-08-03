@@ -31,7 +31,7 @@ class InferDictCallback(InferCallback):
 
 class DnnCoolSupervisedRunner(SupervisedRunner):
 
-    def __init__(self, project, project_dir, early_stop: bool = True):
+    def __init__(self, project, early_stop: bool = True):
         super().__init__()
         self.task_flow = project.get_full_flow()
 
@@ -39,6 +39,8 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         self.default_callbacks = self.default_criterion.catalyst_callbacks()
         self.default_optimizer = partial(optim.AdamW, lr=1e-4)
         self.default_scheduler = ReduceLROnPlateau
+        self.project_dir: Path = project.project_dir
+        self.project_dir.mkdir(exist_ok=True)
         self.default_logdir = f'./logdir_{self.task_flow.get_name()}_{time()}'
 
         if early_stop:
@@ -73,8 +75,9 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         default_loaders = OrderedDict({'infer': self.get_default_loaders()['valid']})
         kwargs['loaders'] = kwargs.get('loaders', default_loaders)
 
+        logdir = self.project_dir / Path(kwargs.get('logdir', self.default_logdir))
         tensorboard_converters = TensorboardConverters(
-            logdir=Path(kwargs.get('logdir', self.default_logdir)),
+            logdir=logdir,
             tensorboard_loggers=self.tensor_loggers,
             datasets=kwargs.get('datasets', self.get_default_datasets())
         )
