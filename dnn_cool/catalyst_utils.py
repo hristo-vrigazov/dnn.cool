@@ -17,27 +17,35 @@ def to_numpy(tensor):
 
 
 class TensorboardConverter:
+    task_mapping = {}
     col_mapping = {}
     type_mapping = {}
 
     def __init__(self):
         self.type_mapping['img'] = [self.img]
 
-    def __call__(self, writer: SummaryWriter, sample: Tuple, prefix: str, key: str):
-        if key == 'gt':
+    def __call__(self, writer: SummaryWriter, sample: Tuple, prefix: str, task_name: str):
+        if task_name == 'gt':
             return
-        if key in self.col_mapping:
-            publishers = self.col_mapping[key]
-            for publisher in publishers:
-                publisher(writer, sample, prefix, key)
-        if key in self.type_mapping:
-            publishers = self.type_mapping[key]
+        self.publish_all(prefix, sample, task_name, writer, self.task_mapping)
+
+        X, y = sample
+        for key in X:
+            self.publish_all(prefix, sample, key, writer, self.col_mapping)
+
+        X, y = sample
+        for key in X:
+            self.publish_all(prefix, sample, key, writer, self.type_mapping)
+
+    def publish_all(self, prefix, sample, key, writer, mapping):
+        if key in mapping:
+            publishers = mapping[key]
             for publisher in publishers:
                 publisher(writer, sample, prefix, key)
 
-    def img(self, writer: SummaryWriter, sample: Tuple, prefix: str, key: str):
+    def img(self, writer: SummaryWriter, sample: Tuple, prefix: str, task_name: str):
         X, y = sample
-        writer.add_image(f'{prefix}_{key}_images', X['img'])
+        writer.add_image(f'{prefix}_{task_name}_images', X['img'])
 
 
 @dataclass
@@ -125,4 +133,3 @@ class InterpretationCallback(Callback):
     def on_stage_end(self, state: State):
         if self.tensorboard_converters is not None:
             self.tensorboard_converters.close(state)
-

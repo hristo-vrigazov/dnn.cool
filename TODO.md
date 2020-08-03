@@ -5,22 +5,20 @@ Some dumb stuff I am playing with.
 DOING:
 
 - [ ] Store project related stuff in a directory (indices of split, etc.)
-- [ ] Combine Grad-CAM with best/worst in Tensorboard
-- [ ] Grad-CAM per branch
+- [ ] Per-task evaluation information, given that precondition is working correctly.
+- [ ] Overall evaluation information
+- [ ] Handles missing labels correctly.
 
 TODO:
 
+- [ ] Combine Grad-CAM with best/worst in Tensorboard
 - [ ] Clean separation of tests for low-level API and high-level API
 - [ ] Implement some common decoders
 - [ ] Implement some common metrics
 - [ ] Implement inference when we don't have ground truth
 - [ ] Improve test coverage, especially the user-friendliness part
-- [ ] Per-task evaluation information, given that precondition is working correctly.
-- [ ] Overall evaluation information
 - [ ] Freeze-all but task feature (including Batch Norm) - may include parameter group
 - [ ] Set learning rate per task feature
-- [ ] Interpretation callback
-- [ ] Handles missing labels correctly.
 - [ ] Automatic per-task or overall thresholds tuning.
 - [ ] UI splitting helper
 - [ ] ONNX converter (if possible) - with static analysis.
@@ -34,7 +32,6 @@ TODO:
 - [ ] Add possibility to add weights based on masks
 - [ ] Correct operations override for magic methods
 - [ ] Improve variable names
-- [ ] Add option to skip flatten (for inference it's actually better to keep it, but for loaders it has to be flattened)
 - [ ] Customization - add the possibility to pass not only the logits, but other keys as well (maybe include them by default?)
 - [ ] Add option for readable output
 - [ ] Add a lot of predefined tasks and flows
@@ -44,7 +41,6 @@ TODO:
 - [ ] Make sure immutability of objects is preserved
 - [ ] Documentation
 - [ ] Think of useful methods
-- [ ] Think of a better way to organize labels
 - [ ] Add the possibility to predict given the precondition is true (very useful for evaluation)
 - [ ] Test with very weird cases
 - [ ] Receptive field slicing
@@ -82,7 +78,7 @@ TODO:
 - [ ] Noobj stuff in YOLO
 - [ ] Bert integration
 - [ ] Bertviz integration
-- [ ] Draw ROC curve
+- [ ] Draw ROC curve callback
 
 Done: 
 
@@ -130,3 +126,7 @@ Done:
 - [x] Cleaner/reusable API for type guessing, value conversion and task conversion.
 - [x] Publish best/worst inputs to Tensorboard (using InterpretationCallback)
 - [x] Redesign value converter, task converter, tensorboard converter, etc.
+- [x] Grad-CAM per branch - due to the modular architecture, this is quite easy to do.
+- [x] Interpretation callback
+- [x] Think of a better way to organize labels
+- [x] Add option to skip flatten (for inference it's actually better to keep it, but for loaders it has to be flattened)
