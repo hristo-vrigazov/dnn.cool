@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Union, Iterable, Tuple
 
 import numpy as np
@@ -84,6 +85,7 @@ class Project:
     def __init__(self, df,
                  input_col: Union[str, Iterable[str]],
                  output_col: Union[str, Iterable[str]],
+                 logs_dir: Union[str, Path],
                  converters: Settings = Settings(),
                  train_test_val_indices: Tuple[np.ndarray, np.ndarray, np.ndarray] = None):
         assert_col_in_df(input_col, df)

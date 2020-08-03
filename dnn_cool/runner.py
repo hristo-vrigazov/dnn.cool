@@ -31,7 +31,7 @@ class InferDictCallback(InferCallback):
 
 class DnnCoolSupervisedRunner(SupervisedRunner):
 
-    def __init__(self, project, early_stop: bool = True):
+    def __init__(self, project, project_dir, early_stop: bool = True):
         super().__init__()
         self.task_flow = project.get_full_flow()
 

@@ -1,9 +1,10 @@
+import numpy as np
+
 from dataclasses import dataclass
-from typing import Optional
+from pathlib import Path
+from typing import Union, Iterable, Tuple
 
-import torch
-
-from dnn_cool.catalyst_utils import TensorboardConverters, TensorboardConverter
+from dnn_cool.catalyst_utils import TensorboardConverter
 from dnn_cool.task_flow import BinaryClassificationTask, ClassificationTask
 
 
@@ -70,8 +71,14 @@ class TaskConverter:
 
 @dataclass
 class Settings:
+    input_col: Union[str, Iterable[str]]
+    output_col: Union[str, Iterable[str]]
+    project_directory: Union[str, Path]
+
     type = TypeGuesser()
     values = ValuesConverter()
     task = TaskConverter()
 
     tensorboard_converters = TensorboardConverter()
+    train_test_val_indices: Tuple[np.ndarray, np.ndarray, np.ndarray] = None
+
