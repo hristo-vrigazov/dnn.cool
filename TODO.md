@@ -82,6 +82,8 @@ TODO:
 - [ ] Distillation utils
 - [ ] Weightwatcher add
 - [ ] Noobj stuff in YOLO
+- [ ] Bert integration
+- [ ] Bertviz integration
 
 Done: 
 

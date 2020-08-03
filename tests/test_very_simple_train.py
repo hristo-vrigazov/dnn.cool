@@ -279,7 +279,7 @@ def test_interpretation_synthetic(synthenic_dataset_preparation):
 
     tensorboard_converters = TensorboardConverters(
         logdir=Path('./security_logs'),
-        tensorboard_loggers=lambda x, y: x,
+        tensorboard_loggers=lambda x, y, z: x,
         datasets=datasets
     )
 

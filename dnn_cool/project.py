@@ -99,6 +99,7 @@ class Project:
         if train_test_val_indices is None:
             train_test_val_indices = train_test_val_split(df)
         self.train_test_val_indices = train_test_val_indices
+        self.converters = converters
 
     def add_task_flow(self, task_flow: TaskFlow):
         self.flow_tasks.append(task_flow)

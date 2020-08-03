@@ -42,10 +42,8 @@ class TensorboardConverters:
 
     def _publish_inputs(self, best_indices, writer, dataset, prefix):
         for idx in best_indices:
-            self.tensorboard_loggers(writer, dataset[idx])
-            # X, y = dataset[idx]
-            # img = X['img']
-            # writer.add_image(f'{prefix}_overall', img)
+            if self.tensorboard_loggers is not None:
+                self.tensorboard_loggers(writer, dataset[idx], prefix)
 
     def close(self, state):
         """Close opened tensorboard writers"""

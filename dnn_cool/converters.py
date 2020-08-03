@@ -1,7 +1,9 @@
 from dataclasses import dataclass
+from typing import Optional
 
 import torch
 
+from dnn_cool.catalyst_utils import TensorboardConverters
 from dnn_cool.task_flow import BinaryClassificationTask, ClassificationTask
 
 
@@ -70,3 +72,5 @@ class Converters:
     type = TypeGuesser()
     values = ValuesConverter()
     task = TaskConverter()
+
+    tensorboard_converters: Optional[TensorboardConverters] = None

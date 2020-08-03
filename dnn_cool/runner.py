@@ -45,6 +45,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
             self.default_callbacks.append(EarlyStoppingCallback(patience=5))
 
         self.train_test_val_indices = project.train_test_val_indices
+        self.tensor_loggers = project.converters.tensorboard_converters
 
     def train(self, *args, **kwargs):
         kwargs['criterion'] = kwargs.get('criterion', self.default_criterion)
@@ -74,7 +75,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
 
         tensorboard_converters = TensorboardConverters(
             logdir=Path(kwargs.get('logdir', self.default_logdir)),
-            tensorboard_loggers=lambda x, y: x,
+            tensorboard_loggers=self.tensor_loggers,
             datasets=kwargs.get('datasets', self.get_default_datasets())
         )
 
@@ -82,6 +83,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         default_callbacks = OrderedDict([("interpretation", interpretation_callback),
                                          ("inference", InferDictCallback())])
         kwargs['callbacks'] = kwargs.get('callbacks', default_callbacks)
+        kwargs.pop("logdir", None)
         super().infer(*args, **kwargs)
         results = kwargs['callbacks']['inference'].predictions
         interpretation = kwargs['callbacks']['interpretation'].interpretations
