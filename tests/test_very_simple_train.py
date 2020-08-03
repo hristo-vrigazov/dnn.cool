@@ -256,7 +256,7 @@ def test_inference_synthetic(synthenic_dataset_preparation):
     n = 4 * torch.cuda.device_count()
     loader = DataLoader(dataset, batch_size=n, shuffle=False)
 
-    ckpt = load_checkpoint('/home/hvrigazov/dnn.cool/tests/security_logs/checkpoints/best_full.pth')
+    ckpt = load_checkpoint('/home/hvrigazov/dnn.cool/tests/security_project/security_logs/checkpoints/best_full.pth')
     unpack_checkpoint(ckpt, model)
 
     X, y = next(iter(loader))
@@ -282,7 +282,7 @@ def test_interpretation_synthetic(synthenic_dataset_preparation):
 
     loaders = OrderedDict({'infer': nested_loaders['valid']})
 
-    ckpt = load_checkpoint('/home/hvrigazov/dnn.cool/tests/security_logs/checkpoints/best_full.pth')
+    ckpt = load_checkpoint('/home/hvrigazov/dnn.cool/tests/security_project/security_logs/checkpoints/best_full.pth')
     unpack_checkpoint(ckpt, model)
 
     tensorboard_converters = TensorboardConverters(
