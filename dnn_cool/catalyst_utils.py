@@ -23,23 +23,21 @@ class TensorboardConverter:
     def __init__(self):
         self.type_mapping['img'] = [self.img]
 
-    def __call__(self, writer: SummaryWriter, sample: Tuple, prefix: str):
-        X, y = sample
-        for key in X:
-            if key == 'gt':
-                continue
-            if key in self.col_mapping:
-                publishers = self.col_mapping[key]
-                for publisher in publishers:
-                    publisher(writer, sample, prefix)
-            if key in self.type_mapping:
-                publishers = self.type_mapping[key]
-                for publisher in publishers:
-                    publisher(writer, sample, prefix)
+    def __call__(self, writer: SummaryWriter, sample: Tuple, prefix: str, key: str):
+        if key == 'gt':
+            return
+        if key in self.col_mapping:
+            publishers = self.col_mapping[key]
+            for publisher in publishers:
+                publisher(writer, sample, prefix, key)
+        if key in self.type_mapping:
+            publishers = self.type_mapping[key]
+            for publisher in publishers:
+                publisher(writer, sample, prefix, key)
 
-    def img(self, writer: SummaryWriter, sample: Tuple, prefix: str):
+    def img(self, writer: SummaryWriter, sample: Tuple, prefix: str, key: str):
         X, y = sample
-        writer.add_image(f'{prefix}_images', X['img'])
+        writer.add_image(f'{prefix}_{key}_images', X['img'])
 
 
 @dataclass
@@ -63,13 +61,13 @@ class TensorboardConverters:
             worst_indices = sorted_indices[-self.top_k:]
             writer: SummaryWriter = self.loggers[state.loader_name]
             dataset = self.datasets[state.loader_name]
-            self._publish_inputs(best_indices, writer, dataset, prefix=f'best_{key}')
-            self._publish_inputs(worst_indices, writer, dataset, prefix=f'worst_{key}')
+            self._publish_inputs(best_indices, writer, dataset, prefix='best', key=key)
+            self._publish_inputs(worst_indices, writer, dataset, prefix='worst', key=key)
 
-    def _publish_inputs(self, best_indices, writer, dataset, prefix):
+    def _publish_inputs(self, best_indices, writer, dataset, prefix, key):
         for idx in best_indices:
             if self.tensorboard_loggers is not None:
-                self.tensorboard_loggers(writer, dataset[idx], prefix)
+                self.tensorboard_loggers(writer, dataset[idx], prefix, key)
 
     def close(self, state):
         """Close opened tensorboard writers"""
