@@ -44,8 +44,8 @@ class TensorboardConverters:
             worst_indices = sorted_indices[-self.top_k:]
             writer: SummaryWriter = self.loggers[state.loader_name]
             dataset = self.datasets[state.loader_name]
-            self._publish_inputs(best_indices, writer, dataset, prefix='best')
-            self._publish_inputs(worst_indices, writer, dataset, prefix='worst')
+            self._publish_inputs(best_indices, writer, dataset, prefix=f'best_{key}')
+            self._publish_inputs(worst_indices, writer, dataset, prefix=f'worst_{key}')
 
     def _publish_inputs(self, best_indices, writer, dataset, prefix):
         for idx in best_indices:
