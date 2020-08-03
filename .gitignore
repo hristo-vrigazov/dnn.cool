@@ -132,3 +132,4 @@ notebooks
 tests/security_logs/
 tests/logdir*
 
+tests/security_project
