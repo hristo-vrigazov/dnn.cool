@@ -14,7 +14,7 @@ from catalyst.utils import load_checkpoint, unpack_checkpoint
 from torch import optim, nn
 from torch.utils.data import DataLoader
 
-from dnn_cool.catalyst_utils import InterpretationCallback, TensorboardConverters
+from dnn_cool.catalyst_utils import InterpretationCallback, TensorboardConverters, TensorboardConverter
 from dnn_cool.project import Project
 from dnn_cool.converters import TypeGuesser, ValuesConverter, TaskConverter, Converters
 from dnn_cool.runner import InferDictCallback
@@ -143,7 +143,7 @@ def synthenic_dataset_preparation():
     converters.task = task_converter
     converters.type = type_guesser
     converters.values = values_converter
-    converters.tensorboard_converters = None
+
     project = Project(df, input_col='img', output_col=output_col, converters=converters)
 
     @project.add_flow
@@ -280,7 +280,7 @@ def test_interpretation_synthetic(synthenic_dataset_preparation):
 
     tensorboard_converters = TensorboardConverters(
         logdir=Path('./security_logs'),
-        tensorboard_loggers=lambda x, y, z: x,
+        tensorboard_loggers=TensorboardConverter(),
         datasets=datasets
     )
 

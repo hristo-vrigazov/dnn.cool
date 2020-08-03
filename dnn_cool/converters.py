@@ -3,7 +3,7 @@ from typing import Optional
 
 import torch
 
-from dnn_cool.catalyst_utils import TensorboardConverters
+from dnn_cool.catalyst_utils import TensorboardConverters, TensorboardConverter
 from dnn_cool.task_flow import BinaryClassificationTask, ClassificationTask
 
 
@@ -73,4 +73,4 @@ class Converters:
     values = ValuesConverter()
     task = TaskConverter()
 
-    tensorboard_converters: Optional[TensorboardConverters] = None
+    tensorboard_converters = TensorboardConverter()

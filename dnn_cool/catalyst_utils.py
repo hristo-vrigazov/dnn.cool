@@ -19,7 +19,8 @@ def to_numpy(tensor):
 class TensorboardConverter:
 
     def __call__(self, writer: SummaryWriter, sample: Tuple, prefix: str):
-        pass
+        X, y = sample
+        writer.add_image(f'{prefix}_images', X['img'])
 
 
 @dataclass
