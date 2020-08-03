@@ -63,7 +63,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
 
         if not 'logdir' in kwargs:
             kwargs['logdir'] = self.default_logdir
-
+        kwargs['logdir'] = self.project_dir / kwargs['logdir']
         kwargs['num_epochs'] = kwargs.get('num_epochs', 50)
 
         if not 'loaders' in kwargs:
