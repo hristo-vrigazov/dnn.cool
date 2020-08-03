@@ -22,10 +22,8 @@ TODO:
 - [ ] Automatic per-task or overall thresholds tuning.
 - [ ] UI splitting helper
 - [ ] ONNX converter (if possible) - with static analysis.
-- [ ] Test training a model with synthetic dataset.
 - [ ] Cleaner representations for results
 - [ ] Work on error messages
-- [ ] Predict only for those, for which precondition is correct.
 - [ ] Allow custom entries in the FlowDict
 - [ ] Add to latex option (automatically generate loss functions in latex)
 - [ ] Implement YOLO for example
@@ -61,7 +59,7 @@ TODO:
 - [ ] Add the tasks from MMF
 - [ ] Add object detection tasks
 - [ ] Add NLP tasks
-- [ ] Implement smart type guessingusd 
+- [ ] Implement smart type guessing
 - [ ] Are metrics computed only for when the preconditions are correct?
 - [ ] EfficientNet-based project helper
 - [ ] Implement smart values converter
@@ -79,6 +77,9 @@ TODO:
 - [ ] Bert integration
 - [ ] Bertviz integration
 - [ ] Draw ROC curve callback
+- [ ] Handle case when the precondition is not a single number
+- [ ] Implement example body pose estimation
+- [ ] Implement example hand pose estimation
 
 Done: 
 
@@ -130,3 +131,7 @@ Done:
 - [x] Interpretation callback
 - [x] Think of a better way to organize labels
 - [x] Add option to skip flatten (for inference it's actually better to keep it, but for loaders it has to be flattened)
+- [x] Predict only for those, for which precondition is correct.
+- [x] Test training a model with synthetic dataset.
+
+
