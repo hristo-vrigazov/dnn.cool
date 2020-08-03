@@ -14,7 +14,7 @@ from catalyst.utils import load_checkpoint, unpack_checkpoint
 from torch import optim, nn
 from torch.utils.data import DataLoader
 
-from dnn_cool.catalyst_utils import InterpretationCallback
+from dnn_cool.catalyst_utils import InterpretationCallback, TensorboardConverters
 from dnn_cool.project import Project
 from dnn_cool.converters import TypeGuesser, ValuesConverter, TaskConverter, Converters
 from dnn_cool.runner import InferDictCallback
@@ -277,8 +277,14 @@ def test_interpretation_synthetic(synthenic_dataset_preparation):
     ckpt = load_checkpoint('/home/hvrigazov/dnn.cool/tests/security_logs/checkpoints/best_full.pth')
     unpack_checkpoint(ckpt, model)
 
+    tensorboard_converters = TensorboardConverters(
+        logdir=Path('./security_logs'),
+        tensorboard_loggers=lambda x, y: x,
+        datasets=datasets
+    )
+
     callbacks = OrderedDict([
-        ("interpretation", InterpretationCallback(flow, datasets, logdir='./security_logs')),
+        ("interpretation", InterpretationCallback(flow, tensorboard_converters)),
         ("inference", InferDictCallback())
     ])
     r = runner.infer(model,

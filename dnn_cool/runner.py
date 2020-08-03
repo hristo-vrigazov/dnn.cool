@@ -1,11 +1,12 @@
 from collections import OrderedDict
+from pathlib import Path
 
 import torch
 from catalyst.dl import SupervisedRunner, EarlyStoppingCallback, InferCallback, State
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 
-from dnn_cool.catalyst_utils import InterpretationCallback
+from dnn_cool.catalyst_utils import InterpretationCallback, TensorboardConverters
 from dnn_cool.task_flow import TaskFlow
 from torch import optim
 
@@ -70,12 +71,17 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
     def infer(self, *args, **kwargs):
         default_loaders = OrderedDict({'infer': self.get_default_loaders()['valid']})
         kwargs['loaders'] = kwargs.get('loaders', default_loaders)
-        kwargs['logdir'] = kwargs.get('logdir', self.default_logdir)
-        interpretation_callback = InterpretationCallback(self.task_flow, self.get_default_datasets(), kwargs['logdir'])
+
+        tensorboard_converters = TensorboardConverters(
+            logdir=Path(kwargs.get('logdir', self.default_logdir)),
+            tensorboard_loggers=lambda x, y: x,
+            datasets=kwargs.get('datasets', self.get_default_datasets())
+        )
+
+        interpretation_callback = InterpretationCallback(self.task_flow, tensorboard_converters)
         default_callbacks = OrderedDict([("interpretation", interpretation_callback),
                                          ("inference", InferDictCallback())])
         kwargs['callbacks'] = kwargs.get('callbacks', default_callbacks)
-        del kwargs['logdir']
         super().infer(*args, **kwargs)
         results = kwargs['callbacks']['inference'].predictions
         interpretation = kwargs['callbacks']['interpretation'].interpretations

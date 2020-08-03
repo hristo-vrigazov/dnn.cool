@@ -1,8 +1,12 @@
 from pathlib import Path
+from typing import Callable, Dict, Optional
 
 import numpy as np
 from catalyst.core import Callback, CallbackOrder, State
 from catalyst.utils.tools.tensorboard import SummaryWriter
+from dataclasses import dataclass, field
+
+from torch.utils.data import Dataset
 
 from dnn_cool.losses import LossFlowData
 from dnn_cool.task_flow import TaskFlow
@@ -12,8 +16,48 @@ def to_numpy(tensor):
     return tensor.squeeze(dim=-1).detach().cpu().numpy()
 
 
+@dataclass
+class TensorboardConverters:
+    logdir: Path
+    tensorboard_loggers: Callable
+    datasets: Dict[str, Dataset]
+    loggers: Dict[str, SummaryWriter] = field(default_factory=lambda: {})
+    top_k: int = 10
+
+    def initialize(self, state):
+        if (self.logdir is not None) and (state.loader_name not in self.loggers):
+            path = str(self.logdir / f"{state.loader_name}_log")
+            writer = SummaryWriter(path)
+            self.loggers[state.loader_name] = writer
+
+    def publish(self, state, interpretations):
+        for key, value in interpretations.items():
+            sorted_indices = value.argsort()
+            best_indices = sorted_indices[:self.top_k]
+            worst_indices = sorted_indices[-self.top_k:]
+            writer: SummaryWriter = self.loggers[state.loader_name]
+            dataset = self.datasets[state.loader_name]
+            self._publish_inputs(best_indices, writer, dataset, prefix='best')
+            self._publish_inputs(worst_indices, writer, dataset, prefix='worst')
+
+    def _publish_inputs(self, best_indices, writer, dataset, prefix):
+        for idx in best_indices:
+            self.tensorboard_loggers(writer, dataset[idx])
+            # X, y = dataset[idx]
+            # img = X['img']
+            # writer.add_image(f'{prefix}_overall', img)
+
+    def close(self, state):
+        """Close opened tensorboard writers"""
+        if state.logdir is None:
+            return
+
+        for logger in self.loggers.values():
+            logger.close()
+
+
 class InterpretationCallback(Callback):
-    def __init__(self, flow: TaskFlow, datasets, logdir=None, top_k=10):
+    def __init__(self, flow: TaskFlow, tensorboard_converters: Optional[TensorboardConverters] = None):
         super().__init__(CallbackOrder.Metric)
         self.flow = flow
 
@@ -21,13 +65,7 @@ class InterpretationCallback(Callback):
         self.leaf_losses = self.overall_loss.get_leaf_losses()
         self.interpretations = self._initialize_interpretations()
 
-        self.logdir = logdir
-        self.top_k = top_k
-        self.publish_to_tensorboard = logdir is not None
-        if self.publish_to_tensorboard:
-            self.logdir = Path(self.logdir)
-            self.loggers = {}
-            self.datasets = datasets
+        self.tensorboard_converters = tensorboard_converters
 
     def _initialize_interpretations(self):
         res = {'overall': []}
@@ -39,10 +77,8 @@ class InterpretationCallback(Callback):
     def on_loader_start(self, state: State):
         self.interpretations = self._initialize_interpretations()
 
-        """Prepare tensorboard writers for the current stage"""
-        if (self.logdir is not None) and (state.loader_name not in self.loggers):
-            writer = SummaryWriter(self.logdir / f"{state.loader_name}_log")
-            self.loggers[state.loader_name] = writer
+        if self.tensorboard_converters is not None:
+            self.tensorboard_converters.initialize(state)
 
     def on_batch_end(self, state: State):
         outputs = state.batch_out['logits']
@@ -61,28 +97,10 @@ class InterpretationCallback(Callback):
             for key, value in self.interpretations.items()
         }
 
-        if self.publish_to_tensorboard:
-            for key, value in self.interpretations.items():
-                sorted_indices = value.argsort()
-                best_indices = sorted_indices[:self.top_k]
-                worst_indices = sorted_indices[-self.top_k:]
-                writer: SummaryWriter = self.loggers[state.loader_name]
-                dataset = self.datasets[state.loader_name]
-                self._publish_inputs(best_indices, writer, dataset, prefix='best')
-                self._publish_inputs(worst_indices, writer, dataset, prefix='worst')
-
-    def _publish_inputs(self, best_indices, writer, dataset, prefix):
-        for idx in best_indices:
-            # TODO: here, we have to display the input according to their type, we won't always have just an image!
-            X, y = dataset[idx]
-            img = X['img']
-            writer.add_image(f'{prefix}_overall', img)
+        if self.tensorboard_converters is not None:
+            self.tensorboard_converters.publish(state, self.interpretations)
 
     def on_stage_end(self, state: State):
-        """Close opened tensorboard writers"""
-        if state.logdir is None:
-            return
-
-        for logger in self.loggers.values():
-            logger.close()
+        if self.tensorboard_converters is not None:
+            self.tensorboard_converters.close(state)
 
