@@ -49,7 +49,8 @@ class ValuesConverter:
             converter = self.type_mapping[guessed_type]
             return Values([col], [converter(df[col].values)])
 
-        return Values([col], [torch.tensor(df[col].values)])
+        raise KeyError(f'Cannot convert column "{col}" from dataframe, because there is no registered converter'
+                       f' for its guessed type {guessed_type}.')
 
 
 @dataclass()

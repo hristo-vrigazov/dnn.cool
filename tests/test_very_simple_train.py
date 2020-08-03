@@ -74,7 +74,12 @@ def test_project_example():
 
     df = pd.DataFrame(df_data)
 
-    project = Project(df, input_col='input', output_col=['camera_blocked', 'door_open', 'uniform_type'])
+    converters = Converters()
+    converters.values.type_mapping['category'] = torch.LongTensor
+    converters.values.type_mapping['binary'] = torch.BoolTensor
+
+    project = Project(df, input_col='input',
+                      output_col=['camera_blocked', 'door_open', 'uniform_type'], converters=converters)
 
     @project.add_flow
     def camera_not_blocked_flow(flow, x, out):

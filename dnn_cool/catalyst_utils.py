@@ -21,7 +21,7 @@ class TensorboardConverter:
     type_mapping = {}
 
     def __init__(self):
-        self.type_mapping['img'] = self.img
+        self.type_mapping['img'] = [self.img]
 
     def __call__(self, writer: SummaryWriter, sample: Tuple, prefix: str):
         X, y = sample
@@ -29,9 +29,13 @@ class TensorboardConverter:
             if key == 'gt':
                 continue
             if key in self.col_mapping:
-                self.col_mapping[key](writer, sample, prefix)
+                publishers = self.col_mapping[key]
+                for publisher in publishers:
+                    publisher(writer, sample, prefix)
             if key in self.type_mapping:
-                self.type_mapping[key](writer, sample, prefix)
+                publishers = self.type_mapping[key]
+                for publisher in publishers:
+                    publisher(writer, sample, prefix)
 
     def img(self, writer: SummaryWriter, sample: Tuple, prefix: str):
         X, y = sample
