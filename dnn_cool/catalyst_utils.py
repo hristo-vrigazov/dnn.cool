@@ -17,8 +17,23 @@ def to_numpy(tensor):
 
 
 class TensorboardConverter:
+    col_mapping = {}
+    type_mapping = {}
+
+    def __init__(self):
+        self.type_mapping['img'] = self.img
 
     def __call__(self, writer: SummaryWriter, sample: Tuple, prefix: str):
+        X, y = sample
+        for key in X:
+            if key == 'gt':
+                continue
+            if key in self.col_mapping:
+                self.col_mapping[key](writer, sample, prefix)
+            if key in self.type_mapping:
+                self.type_mapping[key](writer, sample, prefix)
+
+    def img(self, writer: SummaryWriter, sample: Tuple, prefix: str):
         X, y = sample
         writer.add_image(f'{prefix}_images', X['img'])
 

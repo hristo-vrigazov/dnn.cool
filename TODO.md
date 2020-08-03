@@ -4,8 +4,6 @@ Some dumb stuff I am playing with.
 
 DOING:
 
-- [ ] Publish best/worst inputs to Tensorboard (using InterpretationCallback)
-- [ ] Redesign value converter, task converter, tensorboard converter, etc.
 - [ ] Store project related stuff in a directory (indices of split, etc.)
 - [ ] Combine Grad-CAM with best/worst in Tensorboard
 - [ ] Grad-CAM per branch
@@ -84,6 +82,7 @@ TODO:
 - [ ] Noobj stuff in YOLO
 - [ ] Bert integration
 - [ ] Bertviz integration
+- [ ] Draw ROC curve
 
 Done: 
 
@@ -129,3 +128,5 @@ Done:
 - [x] Overall interpretation
 - [x] Add default supervised runner.
 - [x] Cleaner/reusable API for type guessing, value conversion and task conversion.
+- [x] Publish best/worst inputs to Tensorboard (using InterpretationCallback)
+- [x] Redesign value converter, task converter, tensorboard converter, etc.
