@@ -16,6 +16,13 @@ def to_numpy(tensor):
     return tensor.squeeze(dim=-1).detach().cpu().numpy()
 
 
+def publish_all(prefix, sample, key, writer, mapping):
+    if key in mapping:
+        publishers = mapping[key]
+        for publisher in publishers:
+            publisher(writer, sample, prefix, key)
+
+
 class TensorboardConverter:
     task_mapping = {}
     col_mapping = {}
@@ -27,21 +34,13 @@ class TensorboardConverter:
     def __call__(self, writer: SummaryWriter, sample: Tuple, prefix: str, task_name: str):
         if task_name == 'gt':
             return
-        self.publish_all(prefix, sample, task_name, writer, self.task_mapping)
+        publish_all(prefix, sample, task_name, writer, self.task_mapping)
 
         X, y = sample
         for key in X:
-            self.publish_all(prefix, sample, key, writer, self.col_mapping)
-
-        X, y = sample
+            publish_all(prefix, sample, key, writer, self.col_mapping)
         for key in X:
-            self.publish_all(prefix, sample, key, writer, self.type_mapping)
-
-    def publish_all(self, prefix, sample, key, writer, mapping):
-        if key in mapping:
-            publishers = mapping[key]
-            for publisher in publishers:
-                publisher(writer, sample, prefix, key)
+            publish_all(prefix, sample, key, writer, self.type_mapping)
 
     def img(self, writer: SummaryWriter, sample: Tuple, prefix: str, task_name: str):
         X, y = sample

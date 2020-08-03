@@ -11,7 +11,7 @@ DOING:
 
 TODO:
 
-- [ ] Combine Grad-CAM with best/worst in Tensorboard
+- [ ] Combine Grad-CAM (for classification task) with best/worst in Tensorboard
 - [ ] Clean separation of tests for low-level API and high-level API
 - [ ] Implement some common decoders
 - [ ] Implement some common metrics
