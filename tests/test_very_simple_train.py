@@ -235,7 +235,6 @@ def test_synthetic_dataset(synthenic_dataset_preparation):
     callbacks, criterion, model, nested_loaders, runner, flow, df, val_dataset = synthenic_dataset_preparation
 
     with tempfile.TemporaryDirectory() as tmp_dir:
-        print(tmp_dir)
         runner.train(
             model=model,
             criterion=criterion,
