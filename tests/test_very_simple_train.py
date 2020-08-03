@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 
 from dnn_cool.catalyst_utils import InterpretationCallback, TensorboardConverters, TensorboardConverter
 from dnn_cool.project import Project
-from dnn_cool.converters import TypeGuesser, ValuesConverter, TaskConverter, Converters
+from dnn_cool.settings import TypeGuesser, ValuesConverter, TaskConverter, Settings
 from dnn_cool.runner import InferDictCallback
 from dnn_cool.synthetic_dataset import create_df_and_images_tensor
 from dnn_cool.task_flow import TaskFlow, BoundedRegressionTask, BinaryClassificationTask
@@ -74,7 +74,7 @@ def test_project_example():
 
     df = pd.DataFrame(df_data)
 
-    converters = Converters()
+    converters = Settings()
     converters.values.type_mapping['category'] = torch.LongTensor
     converters.values.type_mapping['binary'] = torch.BoolTensor
 
@@ -144,7 +144,7 @@ def synthenic_dataset_preparation():
     task_converter.type_mapping['binary'] = binary_classification_task
     task_converter.type_mapping['continuous'] = bounded_regression_task
 
-    converters = Converters()
+    converters = Settings()
     converters.task = task_converter
     converters.type = type_guesser
     converters.values = values_converter
