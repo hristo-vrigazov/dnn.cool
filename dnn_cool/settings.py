@@ -71,10 +71,6 @@ class TaskConverter:
 
 @dataclass
 class Settings:
-    input_col: Union[str, Iterable[str]]
-    output_col: Union[str, Iterable[str]]
-    project_directory: Union[str, Path]
-
     type = TypeGuesser()
     values = ValuesConverter()
     task = TaskConverter()

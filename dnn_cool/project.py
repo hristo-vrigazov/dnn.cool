@@ -85,12 +85,13 @@ class Project:
     def __init__(self, df,
                  input_col: Union[str, Iterable[str]],
                  output_col: Union[str, Iterable[str]],
-                 logs_dir: Union[str, Path],
+                 project_dir: Union[str, Path],
                  converters: Settings = Settings(),
                  train_test_val_indices: Tuple[np.ndarray, np.ndarray, np.ndarray] = None):
         assert_col_in_df(input_col, df)
         assert_col_in_df(output_col, df)
 
+        self.project_dir = Path(project_dir)
         self.inputs = read_inputs(df, input_col, converters)
         self.leaf_tasks = create_leaf_tasks(df, output_col, converters)
         self.flow_tasks = []

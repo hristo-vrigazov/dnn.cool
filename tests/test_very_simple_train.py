@@ -79,7 +79,9 @@ def test_project_example():
     converters.values.type_mapping['binary'] = torch.BoolTensor
 
     project = Project(df, input_col='input',
-                      output_col=['camera_blocked', 'door_open', 'uniform_type'], converters=converters)
+                      output_col=['camera_blocked', 'door_open', 'uniform_type'],
+                      project_dir='./example_project',
+                      converters=converters)
 
     @project.add_flow
     def camera_not_blocked_flow(flow, x, out):
@@ -149,7 +151,7 @@ def synthenic_dataset_preparation():
     converters.type = type_guesser
     converters.values = values_converter
 
-    project = Project(df, input_col='img', output_col=output_col, converters=converters)
+    project = Project(df, input_col='img', output_col=output_col, converters=converters, project_dir='./security_project')
 
     @project.add_flow
     def face_regression(flow, x, out):
