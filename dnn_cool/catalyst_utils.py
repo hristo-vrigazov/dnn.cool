@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, Optional, Tuple
 
 import numpy as np
 from catalyst.core import Callback, CallbackOrder, State
@@ -16,11 +16,17 @@ def to_numpy(tensor):
     return tensor.squeeze(dim=-1).detach().cpu().numpy()
 
 
+class TensorboardConverter:
+
+    def __call__(self, writer: SummaryWriter, sample: Tuple, prefix: str):
+        pass
+
+
 @dataclass
 class TensorboardConverters:
     logdir: Path
-    tensorboard_loggers: Callable
     datasets: Dict[str, Dataset]
+    tensorboard_loggers: Callable = TensorboardConverter()
     loggers: Dict[str, SummaryWriter] = field(default_factory=lambda: {})
     top_k: int = 10
 

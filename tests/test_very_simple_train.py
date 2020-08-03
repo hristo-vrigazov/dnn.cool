@@ -143,6 +143,7 @@ def synthenic_dataset_preparation():
     converters.task = task_converter
     converters.type = type_guesser
     converters.values = values_converter
+    converters.tensorboard_converters = None
     project = Project(df, input_col='img', output_col=output_col, converters=converters)
 
     @project.add_flow
