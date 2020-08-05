@@ -70,7 +70,7 @@ class TaskConverter:
 
 
 @dataclass
-class Settings:
+class Converters:
     type = TypeGuesser()
     values = ValuesConverter()
     task = TaskConverter()

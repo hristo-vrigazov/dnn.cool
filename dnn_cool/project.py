@@ -3,7 +3,7 @@ from typing import Union, Iterable, Tuple
 
 import numpy as np
 
-from dnn_cool.settings import Values, TypeGuesser, ValuesConverter, TaskConverter, Settings
+from dnn_cool.converters import Values, TypeGuesser, ValuesConverter, TaskConverter, Converters
 from dnn_cool.runner import DnnCoolSupervisedRunner
 from dnn_cool.task_flow import TaskFlow
 from dnn_cool.utils import train_test_val_split
@@ -86,7 +86,7 @@ class Project:
                  input_col: Union[str, Iterable[str]],
                  output_col: Union[str, Iterable[str]],
                  project_dir: Union[str, Path],
-                 converters: Settings = Settings(),
+                 converters: Converters = Converters(),
                  train_test_val_indices: Tuple[np.ndarray, np.ndarray, np.ndarray] = None):
         assert_col_in_df(input_col, df)
         assert_col_in_df(output_col, df)
