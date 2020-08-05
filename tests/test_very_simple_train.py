@@ -312,8 +312,10 @@ def test_synthetic_dataset_default_runner(synthenic_dataset_preparation):
 
 
 def test_interpretation_default_runner(synthenic_dataset_preparation):
-    callbacks, criterion, model, nested_loaders, runner, flow, df, datasetsls = synthenic_dataset_preparation
+    callbacks, criterion, model, nested_loaders, runner, flow, df, datasets = synthenic_dataset_preparation
 
+    ckpt = load_checkpoint('/home/hvrigazov/dnn.cool/tests/security_project/security_logs/checkpoints/best_full.pth')
+    unpack_checkpoint(ckpt, model)
     predictions, interpretations = runner.infer(model=model)
 
     print(interpretations)
