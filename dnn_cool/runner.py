@@ -1,10 +1,10 @@
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 from functools import partial
 from pathlib import Path
 from time import time
 
-import torch
 import numpy as np
+import torch
 from catalyst.dl import SupervisedRunner, EarlyStoppingCallback, InferCallback, State
 from torch import optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
@@ -19,14 +19,17 @@ class InferDictCallback(InferCallback):
     def __init__(self, out_key='logits', *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.out_key = out_key
+        self.predictions = {}
 
     def on_loader_start(self, state: State):
-        self.predictions[state.loader_name] = defaultdict(lambda: [])
+        self.predictions[state.loader_name] = {}
 
     def on_batch_end(self, state: State):
         dct = state.batch_out[self.out_key]
         dct = {key: value.detach().cpu().numpy() for key, value in dct.items()}
         for key, value in dct.items():
+            if key not in self.predictions[state.loader_name]:
+                self.predictions[state.loader_name][key] = []
             self.predictions[state.loader_name][key].append(value)
 
     def on_loader_end(self, state: State):
@@ -73,7 +76,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         kwargs['num_epochs'] = kwargs.get('num_epochs', 50)
 
         if not 'loaders' in kwargs:
-            kwargs['loaders'] = self.get_default_loaders()
+            datasets, kwargs['loaders'] = self.get_default_loaders()
 
         default_callbacks = [self.get_interpretation_callback(**kwargs)] + self.default_callbacks
         kwargs['callbacks'] = kwargs.get('callbacks', default_callbacks)
@@ -81,9 +84,9 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         super().train(*args, **kwargs)
 
     def infer(self, *args, **kwargs):
-        default_loaders = OrderedDict(
-            {'infer': self.get_default_loaders(shuffle_train=False)[kwargs.get('target_loader', 'valid')]})
+        default_datasets, default_loaders = self.get_default_loaders(shuffle_train=False)
         kwargs['loaders'] = kwargs.get('loaders', default_loaders)
+        kwargs['datasets'] = kwargs.get('datasets', default_datasets)
 
         logdir = self.project_dir / Path(kwargs.get('logdir', self.default_logdir))
         kwargs['logdir'] = logdir
@@ -92,9 +95,15 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
                                          ("inference", InferDictCallback())])
         kwargs['callbacks'] = kwargs.get('callbacks', default_callbacks)
         kwargs.pop("logdir", None)
+        del kwargs['datasets']
         super().infer(*args, **kwargs)
         results = kwargs['callbacks']['inference'].predictions
         interpretation = kwargs['callbacks']['interpretation'].interpretations
+
+        out_dir = self.project_dir / 'infer'
+        out_dir.mkdir(exist_ok=True)
+        torch.save(results, out_dir / 'logits.pkl')
+        torch.save(interpretation, out_dir / 'interpretations.pkl')
         return results, interpretation
 
     def get_interpretation_callback(self, **kwargs):
@@ -119,7 +128,14 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
             'valid': val_loader,
             'test': test_loader
         })
-        return loaders
+
+        # Rename 'train' loader and dataset, since catalyst does not allow inference on train dataset.
+        if not shuffle_train:
+            loaders['infer'] = loaders['train']
+            del loaders['train']
+            datasets['infer'] = datasets['train']
+            del datasets['train']
+        return datasets, loaders
 
     def get_default_datasets(self, **kwargs):
         dataset = self.task_flow.get_dataset()
