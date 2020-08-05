@@ -16,11 +16,11 @@ def to_numpy(tensor):
     return tensor.squeeze(dim=-1).detach().cpu().numpy()
 
 
-def publish_all(prefix, sample, key, writer, mapping):
+def publish_all(prefix, sample, key, writer, mapping, task_name):
     if key in mapping:
         publishers = mapping[key]
         for publisher in publishers:
-            publisher(writer, sample, prefix, key)
+            publisher(writer, sample, prefix, task_name)
 
 
 class TensorboardConverter:
@@ -34,13 +34,11 @@ class TensorboardConverter:
     def __call__(self, writer: SummaryWriter, sample: Tuple, prefix: str, task_name: str):
         if task_name == 'gt':
             return
-        publish_all(prefix, sample, task_name, writer, self.task_mapping)
-
         X, y = sample
         for key in X:
-            publish_all(prefix, sample, key, writer, self.col_mapping)
+            publish_all(prefix, sample, key, writer, self.col_mapping, task_name)
         for key in X:
-            publish_all(prefix, sample, key, writer, self.type_mapping)
+            publish_all(prefix, sample, key, writer, self.type_mapping, task_name)
 
     def img(self, writer: SummaryWriter, sample: Tuple, prefix: str, task_name: str):
         X, y = sample
@@ -63,8 +61,6 @@ class TensorboardConverters:
 
     def publish(self, state, interpretations):
         for key, value in interpretations.items():
-            if not key.endswith(state.loader_name):
-                continue
             sorted_indices = value.argsort()
             best_indices = sorted_indices[:self.top_k]
             worst_indices = sorted_indices[-self.top_k:]
@@ -98,15 +94,15 @@ class InterpretationCallback(Callback):
 
         self.tensorboard_converters = tensorboard_converters
 
-    def _initialize_interpretations(self, state):
-        res = {f'overall_{state.loader_name}': []}
+    def _initialize_interpretations(self):
+        interpretaion_dict = {f'overall': []}
         for leaf_loss in self.leaf_losses:
-            path = f'{leaf_loss.prefix}{leaf_loss.task_name}_{state.loader_name}'
-            res[path] = []
-        return res
+            path = f'{leaf_loss.prefix}{leaf_loss.task_name}'
+            interpretaion_dict[path] = []
+        return interpretaion_dict
 
     def on_loader_start(self, state: State):
-        self.interpretations = self._initialize_interpretations(state)
+        self.interpretations[state.loader_name] = self._initialize_interpretations()
 
         if self.tensorboard_converters is not None:
             self.tensorboard_converters.initialize(state)
@@ -114,22 +110,22 @@ class InterpretationCallback(Callback):
     def on_batch_end(self, state: State):
         outputs = state.batch_out['logits']
         targets = state.batch_in['targets']
-        self.interpretations[f'overall_{state.loader_name}'].append(to_numpy(self.overall_loss(outputs, targets)))
+        self.interpretations[state.loader_name]['overall'].append(to_numpy(self.overall_loss(outputs, targets)))
 
         for loss in self.leaf_losses:
-            path = f'{loss.prefix}{loss.task_name}_{state.loader_name}'
+            path = f'{loss.prefix}{loss.task_name}'
             loss_flow_data = LossFlowData(outputs, targets)
             loss_items = loss(loss_flow_data).loss_items
-            self.interpretations[path].append(to_numpy(loss_items))
+            self.interpretations[state.loader_name][path].append(to_numpy(loss_items))
 
     def on_loader_end(self, state: State):
-        self.interpretations = {
+        self.interpretations[state.loader_name] = {
             key: np.concatenate(value, axis=0)
-            for key, value in self.interpretations.items()
+            for key, value in self.interpretations[state.loader_name].items()
         }
 
         if self.tensorboard_converters is not None:
-            self.tensorboard_converters.publish(state, self.interpretations)
+            self.tensorboard_converters.publish(state, self.interpretations[state.loader_name])
 
     def on_stage_end(self, state: State):
         if self.tensorboard_converters is not None:
