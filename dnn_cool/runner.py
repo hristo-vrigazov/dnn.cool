@@ -74,7 +74,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         super().train(*args, **kwargs)
 
     def infer(self, *args, **kwargs):
-        default_loaders = OrderedDict({'infer': self.get_default_loaders()['valid']})
+        default_loaders = OrderedDict({'infer': self.get_default_loaders()[kwargs.get('target_loader', 'valid')]})
         kwargs['loaders'] = kwargs.get('loaders', default_loaders)
 
         logdir = self.project_dir / Path(kwargs.get('logdir', self.default_logdir))
@@ -93,7 +93,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         tensorboard_converters = TensorboardConverters(
             logdir=kwargs['logdir'],
             tensorboard_loggers=self.tensor_loggers,
-            datasets=kwargs.get('datasets', self.get_default_datasets())
+            datasets=kwargs.get('datasets', self.get_default_datasets(**kwargs))
         )
         interpretation_callback = InterpretationCallback(self.task_flow, tensorboard_converters)
         return interpretation_callback
@@ -102,15 +102,18 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         datasets = self.get_default_datasets()
         train_dataset = datasets['train']
         val_dataset = datasets['valid']
+        test_dataset = datasets['test']
         train_loader = DataLoader(train_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=True)
         val_loader = DataLoader(val_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=False)
+        test_loader = DataLoader(test_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=False)
         loaders = OrderedDict({
             'train': train_loader,
-            'valid': val_loader
+            'valid': val_loader,
+            'test': test_loader
         })
         return loaders
 
-    def get_default_datasets(self):
+    def get_default_datasets(self, **kwargs):
         dataset = self.task_flow.get_dataset()
         if self.train_test_val_indices is None:
             raise ValueError(f'You must supply either a `loaders` parameter, or give `train_test_val_indices` via'
@@ -119,12 +122,15 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         train_dataset = TransformedSubset(dataset, train_indices)
         val_dataset = TransformedSubset(dataset, val_indices)
         test_dataset = TransformedSubset(dataset, test_indices)
-        return {
+
+        datasets = {
             'train': train_dataset,
             'valid': val_dataset,
             'test': test_dataset,
-            'infer': val_dataset
         }
+
+        datasets['infer'] = datasets[kwargs.get('target_loader', 'valid')]
+        return datasets
 
     def batch_to_device(self, batch, device):
         return super()._batch2device(batch, device)
