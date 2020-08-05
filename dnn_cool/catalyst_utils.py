@@ -6,7 +6,7 @@ from catalyst.core import Callback, CallbackOrder, State
 from catalyst.utils.tools.tensorboard import SummaryWriter
 from dataclasses import dataclass, field
 
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, SequentialSampler
 
 from dnn_cool.losses import LossFlowData
 from dnn_cool.task_flow import TaskFlow
@@ -102,12 +102,16 @@ class InterpretationCallback(Callback):
         return interpretaion_dict
 
     def on_loader_start(self, state: State):
+        if not isinstance(state.loaders[state.loader_name].sampler, SequentialSampler):
+            return
         self.interpretations[state.loader_name] = self._initialize_interpretations()
 
         if self.tensorboard_converters is not None:
             self.tensorboard_converters.initialize(state)
 
     def on_batch_end(self, state: State):
+        if not isinstance(state.loaders[state.loader_name].sampler, SequentialSampler):
+            return
         outputs = state.batch_out['logits']
         targets = state.batch_in['targets']
         self.interpretations[state.loader_name]['overall'].append(to_numpy(self.overall_loss(outputs, targets)))
@@ -119,6 +123,8 @@ class InterpretationCallback(Callback):
             self.interpretations[state.loader_name][path].append(to_numpy(loss_items))
 
     def on_loader_end(self, state: State):
+        if not isinstance(state.loaders[state.loader_name].sampler, SequentialSampler):
+            return
         self.interpretations[state.loader_name] = {
             key: np.concatenate(value, axis=0)
             for key, value in self.interpretations[state.loader_name].items()
@@ -128,5 +134,7 @@ class InterpretationCallback(Callback):
             self.tensorboard_converters.publish(state, self.interpretations[state.loader_name])
 
     def on_stage_end(self, state: State):
+        if not isinstance(state.loaders[state.loader_name].sampler, SequentialSampler):
+            return
         if self.tensorboard_converters is not None:
             self.tensorboard_converters.close(state)
