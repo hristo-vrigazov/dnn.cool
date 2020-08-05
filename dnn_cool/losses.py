@@ -65,6 +65,7 @@ class BaseMetricDecorator(nn.Module):
     def __init__(self, task, prefix, metric):
         super().__init__()
         self.task_name = task.get_name()
+        self.available = task.get_available_func()
         self.prefix = prefix
         self.metric = metric
 
@@ -82,6 +83,12 @@ class BaseMetricDecorator(nn.Module):
         outputs = loss_flow_data.outputs[key]
         precondition = loss_flow_data.outputs.get(f'precondition|{key}', None)
         targets = loss_flow_data.targets[key]
+        if self.available is not None:
+            available = self.available(targets)
+            if precondition is None:
+                precondition = available
+            else:
+                precondition &= available
         n = len(outputs)
         loss_items = torch.zeros(n, 1, dtype=outputs.dtype, device=outputs.device)
         if precondition is None:

@@ -78,7 +78,7 @@ TODO:
 - [ ] Draw ROC curve callback
 - [ ] Handle case when the precondition is not a single number
 - [ ] Implement example body pose estimation
-- [ ] Implement example hand pose estimation
+- [ ] Angular data regression: https://stats.stackexchange.com/questions/218407/encoding-angle-data-for-neural-network/218547#218547
 
 Done: 
 

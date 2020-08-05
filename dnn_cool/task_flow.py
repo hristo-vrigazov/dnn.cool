@@ -8,15 +8,17 @@ from dnn_cool.datasets import FlowDataset, LeafTaskDataset
 from dnn_cool.decoders import threshold_binary, sort_declining
 from dnn_cool.losses import TaskFlowLoss
 from dnn_cool.metrics import single_result_accuracy
+from dnn_cool.missing_values import positive_values, positive_values_unsqueezed
 from dnn_cool.modules import SigmoidAndMSELoss, Identity, TaskFlowModule
 from dnn_cool.treelib import TreeExplainer
 
 
 class ITask:
 
-    def __init__(self, name: str, inputs):
+    def __init__(self, name: str, inputs, available_func=None):
         self.name = name
         self.inputs = inputs
+        self.available_func = available_func
 
     def get_name(self):
         return self.name
@@ -29,6 +31,9 @@ class ITask:
 
     def has_children(self):
         return False
+
+    def get_available_func(self):
+        return self.available_func
 
     def get_loss(self):
         raise NotImplementedError()
@@ -64,12 +69,13 @@ class Task(ITask):
                  labels,
                  loss: Callable,
                  per_sample_loss: Callable,
+                 available_func: Callable = None,
                  inputs=None,
                  activation: Optional[nn.Module] = None,
                  decoder: Callable = None,
                  module: Optional[nn.Module] = Identity(),
                  metrics: List[Tuple[str, Callable]] = ()):
-        super().__init__(name, inputs)
+        super().__init__(name, inputs, available_func)
         self._activation = activation
         self._decoder = decoder
         self._loss = loss
@@ -114,12 +120,22 @@ class BinaryHardcodedTask(Task):
                  labels,
                  loss: Callable = None,
                  per_sample_loss: Callable = None,
+                 available_func: Callable = positive_values,
                  inputs=None,
                  activation: Optional[nn.Module] = None,
                  decoder: Callable = None,
                  module: nn.Module = Identity(),
                  metrics=()):
-        super().__init__(name, labels, loss, per_sample_loss, inputs, activation, decoder, module, metrics)
+        super().__init__(name=name,
+                         labels=labels,
+                         loss=loss,
+                         per_sample_loss=per_sample_loss,
+                         available_func=available_func,
+                         inputs=inputs,
+                         activation=activation,
+                         decoder=decoder,
+                         module=module,
+                         metrics=metrics)
 
 
 class BoundedRegressionTask(Task):
@@ -135,12 +151,22 @@ class BoundedRegressionTask(Task):
                  labels,
                  loss=SigmoidAndMSELoss(reduction='mean'),
                  per_sample_loss=SigmoidAndMSELoss(reduction='none'),
+                 available_func: Callable = None,
                  module=Identity(),
                  activation: Optional[nn.Module] = nn.Sigmoid(),
                  decoder: Callable = None,
                  inputs=None,
                  metrics=()):
-        super().__init__(name, labels, loss, per_sample_loss, inputs, activation, decoder, module, metrics)
+        super().__init__(name=name,
+                         labels=labels,
+                         loss=loss,
+                         per_sample_loss=per_sample_loss,
+                         available_func=available_func,
+                         inputs=inputs,
+                         activation=activation,
+                         decoder=decoder,
+                         module=module,
+                         metrics=metrics)
 
 
 class BinaryClassificationTask(Task):
@@ -155,6 +181,7 @@ class BinaryClassificationTask(Task):
                  labels,
                  loss=nn.BCEWithLogitsLoss(reduction='mean'),
                  per_sample_loss=nn.BCEWithLogitsLoss(reduction='none'),
+                 available_func=positive_values,
                  inputs=None,
                  activation: Optional[nn.Module] = nn.Sigmoid(),
                  decoder: Callable = threshold_binary,
@@ -162,7 +189,16 @@ class BinaryClassificationTask(Task):
                  metrics=(
                          ('acc_0.5', partial(single_result_accuracy, threshold=0.5, activation='Sigmoid')),
                  )):
-        super().__init__(name, labels, loss, per_sample_loss, inputs, activation, decoder, module, metrics)
+        super().__init__(name=name,
+                         labels=labels,
+                         loss=loss,
+                         per_sample_loss=per_sample_loss,
+                         available_func=available_func,
+                         inputs=inputs,
+                         activation=activation,
+                         decoder=decoder,
+                         module=module,
+                         metrics=metrics)
 
 
 class ClassificationTask(Task):
@@ -177,6 +213,7 @@ class ClassificationTask(Task):
                  labels,
                  loss=nn.CrossEntropyLoss(reduction='mean'),
                  per_sample_loss=nn.CrossEntropyLoss(reduction='none'),
+                 available_func=positive_values_unsqueezed,
                  inputs=None,
                  activation=nn.Softmax(dim=-1),
                  decoder=sort_declining,
@@ -185,13 +222,22 @@ class ClassificationTask(Task):
                          ('top_1_acc', partial(single_result_accuracy, topk=(1,), activation='Softmax')),
                          ('top_3_acc', partial(single_result_accuracy, topk=(3,), activation='Softmax')),
                  )):
-        super().__init__(name, labels, loss, per_sample_loss, inputs, activation, decoder, module, metrics)
+        super().__init__(name=name,
+                         labels=labels,
+                         loss=loss,
+                         per_sample_loss=per_sample_loss,
+                         available_func=available_func,
+                         inputs=inputs,
+                         activation=activation,
+                         decoder=decoder,
+                         module=module,
+                         metrics=metrics)
 
 
 class TaskFlow(ITask):
 
-    def __init__(self, name, tasks: Iterable[ITask], flow_func=None, inputs=None):
-        super().__init__(name, inputs)
+    def __init__(self, name, tasks: Iterable[ITask], flow_func=None, inputs=None, available_func=None):
+        super().__init__(name, inputs, available_func)
         self.tasks = {}
         for task in tasks:
             self.tasks[task.get_name()] = task
