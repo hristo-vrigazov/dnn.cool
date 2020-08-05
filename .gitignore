@@ -133,3 +133,4 @@ tests/security_logs/
 tests/logdir*
 
 tests/security_project
+tests/example_project

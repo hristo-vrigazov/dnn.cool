@@ -80,6 +80,33 @@ class UsedTasksTracer:
         return self
 
 
+def split_already_done(df, project_dir):
+    total_len = 0
+    for i, split_name in enumerate(['train', 'test', 'val']):
+        split_path = project_dir / f'{split_name}_indices.npy'
+        if not split_path.exists():
+            return False
+        total_len += len(np.load(split_path))
+
+    if total_len != len(df):
+        return False
+    return True
+
+
+def read_split(project_dir):
+    res = []
+    for i, split_name in enumerate(['train', 'test', 'val']):
+        split_path = project_dir / f'{split_name}_indices.npy'
+        res.append(np.load(split_path))
+    return res
+
+
+def project_split(df, project_dir):
+    if split_already_done(df, project_dir):
+        return read_split(project_dir)
+    return train_test_val_split(df)
+
+
 class Project:
 
     def __init__(self, df,
@@ -92,6 +119,7 @@ class Project:
         assert_col_in_df(output_col, df)
 
         self.project_dir = Path(project_dir)
+        self.project_dir.mkdir(exist_ok=True)
         self.inputs = read_inputs(df, input_col, converters)
         self.leaf_tasks = create_leaf_tasks(df, output_col, converters)
         self.flow_tasks = []
@@ -99,9 +127,12 @@ class Project:
         self._name_to_task = {}
         for leaf_task in self.leaf_tasks:
             self._name_to_task[leaf_task.get_name()] = leaf_task
+
         if train_test_val_indices is None:
-            train_test_val_indices = train_test_val_split(df)
-        self.train_test_val_indices = train_test_val_indices
+            self.train_test_val_indices = project_split(df, self.project_dir)
+        else:
+            self.train_test_val_indices = train_test_val_indices
+
         self.converters = converters
 
     def add_task_flow(self, task_flow: TaskFlow):

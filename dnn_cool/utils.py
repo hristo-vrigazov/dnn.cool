@@ -9,22 +9,22 @@ def any_value(outputs):
             return value
 
 
-def torch_split_dataset(dataset, test_size=0.2):
-    train_indices, test_indices = split_dataset(dataset, test_size)
+def torch_split_dataset(dataset, test_size=0.2, random_state=None):
+    train_indices, test_indices = split_dataset(dataset, test_size, random_state=random_state)
     train_dataset = Subset(dataset, train_indices)
     test_dataset = Subset(dataset, test_indices)
     return train_dataset, test_dataset
 
 
-def split_dataset(dataset, test_size=0.2):
+def split_dataset(dataset, test_size=0.2, random_state=None):
     X, y = np.arange(len(dataset)), np.arange(len(dataset))
-    train_indices, test_indices, _, _ = train_test_split(X, y, test_size=test_size)
+    train_indices, test_indices, _, _ = train_test_split(X, y, test_size=test_size, random_state=random_state)
     return train_indices, test_indices
 
 
-def train_test_val_split(df):
-    train_indices, val_indices = split_dataset(df, test_size=0.2)
-    test_indices, val_indices = split_dataset(val_indices, test_size=0.5)
+def train_test_val_split(df, random_state=None):
+    train_indices, val_indices = split_dataset(df, test_size=0.2, random_state=random_state)
+    test_indices, val_indices = split_dataset(val_indices, test_size=0.5, random_state=random_state)
     return train_indices, test_indices, val_indices
 
 

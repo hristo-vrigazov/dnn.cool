@@ -1,26 +1,24 @@
 import tempfile
+from collections import OrderedDict
 from pathlib import Path
 
-import pytest
 import matplotlib.pyplot as plt
-from collections import OrderedDict
-from functools import partial
-
 import numpy as np
 import pandas as pd
+import pytest
 import torch
-from catalyst.dl import SupervisedRunner, InferCallback
+from catalyst.dl import SupervisedRunner
 from catalyst.utils import load_checkpoint, unpack_checkpoint
 from torch import optim, nn
 from torch.utils.data import DataLoader
 
 from dnn_cool.catalyst_utils import InterpretationCallback, TensorboardConverters, TensorboardConverter
-from dnn_cool.project import Project
 from dnn_cool.converters import TypeGuesser, ValuesConverter, TaskConverter, Converters
+from dnn_cool.project import Project
 from dnn_cool.runner import InferDictCallback
 from dnn_cool.synthetic_dataset import create_df_and_images_tensor
 from dnn_cool.task_flow import TaskFlow, BoundedRegressionTask, BinaryClassificationTask
-from dnn_cool.utils import split_dataset, torch_split_dataset
+from dnn_cool.utils import torch_split_dataset
 from dnn_cool.value_converters import binary_value_converter
 
 
@@ -29,7 +27,7 @@ def test_passenger_example(interior_car_task):
 
     dataset = task_flow.get_dataset()
 
-    train_dataset, val_dataset = torch_split_dataset(dataset)
+    train_dataset, val_dataset = torch_split_dataset(dataset, random_state=42)
     train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
     nested_loaders = OrderedDict({
@@ -186,7 +184,7 @@ def synthenic_dataset_preparation():
 
     flow: TaskFlow = project.get_full_flow()
     dataset = flow.get_dataset()
-    train_dataset, val_dataset = torch_split_dataset(dataset)
+    train_dataset, val_dataset = torch_split_dataset(dataset, random_state=42)
     train_loader = DataLoader(train_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=False)
     nested_loaders = OrderedDict({
