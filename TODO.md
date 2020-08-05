@@ -4,10 +4,9 @@ Some dumb stuff I am playing with.
 
 DOING:
 
-- [ ] Store project related stuff in a directory (indices of split, etc.)
+- [ ] Handles missing labels correctly.
 - [ ] Per-task evaluation information, given that precondition is working correctly.
 - [ ] Overall evaluation information
-- [ ] Handles missing labels correctly.
 
 TODO:
 
@@ -133,5 +132,6 @@ Done:
 - [x] Add option to skip flatten (for inference it's actually better to keep it, but for loaders it has to be flattened)
 - [x] Predict only for those, for which precondition is correct.
 - [x] Test training a model with synthetic dataset.
+- [x] Store project related stuff in a directory (indices of split, etc.)
 
 
