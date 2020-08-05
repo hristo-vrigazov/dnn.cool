@@ -19,43 +19,11 @@ class SigmoidAndMSELoss(nn.Module):
 
 
 class Identity(nn.Module):
-    def __init__(self, *args, **kwargs):
+    def __init__(self):
         super().__init__()
 
     def forward(self, x):
         return x
-
-
-# TODO: is there a way to vectorize this in case all counts are different?
-class NestedFC(nn.Module):
-
-    def __init__(self, in_features, out_features_nested, bias, top_k):
-        super().__init__()
-        fcs = []
-        for i, out_features in enumerate(out_features_nested):
-            fcs.append(nn.Linear(in_features, out_features, bias))
-        self.fcs = nn.ModuleList(fcs)
-        self.top_k = top_k
-
-    def forward(self, features, parent_flow_dict):
-        """
-        features and parent_indices must have the same length. Iterates over parent indices, and records predictions
-        for every pair (N, P), where N is a batch number and P is a parent index. returns list of lists.
-        :param features:
-        :param parent_indices: FlowDict which holds the results
-        :return: list of lists of lists, where every element is the prediction of the respective module. The first
-        len is equal to the batch size, the second len is equal to the top_k and the third len is equal to the respective
-        number of classes for the child FC.
-        """
-        n = len(features)
-        parent_indices = parent_flow_dict.decoded[:, :self.top_k]
-        res = []
-        for i in range(n):
-            res_for_parent = []
-            for parent_index in parent_indices[i]:
-                res_for_parent.append(self.fcs[parent_index](features[i:i + 1]))
-            res.append(res_for_parent)
-        return res
 
 
 def find_arg_with_gt(args, is_kwargs):

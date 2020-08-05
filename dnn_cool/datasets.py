@@ -120,7 +120,7 @@ class FlowDataset(Dataset):
 
     def __getitem__(self, item):
         """
-        This method is going to execute the flow given in the contructor, passing around the index variable `item` in
+        This method is going to execute the flow given in the constructor, passing around the index variable `item` in
         the class `IndexHolder`
         :param item:
         :return:

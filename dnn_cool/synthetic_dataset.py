@@ -109,5 +109,6 @@ def create_df_and_images_tensor():
 
     df = pd.DataFrame(rows)
     df['img'] = names
+    df.loc[:5, 'camera_blocked'] = np.nan
     return torch.stack(imgs, dim=0).float() / 255., df
 

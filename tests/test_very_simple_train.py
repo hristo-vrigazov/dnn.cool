@@ -304,8 +304,10 @@ def test_interpretation_synthetic(synthenic_dataset_preparation):
 def test_synthetic_dataset_default_runner(synthenic_dataset_preparation):
     callbacks, criterion, model, nested_loaders, runner, flow, df, datasets = synthenic_dataset_preparation
 
-    runner.train(model=model)
+    runner.train(model=model, num_epochs=10)
 
+    early_stop_callback = runner.default_callbacks[-1]
+    assert early_stop_callback.best_score >= 0, 'Negative loss function!'
     print_any_prediction(criterion, model, nested_loaders, runner)
 
 
