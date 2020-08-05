@@ -101,10 +101,18 @@ def read_split(project_dir):
     return res
 
 
+def save_split(project_dir, res):
+    for i, split_name in enumerate(['train', 'test', 'val']):
+        split_path = project_dir / f'{split_name}_indices.npy'
+        np.save(split_path, res[i])
+
+
 def project_split(df, project_dir):
     if split_already_done(df, project_dir):
         return read_split(project_dir)
-    return train_test_val_split(df)
+    res = train_test_val_split(df)
+    save_split(project_dir, res)
+    return res
 
 
 class Project:
