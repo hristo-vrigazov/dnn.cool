@@ -51,7 +51,6 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
 
     def train(self, *args, **kwargs):
         kwargs['criterion'] = kwargs.get('criterion', self.default_criterion)
-        kwargs['callbacks'] = kwargs.get('callbacks', self.default_callbacks)
 
         if not 'optimizer' in kwargs:
             model = kwargs['model']
@@ -69,6 +68,9 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         if not 'loaders' in kwargs:
             kwargs['loaders'] = self.get_default_loaders()
 
+        default_callbacks = [self.get_interpretation_callback(**kwargs)] + self.default_callbacks
+        kwargs['callbacks'] = kwargs.get('callbacks', default_callbacks)
+
         super().train(*args, **kwargs)
 
     def infer(self, *args, **kwargs):
@@ -76,13 +78,8 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         kwargs['loaders'] = kwargs.get('loaders', default_loaders)
 
         logdir = self.project_dir / Path(kwargs.get('logdir', self.default_logdir))
-        tensorboard_converters = TensorboardConverters(
-            logdir=logdir,
-            tensorboard_loggers=self.tensor_loggers,
-            datasets=kwargs.get('datasets', self.get_default_datasets())
-        )
-
-        interpretation_callback = InterpretationCallback(self.task_flow, tensorboard_converters)
+        kwargs['logdir'] = logdir
+        interpretation_callback = self.get_interpretation_callback(**kwargs)
         default_callbacks = OrderedDict([("interpretation", interpretation_callback),
                                          ("inference", InferDictCallback())])
         kwargs['callbacks'] = kwargs.get('callbacks', default_callbacks)
@@ -91,6 +88,15 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         results = kwargs['callbacks']['inference'].predictions
         interpretation = kwargs['callbacks']['interpretation'].interpretations
         return results, interpretation
+
+    def get_interpretation_callback(self, **kwargs):
+        tensorboard_converters = TensorboardConverters(
+            logdir=kwargs['logdir'],
+            tensorboard_loggers=self.tensor_loggers,
+            datasets=kwargs.get('datasets', self.get_default_datasets())
+        )
+        interpretation_callback = InterpretationCallback(self.task_flow, tensorboard_converters)
+        return interpretation_callback
 
     def get_default_loaders(self):
         datasets = self.get_default_datasets()

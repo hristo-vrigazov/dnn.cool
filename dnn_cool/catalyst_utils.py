@@ -63,6 +63,8 @@ class TensorboardConverters:
 
     def publish(self, state, interpretations):
         for key, value in interpretations.items():
+            if not key.endswith(state.loader_name):
+                continue
             sorted_indices = value.argsort()
             best_indices = sorted_indices[:self.top_k]
             worst_indices = sorted_indices[-self.top_k:]
@@ -92,19 +94,19 @@ class InterpretationCallback(Callback):
 
         self.overall_loss = flow.get_per_sample_loss()
         self.leaf_losses = self.overall_loss.get_leaf_losses()
-        self.interpretations = self._initialize_interpretations()
+        self.interpretations = {}
 
         self.tensorboard_converters = tensorboard_converters
 
-    def _initialize_interpretations(self):
-        res = {'overall': []}
+    def _initialize_interpretations(self, state):
+        res = {f'overall_{state.loader_name}': []}
         for leaf_loss in self.leaf_losses:
-            path = leaf_loss.prefix + leaf_loss.task_name
+            path = f'{leaf_loss.prefix}{leaf_loss.task_name}_{state.loader_name}'
             res[path] = []
         return res
 
     def on_loader_start(self, state: State):
-        self.interpretations = self._initialize_interpretations()
+        self.interpretations = self._initialize_interpretations(state)
 
         if self.tensorboard_converters is not None:
             self.tensorboard_converters.initialize(state)
@@ -112,10 +114,10 @@ class InterpretationCallback(Callback):
     def on_batch_end(self, state: State):
         outputs = state.batch_out['logits']
         targets = state.batch_in['targets']
-        self.interpretations['overall'].append(to_numpy(self.overall_loss(outputs, targets)))
+        self.interpretations[f'overall_{state.loader_name}'].append(to_numpy(self.overall_loss(outputs, targets)))
 
         for loss in self.leaf_losses:
-            path = loss.prefix + loss.task_name
+            path = f'{loss.prefix}{loss.task_name}_{state.loader_name}'
             loss_flow_data = LossFlowData(outputs, targets)
             loss_items = loss(loss_flow_data).loss_items
             self.interpretations[path].append(to_numpy(loss_items))

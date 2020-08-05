@@ -4,12 +4,12 @@ Some dumb stuff I am playing with.
 
 DOING:
 
-- [ ] Handles missing labels correctly.
 - [ ] Per-task evaluation information, given that precondition is working correctly.
 - [ ] Overall evaluation information
 
 TODO:
 
+- [ ] Utility for per-sample loss function
 - [ ] Combine Grad-CAM (for classification task) with best/worst in Tensorboard
 - [ ] Clean separation of tests for low-level API and high-level API
 - [ ] Implement some common decoders
@@ -133,5 +133,6 @@ Done:
 - [x] Predict only for those, for which precondition is correct.
 - [x] Test training a model with synthetic dataset.
 - [x] Store project related stuff in a directory (indices of split, etc.)
+- [x] Handles missing labels correctly.
 
 
