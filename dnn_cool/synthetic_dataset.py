@@ -1,9 +1,20 @@
+from collections import OrderedDict
+
 import numpy as np
 import pandas as pd
 import cv2
 import torch
 
 from functools import partial
+
+from torch.utils.data import DataLoader
+
+from dnn_cool.converters import TypeGuesser, ValuesConverter, TaskConverter, Converters
+from dnn_cool.project import Project
+from dnn_cool.task_flow import BoundedRegressionTask, BinaryClassificationTask, TaskFlow
+from dnn_cool.utils import torch_split_dataset
+from dnn_cool.value_converters import binary_value_converter
+from torch import nn
 
 
 def generate_camera_blocked_image():
@@ -112,3 +123,130 @@ def create_df_and_images_tensor():
     df.loc[:5, 'camera_blocked'] = np.nan
     return torch.stack(imgs, dim=0).float() / 255., df
 
+
+def synthenic_dataset_preparation():
+    def bounded_regression_converter(values):
+        values = values.astype(float) / 64
+        values[np.isnan(values)] = -1
+        return torch.tensor(values).float().unsqueeze(dim=-1)
+
+    def bounded_regression_decoder(values):
+        return values * 64
+
+    def bounded_regression_task(name, labels):
+        return BoundedRegressionTask(name, labels, module=nn.Linear(256, 1), decoder=bounded_regression_decoder)
+
+    def binary_classification_task(name, labels):
+        return BinaryClassificationTask(name, labels, module=nn.Linear(256, 1))
+
+    imgs, df = create_df_and_images_tensor()
+    output_col = ['camera_blocked', 'door_open', 'person_present', 'door_locked',
+                  'face_x1', 'face_y1', 'face_w', 'face_h',
+                  'body_x1', 'body_y1', 'body_w', 'body_h']
+    type_guesser = TypeGuesser()
+    type_guesser.type_mapping['camera_blocked'] = 'binary'
+    type_guesser.type_mapping['door_open'] = 'binary'
+    type_guesser.type_mapping['person_present'] = 'binary'
+    type_guesser.type_mapping['door_locked'] = 'binary'
+    type_guesser.type_mapping['face_x1'] = 'continuous'
+    type_guesser.type_mapping['face_y1'] = 'continuous'
+    type_guesser.type_mapping['face_w'] = 'continuous'
+    type_guesser.type_mapping['face_h'] = 'continuous'
+    type_guesser.type_mapping['body_x1'] = 'continuous'
+    type_guesser.type_mapping['body_y1'] = 'continuous'
+    type_guesser.type_mapping['body_w'] = 'continuous'
+    type_guesser.type_mapping['body_h'] = 'continuous'
+    type_guesser.type_mapping['img'] = 'img'
+    values_converter = ValuesConverter()
+    values_converter.type_mapping['img'] = lambda x: imgs
+    values_converter.type_mapping['binary'] = binary_value_converter
+    values_converter.type_mapping['continuous'] = bounded_regression_converter
+
+    task_converter = TaskConverter()
+
+    task_converter.type_mapping['binary'] = binary_classification_task
+    task_converter.type_mapping['continuous'] = bounded_regression_task
+
+    converters = Converters()
+    converters.task = task_converter
+    converters.type = type_guesser
+    converters.values = values_converter
+
+    project = Project(df, input_col='img', output_col=output_col, converters=converters, project_dir='./security_project')
+
+    @project.add_flow
+    def face_regression(flow, x, out):
+        out += flow.face_x1(x.features)
+        out += flow.face_y1(x.features)
+        out += flow.face_w(x.features)
+        out += flow.face_h(x.features)
+        return out
+
+    @project.add_flow
+    def body_regression(flow, x, out):
+        out += flow.body_x1(x.features)
+        out += flow.body_y1(x.features)
+        out += flow.body_w(x.features)
+        out += flow.body_h(x.features)
+        return out
+
+    @project.add_flow
+    def person_regression(flow, x, out):
+        out += flow.face_regression(x)
+        out += flow.body_regression(x)
+        return out
+
+    @project.add_flow
+    def full_flow(flow, x, out):
+        out += flow.camera_blocked(x.features)
+        out += flow.door_open(x.features) | (~out.camera_blocked)
+        out += flow.door_locked(x.features) | (~out.door_open)
+        out += flow.person_present(x.features) | out.door_open
+        out += flow.person_regression(x) | out.person_present
+        return out
+
+    flow: TaskFlow = project.get_full_flow()
+    dataset = flow.get_dataset()
+    train_dataset, val_dataset = torch_split_dataset(dataset, random_state=42)
+    train_loader = DataLoader(train_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=False)
+    nested_loaders = OrderedDict({
+        'train': train_loader,
+        'valid': val_loader
+    })
+    runner = project.runner()
+    criterion = flow.get_loss()
+    callbacks = criterion.catalyst_callbacks()
+
+    class SecurityModule(nn.Module):
+
+        def __init__(self):
+            super().__init__()
+            self.seq = nn.Sequential(
+                nn.Conv2d(3, 64, kernel_size=5),
+                nn.Conv2d(64, 128, kernel_size=5),
+                nn.AvgPool2d(2),
+                nn.Conv2d(128, 128, kernel_size=5),
+                nn.Conv2d(128, 256, kernel_size=5),
+                nn.AvgPool2d(2),
+                nn.Conv2d(256, 256, kernel_size=5),
+                nn.Conv2d(256, 256, kernel_size=5),
+                nn.AdaptiveAvgPool2d(1),
+                nn.Flatten(),
+            )
+
+            self.flow_module = full_flow.torch()
+
+        def forward(self, x):
+            res = {}
+            res['features'] = self.seq(x['img'])
+            res['gt'] = x.get('gt')
+            return self.flow_module(res)
+
+    model = SecurityModule()
+    datasets = {
+        'train': train_dataset,
+        'valid': val_dataset,
+        'infer': val_dataset
+    }
+    return callbacks, criterion, model, nested_loaders, runner, flow, df, datasets
