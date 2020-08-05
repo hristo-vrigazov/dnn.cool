@@ -1,18 +1,16 @@
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
+from functools import partial
 from pathlib import Path
+from time import time
 
 import torch
+import numpy as np
 from catalyst.dl import SupervisedRunner, EarlyStoppingCallback, InferCallback, State
+from torch import optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 
 from dnn_cool.catalyst_utils import InterpretationCallback, TensorboardConverters
-from dnn_cool.task_flow import TaskFlow
-from torch import optim
-
-from functools import partial
-from time import time
-
 from dnn_cool.utils import TransformedSubset
 
 
@@ -22,11 +20,20 @@ class InferDictCallback(InferCallback):
         super().__init__(*args, **kwargs)
         self.out_key = out_key
 
+    def on_loader_start(self, state: State):
+        self.predictions[state.loader_name] = defaultdict(lambda: [])
+
     def on_batch_end(self, state: State):
         dct = state.batch_out[self.out_key]
         dct = {key: value.detach().cpu().numpy() for key, value in dct.items()}
         for key, value in dct.items():
-            self.predictions[key].append(value)
+            self.predictions[state.loader_name][key].append(value)
+
+    def on_loader_end(self, state: State):
+        self.predictions[state.loader_name] = {
+            key: np.concatenate(value, axis=0)
+            for key, value in self.predictions[state.loader_name].items()
+        }
 
 
 class DnnCoolSupervisedRunner(SupervisedRunner):
@@ -74,7 +81,8 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         super().train(*args, **kwargs)
 
     def infer(self, *args, **kwargs):
-        default_loaders = OrderedDict({'infer': self.get_default_loaders()[kwargs.get('target_loader', 'valid')]})
+        default_loaders = OrderedDict(
+            {'infer': self.get_default_loaders(shuffle_train=False)[kwargs.get('target_loader', 'valid')]})
         kwargs['loaders'] = kwargs.get('loaders', default_loaders)
 
         logdir = self.project_dir / Path(kwargs.get('logdir', self.default_logdir))
@@ -98,12 +106,12 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         interpretation_callback = InterpretationCallback(self.task_flow, tensorboard_converters)
         return interpretation_callback
 
-    def get_default_loaders(self):
+    def get_default_loaders(self, shuffle_train=True):
         datasets = self.get_default_datasets()
         train_dataset = datasets['train']
         val_dataset = datasets['valid']
         test_dataset = datasets['test']
-        train_loader = DataLoader(train_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=True)
+        train_loader = DataLoader(train_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=shuffle_train)
         val_loader = DataLoader(val_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=False)
         test_loader = DataLoader(test_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=False)
         loaders = OrderedDict({
