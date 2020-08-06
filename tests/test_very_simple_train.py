@@ -194,6 +194,7 @@ def test_interpretation_default_runner():
 
 
 def test_full_pipeline():
+    raise NotImplementedError()
     callbacks, criterion, model, nested_loaders, runner, flow, df, datasets, project = synthenic_dataset_preparation()
 
     ckpt = load_checkpoint('/home/hvrigazov/dnn.cool/tests/security_project/security_logs/checkpoints/best_full.pth')
