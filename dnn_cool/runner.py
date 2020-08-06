@@ -6,6 +6,7 @@ from time import time
 import numpy as np
 import torch
 from catalyst.dl import SupervisedRunner, EarlyStoppingCallback, InferCallback, State
+from catalyst.utils import load_checkpoint, unpack_checkpoint
 from torch import optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
@@ -95,7 +96,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         if not 'loaders' in kwargs:
             datasets, kwargs['loaders'] = self.get_default_loaders()
 
-        default_callbacks = [self.get_interpretation_callback(**kwargs)] + self.default_callbacks
+        default_callbacks = [self.create_interpretation_callback(**kwargs)] + self.default_callbacks
         kwargs['callbacks'] = kwargs.get('callbacks', default_callbacks)
 
         super().train(*args, **kwargs)
@@ -107,7 +108,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
 
         logdir = self.project_dir / Path(kwargs.get('logdir', self.default_logdir))
         kwargs['logdir'] = logdir
-        interpretation_callback = self.get_interpretation_callback(**kwargs)
+        interpretation_callback = self.create_interpretation_callback(**kwargs)
         default_callbacks = OrderedDict([("interpretation", interpretation_callback),
                                          ("inference", InferDictCallback())])
         kwargs['callbacks'] = kwargs.get('callbacks', default_callbacks)
@@ -125,7 +126,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         torch.save(interpretation, out_dir / 'interpretations.pkl')
         return results, targets, interpretation
 
-    def get_interpretation_callback(self, **kwargs):
+    def create_interpretation_callback(self, **kwargs):
         tensorboard_converters = TensorboardConverters(
             logdir=kwargs['logdir'],
             tensorboard_loggers=self.tensor_loggers,
@@ -180,6 +181,12 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
 
     def batch_to_model_device(self, batch, model):
         return super()._batch2device(batch, next(model.parameters()).device)
+
+    def best(self, model):
+        checkpoint_path = self.project_dir / self.default_logdir / 'checkpoints' / 'best_full.pth'
+        ckpt = load_checkpoint(checkpoint_path)
+        unpack_checkpoint(ckpt, model)
+        return model
 
 
 def split_already_done(df, project_dir):

@@ -205,8 +205,7 @@ def synthenic_dataset_preparation():
         out += flow.person_regression(x) | out.person_present
         return out
 
-    flow: TaskFlow = project.get_full_flow()
-    dataset = flow.get_dataset()
+    dataset = project.get_full_flow().get_dataset()
     train_dataset, val_dataset = torch_split_dataset(dataset, random_state=42)
     train_loader = DataLoader(train_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=False)
@@ -214,9 +213,6 @@ def synthenic_dataset_preparation():
         'train': train_loader,
         'valid': val_loader
     })
-    runner = project.runner()
-    criterion = flow.get_loss()
-    callbacks = criterion.catalyst_callbacks()
 
     class SecurityModule(nn.Module):
 
@@ -249,4 +245,4 @@ def synthenic_dataset_preparation():
         'valid': val_dataset,
         'infer': val_dataset
     }
-    return callbacks, criterion, model, nested_loaders, runner, flow, df, datasets, project
+    return model, nested_loaders, datasets, project

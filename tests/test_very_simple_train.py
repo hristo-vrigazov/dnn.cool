@@ -101,31 +101,34 @@ def test_project_example():
 
 
 def test_synthetic_dataset():
-    callbacks, criterion, model, nested_loaders, runner, flow, df, val_dataset, project = synthenic_dataset_preparation()
+    model, nested_loaders, datasets, project = synthenic_dataset_preparation()
+    runner = project.runner(runner_name='security_logs')
+    flow: TaskFlow = project.get_full_flow()
+    criterion = flow.get_loss()
+    callbacks = criterion.catalyst_callbacks()
 
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        runner.train(
-            model=model,
-            criterion=criterion,
-            optimizer=optim.Adam(model.parameters(), lr=1e-4),
-            loaders=nested_loaders,
-            callbacks=callbacks,
-            logdir='./security_logs',
-            num_epochs=2,
-        )
+    runner.train(
+        model=model,
+        criterion=criterion,
+        optimizer=optim.Adam(model.parameters(), lr=1e-4),
+        loaders=nested_loaders,
+        callbacks=callbacks,
+        num_epochs=2,
+    )
 
     print_any_prediction(criterion, model, nested_loaders, runner)
 
 
 def test_inference_synthetic():
-    callbacks, criterion, model, nested_loaders, runner, flow, df, val_dataset, project = synthenic_dataset_preparation()
+    model, nested_loaders, datasets, project = synthenic_dataset_preparation()
+    flow: TaskFlow = project.get_full_flow()
     dataset = flow.get_dataset()
+    runner = project.runner(runner_name='security_logs')
 
     n = 4 * torch.cuda.device_count()
     loader = DataLoader(dataset, batch_size=n, shuffle=False)
 
-    ckpt = load_checkpoint('/home/hvrigazov/dnn.cool/tests/security_project/security_logs/checkpoints/best_full.pth')
-    unpack_checkpoint(ckpt, model)
+    model = runner.best(model)
 
     X, y = next(iter(loader))
     del X['gt']
@@ -146,15 +149,16 @@ def test_inference_synthetic():
 
 
 def test_interpretation_synthetic():
-    callbacks, criterion, model, nested_loaders, runner, flow, df, datasets, project = synthenic_dataset_preparation()
+    model, nested_loaders, datasets, project = synthenic_dataset_preparation()
+    runner = project.runner(runner_name='security_logs')
+    flow = project.get_full_flow()
 
     loaders = OrderedDict({'infer': nested_loaders['valid']})
 
-    ckpt = load_checkpoint('/home/hvrigazov/dnn.cool/tests/security_project/security_logs/checkpoints/best_full.pth')
-    unpack_checkpoint(ckpt, model)
+    model = runner.best(model)
 
     tensorboard_converters = TensorboardConverters(
-        logdir=Path('./security_logs'),
+        logdir=runner.project_dir / runner.default_logdir,
         tensorboard_loggers=TensorboardConverter(),
         datasets=datasets
     )
@@ -165,15 +169,17 @@ def test_interpretation_synthetic():
     ])
     r = runner.infer(model,
                      loaders=loaders,
-                     callbacks=callbacks,
-                     logdir='./security_logs')
+                     callbacks=callbacks)
 
     interpretations = callbacks["interpretation"].interpretations
     print(interpretations)
 
 
 def test_synthetic_dataset_default_runner():
-    callbacks, criterion, model, nested_loaders, runner, flow, df, datasets, project = synthenic_dataset_preparation()
+    model, nested_loaders, datasets, project = synthenic_dataset_preparation()
+    runner = project.runner(runner_name='default_experiment')
+    flow: TaskFlow = project.get_full_flow()
+    criterion = flow.get_loss()
 
     runner.train(model=model, num_epochs=10)
 
@@ -183,10 +189,9 @@ def test_synthetic_dataset_default_runner():
 
 
 def test_interpretation_default_runner():
-    callbacks, criterion, model, nested_loaders, runner, flow, df, datasets, project = synthenic_dataset_preparation()
-
-    ckpt = load_checkpoint('/home/hvrigazov/dnn.cool/tests/security_project/security_logs/checkpoints/best_full.pth')
-    unpack_checkpoint(ckpt, model)
+    model, nested_loaders, datasets, project = synthenic_dataset_preparation()
+    runner = project.runner(runner_name='security_logs')
+    model = runner.best(model)
     predictions, targets, interpretations = runner.infer(model=model)
 
     print(interpretations)
@@ -197,7 +202,7 @@ def test_full_pipeline():
     raise NotImplementedError()
     callbacks, criterion, model, nested_loaders, runner, flow, df, datasets, project = synthenic_dataset_preparation()
 
-    ckpt = load_checkpoint('/home/hvrigazov/dnn.cool/tests/security_project/security_logs/checkpoints/best_full.pth')
+    model = project.best(model)
     unpack_checkpoint(ckpt, model)
     predictions, targets, interpretations = runner.infer(model=model)
 
