@@ -249,4 +249,4 @@ def synthenic_dataset_preparation():
         'valid': val_dataset,
         'infer': val_dataset
     }
-    return callbacks, criterion, model, nested_loaders, runner, flow, df, datasets
+    return callbacks, criterion, model, nested_loaders, runner, flow, df, datasets, project

@@ -101,7 +101,7 @@ def test_project_example():
 
 
 def test_synthetic_dataset():
-    callbacks, criterion, model, nested_loaders, runner, flow, df, val_dataset = synthenic_dataset_preparation()
+    callbacks, criterion, model, nested_loaders, runner, flow, df, val_dataset, project = synthenic_dataset_preparation()
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         runner.train(
@@ -118,7 +118,7 @@ def test_synthetic_dataset():
 
 
 def test_inference_synthetic():
-    callbacks, criterion, model, nested_loaders, runner, flow, df, val_dataset = synthenic_dataset_preparation()
+    callbacks, criterion, model, nested_loaders, runner, flow, df, val_dataset, project = synthenic_dataset_preparation()
     dataset = flow.get_dataset()
 
     n = 4 * torch.cuda.device_count()
@@ -146,7 +146,7 @@ def test_inference_synthetic():
 
 
 def test_interpretation_synthetic():
-    callbacks, criterion, model, nested_loaders, runner, flow, df, datasets = synthenic_dataset_preparation()
+    callbacks, criterion, model, nested_loaders, runner, flow, df, datasets, project = synthenic_dataset_preparation()
 
     loaders = OrderedDict({'infer': nested_loaders['valid']})
 
@@ -173,7 +173,7 @@ def test_interpretation_synthetic():
 
 
 def test_synthetic_dataset_default_runner():
-    callbacks, criterion, model, nested_loaders, runner, flow, df, datasets = synthenic_dataset_preparation()
+    callbacks, criterion, model, nested_loaders, runner, flow, df, datasets, project = synthenic_dataset_preparation()
 
     runner.train(model=model, num_epochs=10)
 
@@ -183,7 +183,7 @@ def test_synthetic_dataset_default_runner():
 
 
 def test_interpretation_default_runner():
-    callbacks, criterion, model, nested_loaders, runner, flow, df, datasets = synthenic_dataset_preparation()
+    callbacks, criterion, model, nested_loaders, runner, flow, df, datasets, project = synthenic_dataset_preparation()
 
     ckpt = load_checkpoint('/home/hvrigazov/dnn.cool/tests/security_project/security_logs/checkpoints/best_full.pth')
     unpack_checkpoint(ckpt, model)
