@@ -6,6 +6,7 @@ DOING:
 
 - [ ] Per-task evaluation information, given that precondition is working correctly.
 - [ ] Overall evaluation information
+- [ ] Automatic per-task or overall thresholds tuning.
 
 TODO:
 
@@ -18,7 +19,6 @@ TODO:
 - [ ] Improve test coverage, especially the user-friendliness part
 - [ ] Freeze-all but task feature (including Batch Norm) - may include parameter group
 - [ ] Set learning rate per task feature
-- [ ] Automatic per-task or overall thresholds tuning.
 - [ ] UI splitting helper
 - [ ] ONNX converter (if possible) - with static analysis.
 - [ ] Cleaner representations for results

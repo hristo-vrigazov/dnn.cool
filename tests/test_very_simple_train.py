@@ -187,7 +187,7 @@ def test_interpretation_default_runner():
 
     ckpt = load_checkpoint('/home/hvrigazov/dnn.cool/tests/security_project/security_logs/checkpoints/best_full.pth')
     unpack_checkpoint(ckpt, model)
-    predictions, interpretations = runner.infer(model=model)
+    predictions, targets, interpretations = runner.infer(model=model)
 
     print(interpretations)
     print(predictions)

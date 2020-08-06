@@ -20,9 +20,11 @@ class InferDictCallback(InferCallback):
         super().__init__(*args, **kwargs)
         self.out_key = out_key
         self.predictions = {}
+        self.targets = {}
 
     def on_loader_start(self, state: State):
         self.predictions[state.loader_name] = {}
+        self.targets[state.loader_name] = {}
 
     def on_batch_end(self, state: State):
         dct = state.batch_out[self.out_key]
@@ -32,10 +34,21 @@ class InferDictCallback(InferCallback):
                 self.predictions[state.loader_name][key] = []
             self.predictions[state.loader_name][key].append(value)
 
+        targets = state.batch_in['targets']
+        for key, value in targets.items():
+            if key not in self.targets[state.loader_name]:
+                self.targets[state.loader_name][key] = []
+            self.targets[state.loader_name][key].append(value.detach().cpu().numpy())
+
     def on_loader_end(self, state: State):
         self.predictions[state.loader_name] = {
             key: np.concatenate(value, axis=0)
             for key, value in self.predictions[state.loader_name].items()
+        }
+
+        self.targets[state.loader_name] = {
+            key: np.concatenate(value, axis=0)
+            for key, value in self.targets[state.loader_name].items()
         }
 
 
@@ -98,13 +111,15 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         del kwargs['datasets']
         super().infer(*args, **kwargs)
         results = kwargs['callbacks']['inference'].predictions
+        targets = kwargs['callbacks']['inference'].targets
         interpretation = kwargs['callbacks']['interpretation'].interpretations
 
         out_dir = self.project_dir / 'infer'
         out_dir.mkdir(exist_ok=True)
         torch.save(results, out_dir / 'logits.pkl')
+        torch.save(targets, out_dir / 'targets.pkl')
         torch.save(interpretation, out_dir / 'interpretations.pkl')
-        return results, interpretation
+        return results, targets, interpretation
 
     def get_interpretation_callback(self, **kwargs):
         tensorboard_converters = TensorboardConverters(
