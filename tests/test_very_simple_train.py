@@ -193,6 +193,17 @@ def test_interpretation_default_runner():
     print(predictions)
 
 
+def test_full_pipeline():
+    callbacks, criterion, model, nested_loaders, runner, flow, df, datasets, project = synthenic_dataset_preparation()
+
+    ckpt = load_checkpoint('/home/hvrigazov/dnn.cool/tests/security_project/security_logs/checkpoints/best_full.pth')
+    unpack_checkpoint(ckpt, model)
+    predictions, targets, interpretations = runner.infer(model=model)
+
+    print(interpretations)
+    print(predictions)
+
+
 def print_any_prediction(criterion, model, nested_loaders, runner):
     loader = nested_loaders['valid']
     X, y = next(iter(loader))

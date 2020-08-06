@@ -54,7 +54,7 @@ class InferDictCallback(InferCallback):
 
 class DnnCoolSupervisedRunner(SupervisedRunner):
 
-    def __init__(self, project, early_stop: bool = True):
+    def __init__(self, project, early_stop: bool = True, runner_name=None):
         super().__init__()
         self.task_flow = project.get_full_flow()
 
@@ -64,7 +64,8 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         self.default_scheduler = ReduceLROnPlateau
         self.project_dir: Path = project.project_dir
         self.project_dir.mkdir(exist_ok=True)
-        self.default_logdir = f'./logdir_{self.task_flow.get_name()}_{time()}'
+        runner_name = f'{self.task_flow.get_name()}_{time()}' if runner_name is None else runner_name
+        self.default_logdir = f'./logdir_{runner_name}'
 
         if early_stop:
             self.default_callbacks.append(EarlyStoppingCallback(patience=5))

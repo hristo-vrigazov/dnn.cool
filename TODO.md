@@ -4,9 +4,9 @@ Some dumb stuff I am playing with.
 
 DOING:
 
+- [ ] Automatic per-task or overall thresholds tuning.
 - [ ] Per-task evaluation information, given that precondition is working correctly.
 - [ ] Overall evaluation information
-- [ ] Automatic per-task or overall thresholds tuning.
 
 TODO:
 
@@ -32,7 +32,6 @@ TODO:
 - [ ] Customization - add the possibility to pass not only the logits, but other keys as well (maybe include them by default?)
 - [ ] Add option for readable output
 - [ ] Add a lot of predefined tasks and flows
-- [ ] Rethink reduction and variable names
 - [ ] Compute only when precondition is True (will require precomputing)
 - [ ] Support multilabel classification problem
 - [ ] Make sure immutability of objects is preserved
@@ -80,6 +79,7 @@ TODO:
 - [ ] Implement example body pose estimation
 - [ ] Angular data regression: https://stats.stackexchange.com/questions/218407/encoding-angle-data-for-neural-network/218547#218547
 - [ ] Stricter typing for `train` and `infer` methods
+- [ ] Maybe handle grouping (like offers in a ecommerce context)
 
 Done: 
 
@@ -135,5 +135,5 @@ Done:
 - [x] Test training a model with synthetic dataset.
 - [x] Store project related stuff in a directory (indices of split, etc.)
 - [x] Handles missing labels correctly.
-
+- [x] Rethink reduction and variable names
 

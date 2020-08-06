@@ -5,7 +5,7 @@ from torch import nn
 from torch.utils.data import Dataset
 
 from dnn_cool.datasets import FlowDataset, LeafTaskDataset
-from dnn_cool.decoders import threshold_binary, sort_declining
+from dnn_cool.decoders import sort_declining, BinaryDecoder
 from dnn_cool.losses import TaskFlowLoss
 from dnn_cool.metrics import single_result_accuracy
 from dnn_cool.missing_values import positive_values, positive_values_unsqueezed
@@ -184,7 +184,7 @@ class BinaryClassificationTask(Task):
                  available_func=positive_values,
                  inputs=None,
                  activation: Optional[nn.Module] = nn.Sigmoid(),
-                 decoder: Callable = threshold_binary,
+                 decoder: Callable = BinaryDecoder(),
                  module: nn.Module = Identity(),
                  metrics=(
                          ('acc_0.5', partial(single_result_accuracy, threshold=0.5, activation='Sigmoid')),

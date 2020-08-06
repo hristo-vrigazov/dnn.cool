@@ -173,5 +173,5 @@ class Project:
     def get_task(self, task_name):
         return self._name_to_task[task_name]
 
-    def runner(self, early_stop=True):
-        return DnnCoolSupervisedRunner(self, early_stop)
+    def runner(self, early_stop=True, runner_name=None):
+        return DnnCoolSupervisedRunner(self, early_stop, runner_name)
