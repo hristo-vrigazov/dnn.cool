@@ -11,7 +11,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 
 from dnn_cool.catalyst_utils import InterpretationCallback, TensorboardConverters
-from dnn_cool.utils import TransformedSubset
+from dnn_cool.utils import TransformedSubset, train_test_val_split
 
 
 class InferDictCallback(InferCallback):
@@ -54,7 +54,7 @@ class InferDictCallback(InferCallback):
 
 class DnnCoolSupervisedRunner(SupervisedRunner):
 
-    def __init__(self, project, early_stop: bool = True, runner_name=None):
+    def __init__(self, project, early_stop: bool = True, runner_name=None, train_test_val_indices=None):
         super().__init__()
         self.task_flow = project.get_full_flow()
 
@@ -70,7 +70,10 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         if early_stop:
             self.default_callbacks.append(EarlyStoppingCallback(patience=5))
 
-        self.train_test_val_indices = project.train_test_val_indices
+        if train_test_val_indices is None:
+            (self.project_dir / self.default_logdir).mkdir(exist_ok=True)
+            train_test_val_indices = project_split(project.df, self.project_dir / self.default_logdir)
+        self.train_test_val_indices = train_test_val_indices
         self.tensor_loggers = project.converters.tensorboard_converters
 
     def train(self, *args, **kwargs):
@@ -177,3 +180,38 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
 
     def batch_to_model_device(self, batch, model):
         return super()._batch2device(batch, next(model.parameters()).device)
+
+
+def split_already_done(df, project_dir):
+    total_len = 0
+    for i, split_name in enumerate(['train', 'test', 'val']):
+        split_path = project_dir / f'{split_name}_indices.npy'
+        if not split_path.exists():
+            return False
+        total_len += len(np.load(split_path))
+
+    if total_len != len(df):
+        return False
+    return True
+
+
+def read_split(project_dir):
+    res = []
+    for i, split_name in enumerate(['train', 'test', 'val']):
+        split_path = project_dir / f'{split_name}_indices.npy'
+        res.append(np.load(split_path))
+    return res
+
+
+def save_split(project_dir, res):
+    for i, split_name in enumerate(['train', 'test', 'val']):
+        split_path = project_dir / f'{split_name}_indices.npy'
+        np.save(split_path, res[i])
+
+
+def project_split(df, project_dir):
+    if split_already_done(df, project_dir):
+        return read_split(project_dir)
+    res = train_test_val_split(df)
+    save_split(project_dir, res)
+    return res

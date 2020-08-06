@@ -1,12 +1,9 @@
 from pathlib import Path
-from typing import Union, Iterable, Tuple
+from typing import Union, Iterable
 
-import numpy as np
-
-from dnn_cool.converters import Values, TypeGuesser, ValuesConverter, TaskConverter, Converters
+from dnn_cool.converters import Values, Converters
 from dnn_cool.runner import DnnCoolSupervisedRunner
 from dnn_cool.task_flow import TaskFlow
-from dnn_cool.utils import train_test_val_split
 
 
 def not_found_error_message(col, df):
@@ -80,49 +77,14 @@ class UsedTasksTracer:
         return self
 
 
-def split_already_done(df, project_dir):
-    total_len = 0
-    for i, split_name in enumerate(['train', 'test', 'val']):
-        split_path = project_dir / f'{split_name}_indices.npy'
-        if not split_path.exists():
-            return False
-        total_len += len(np.load(split_path))
-
-    if total_len != len(df):
-        return False
-    return True
-
-
-def read_split(project_dir):
-    res = []
-    for i, split_name in enumerate(['train', 'test', 'val']):
-        split_path = project_dir / f'{split_name}_indices.npy'
-        res.append(np.load(split_path))
-    return res
-
-
-def save_split(project_dir, res):
-    for i, split_name in enumerate(['train', 'test', 'val']):
-        split_path = project_dir / f'{split_name}_indices.npy'
-        np.save(split_path, res[i])
-
-
-def project_split(df, project_dir):
-    if split_already_done(df, project_dir):
-        return read_split(project_dir)
-    res = train_test_val_split(df)
-    save_split(project_dir, res)
-    return res
-
-
 class Project:
 
     def __init__(self, df,
                  input_col: Union[str, Iterable[str]],
                  output_col: Union[str, Iterable[str]],
                  project_dir: Union[str, Path],
-                 converters: Converters = Converters(),
-                 train_test_val_indices: Tuple[np.ndarray, np.ndarray, np.ndarray] = None):
+                 converters: Converters = Converters()):
+        self.df = df
         assert_col_in_df(input_col, df)
         assert_col_in_df(output_col, df)
 
@@ -135,11 +97,6 @@ class Project:
         self._name_to_task = {}
         for leaf_task in self.leaf_tasks:
             self._name_to_task[leaf_task.get_name()] = leaf_task
-
-        if train_test_val_indices is None:
-            self.train_test_val_indices = project_split(df, self.project_dir)
-        else:
-            self.train_test_val_indices = train_test_val_indices
 
         self.converters = converters
 
@@ -173,5 +130,5 @@ class Project:
     def get_task(self, task_name):
         return self._name_to_task[task_name]
 
-    def runner(self, early_stop=True, runner_name=None):
-        return DnnCoolSupervisedRunner(self, early_stop, runner_name)
+    def runner(self, early_stop=True, runner_name=None, train_test_val_indices=None):
+        return DnnCoolSupervisedRunner(self, early_stop, runner_name, train_test_val_indices)
