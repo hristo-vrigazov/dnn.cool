@@ -206,6 +206,13 @@ def test_tune_pipeline():
     print(tuned_params)
 
 
+def test_load_tuned_pipeline():
+    model, nested_loaders, datasets, project = synthenic_dataset_preparation()
+    runner = project.runner(runner_name='security_logs')
+    tuned_params = runner.load_tuned(model.flow_module)
+    print(tuned_params)
+
+
 def print_any_prediction(criterion, model, nested_loaders, runner):
     loader = nested_loaders['valid']
     X, y = next(iter(loader))

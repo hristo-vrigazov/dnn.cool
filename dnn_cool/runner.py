@@ -205,6 +205,11 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         interpretation = torch.load(out_dir / 'interpretations.pkl')
         return results, targets, interpretation
 
+    def load_tuned(self, flow_module):
+        tuned_params = self.project_dir / self.default_logdir / 'tuned_params.pkl'
+        flow_module.load_tuned(tuned_params)
+        return tuned_params
+
 
 def split_already_done(df, project_dir):
     total_len = 0

@@ -80,6 +80,7 @@ TODO:
 - [ ] Angular data regression: https://stats.stackexchange.com/questions/218407/encoding-angle-data-for-neural-network/218547#218547
 - [ ] Stricter typing for `train` and `infer` methods
 - [ ] Maybe handle grouping (like offers in a ecommerce context)
+- [ ] Simple example on CIFAR-10
 
 Done: 
 

@@ -22,7 +22,7 @@ class BinaryDecoder(Decoder):
         return x > self.thresholds['binary']
 
     def tune(self, predictions, targets):
-        return {}
+        return {'threshold': 0.21}
 
 
 class DecoderDecorator:
