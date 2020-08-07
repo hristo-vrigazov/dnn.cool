@@ -5,7 +5,7 @@ from torch import nn
 from torch.utils.data import Dataset
 
 from dnn_cool.datasets import FlowDataset, LeafTaskDataset
-from dnn_cool.decoders import sort_declining, BinaryDecoder
+from dnn_cool.decoders import sort_declining, BinaryDecoder, TaskFlowDecoder
 from dnn_cool.losses import TaskFlowLoss
 from dnn_cool.metrics import single_result_accuracy
 from dnn_cool.missing_values import positive_values, positive_values_unsqueezed
@@ -281,3 +281,6 @@ class TaskFlow(ITask):
         for task in self.tasks.values():
             all_labels += task.get_labels()
         return all_labels
+
+    def get_decoder(self):
+        return TaskFlowDecoder(self)

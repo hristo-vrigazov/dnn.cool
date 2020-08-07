@@ -74,6 +74,8 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         if train_test_val_indices is None:
             (self.project_dir / self.default_logdir).mkdir(exist_ok=True)
             train_test_val_indices = project_split(project.df, self.project_dir / self.default_logdir)
+        else:
+            save_split(self.project_dir / self.default_logdir, train_test_val_indices)
         self.train_test_val_indices = train_test_val_indices
         self.tensor_loggers = project.converters.tensorboard_converters
 
@@ -189,7 +191,10 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         return model
 
     def tune(self, predictions, targets):
-        raise NotImplementedError()
+        tuned_params = self.task_flow.get_decoder().tune(predictions, targets)
+        out_path = self.project_dir / self.default_logdir / 'tuned_params.pkl'
+        torch.save(tuned_params, out_path)
+        return tuned_params
 
     def load_inference_results(self):
         logdir = self.project_dir / self.default_logdir

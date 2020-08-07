@@ -10,6 +10,7 @@ from functools import partial
 from torch.utils.data import DataLoader
 
 from dnn_cool.converters import TypeGuesser, ValuesConverter, TaskConverter, Converters
+from dnn_cool.decoders import Decoder
 from dnn_cool.project import Project
 from dnn_cool.task_flow import BoundedRegressionTask, BinaryClassificationTask, TaskFlow
 from dnn_cool.utils import torch_split_dataset
@@ -130,11 +131,15 @@ def synthenic_dataset_preparation():
         values[np.isnan(values)] = -1
         return torch.tensor(values).float().unsqueeze(dim=-1)
 
-    def bounded_regression_decoder(values):
-        return values * 64
+    class BoundedRegressionDecoder(Decoder):
+        def __call__(self, x):
+            return x * 64
+
+        def tune(self, predictions, targets):
+            return {}
 
     def bounded_regression_task(name, labels):
-        return BoundedRegressionTask(name, labels, module=nn.Linear(256, 1), decoder=bounded_regression_decoder)
+        return BoundedRegressionTask(name, labels, module=nn.Linear(256, 1), decoder=BoundedRegressionDecoder())
 
     def binary_classification_task(name, labels):
         return BinaryClassificationTask(name, labels, module=nn.Linear(256, 1))
