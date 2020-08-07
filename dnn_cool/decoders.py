@@ -22,7 +22,7 @@ class BinaryDecoder(Decoder):
     def __init__(self, threshold=None, metric=accuracy_score):
         if threshold is None:
             print(f'Decoder {self} is not tuned, using default values.')
-            threshold = {'binary': 0.5}
+            threshold = 0.5
         self.threshold = threshold
 
         self._candidates = np.linspace(0., 1., num=100)
@@ -70,6 +70,9 @@ class TaskFlowDecoder(Decoder):
 
     def tune(self, predictions, targets):
         return self.tuner(predictions, targets)
+
+    def load_tuned(self, params):
+        raise NotImplementedError()
 
 
 def threshold_binary(x, threshold=0.5):

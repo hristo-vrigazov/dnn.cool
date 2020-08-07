@@ -213,6 +213,14 @@ def test_load_tuned_pipeline():
     print(tuned_params)
 
 
+def test_load_tuned_pipeline_from_decoder():
+    model, nested_loaders, datasets, project = synthenic_dataset_preparation()
+    runner = project.runner(runner_name='security_logs')
+    tuned_params = torch.load(runner.project_dir / runner.default_logdir / 'tuned_params.pkl')
+    flow = project.get_full_flow()
+    flow.get_decoder().load_tuned(tuned_params)
+
+
 def print_any_prediction(criterion, model, nested_loaders, runner):
     loader = nested_loaders['valid']
     X, y = next(iter(loader))
