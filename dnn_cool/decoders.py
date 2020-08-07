@@ -1,4 +1,8 @@
+import numpy as np
+from sklearn.metrics import accuracy_score
+
 from dnn_cool.tuners import CompositeDecoderTuner
+from tqdm import tqdm
 
 
 class Decoder:
@@ -15,17 +19,24 @@ class Decoder:
 
 class BinaryDecoder(Decoder):
 
-    def __init__(self, threshold=None):
+    def __init__(self, threshold=None, metric=accuracy_score):
         if threshold is None:
             print(f'Decoder {self} is not tuned, using default values.')
             threshold = {'binary': 0.5}
         self.threshold = threshold
 
+        self._candidates = np.linspace(0., 1., num=100)
+        self.metric = metric
+
     def __call__(self, x):
         return x > self.threshold
 
     def tune(self, predictions, targets):
-        return {'threshold': 0.21}
+        res = np.zeros_like(self._candidates)
+        for i, candidate in enumerate(tqdm(self._candidates)):
+            preds = (predictions > candidate)
+            res[i] = self.metric(preds, targets)
+        return {'threshold': self._candidates[res.argmax()]}
 
     def load_tuned(self, params):
         self.threshold = params['threshold']
