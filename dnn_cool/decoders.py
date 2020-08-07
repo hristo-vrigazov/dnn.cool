@@ -9,20 +9,26 @@ class Decoder:
     def tune(self, predictions, targets):
         raise NotImplementedError()
 
+    def load_tuned(self, params):
+        raise NotImplementedError()
+
 
 class BinaryDecoder(Decoder):
 
-    def __init__(self, thresholds=None):
-        if thresholds is None:
+    def __init__(self, threshold=None):
+        if threshold is None:
             print(f'Decoder {self} is not tuned, using default values.')
-            thresholds = {'binary': 0.5}
-        self.thresholds = thresholds
+            threshold = {'binary': 0.5}
+        self.threshold = threshold
 
     def __call__(self, x):
-        return x > self.thresholds['binary']
+        return x > self.threshold
 
     def tune(self, predictions, targets):
         return {'threshold': 0.21}
+
+    def load_tuned(self, params):
+        self.threshold = params['threshold']
 
 
 class DecoderDecorator:

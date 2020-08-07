@@ -206,7 +206,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         return results, targets, interpretation
 
     def load_tuned(self, flow_module):
-        tuned_params = self.project_dir / self.default_logdir / 'tuned_params.pkl'
+        tuned_params = torch.load(self.project_dir / self.default_logdir / 'tuned_params.pkl')
         flow_module.load_tuned(tuned_params)
         return tuned_params
 

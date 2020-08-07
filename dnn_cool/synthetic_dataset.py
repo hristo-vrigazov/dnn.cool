@@ -138,6 +138,9 @@ def synthenic_dataset_preparation():
         def tune(self, predictions, targets):
             return {}
 
+        def load_tuned(self, params):
+            pass
+
     def bounded_regression_task(name, labels):
         return BoundedRegressionTask(name, labels, module=nn.Linear(256, 1), decoder=BoundedRegressionDecoder())
 

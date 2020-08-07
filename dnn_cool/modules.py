@@ -290,3 +290,17 @@ class TaskFlowModule(nn.Module):
         out = CompositeModuleOutput(training=self.training, gt=x.get('gt'), prefix=self.prefix)
         composite_module_output = self.flow(self, FeaturesDict(x), out)
         return composite_module_output.reduce()
+
+    def load_tuned(self, tuned_params):
+        decoders = self._get_all_decoders()
+        for key, decoder in decoders.items():
+            decoder.load_tuned(tuned_params[key])
+
+    def _get_all_decoders(self):
+        decoders = {}
+        for task_name, task in self._task_flow.tasks.items():
+            if task.has_children():
+                decoders.update(getattr(self, task_name)._get_all_decoders())
+            else:
+                decoders[self.prefix + task_name] = task.get_decoder()
+        return decoders
