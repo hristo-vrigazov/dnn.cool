@@ -198,16 +198,12 @@ def test_interpretation_default_runner():
     print(predictions)
 
 
-def test_full_pipeline():
-    raise NotImplementedError()
-    callbacks, criterion, model, nested_loaders, runner, flow, df, datasets, project = synthenic_dataset_preparation()
-
-    model = project.best(model)
-    unpack_checkpoint(ckpt, model)
-    predictions, targets, interpretations = runner.infer(model=model)
-
-    print(interpretations)
-    print(predictions)
+def test_tune_pipeline():
+    model, nested_loaders, datasets, project = synthenic_dataset_preparation()
+    runner = project.runner(runner_name='security_logs')
+    predictions, targets, interpretations = runner.load_inference_results()
+    tuned_params = runner.tune(predictions['valid'], targets['valid'])
+    print(tuned_params)
 
 
 def print_any_prediction(criterion, model, nested_loaders, runner):

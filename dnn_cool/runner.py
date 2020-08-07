@@ -188,6 +188,18 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         unpack_checkpoint(ckpt, model)
         return model
 
+    def tune(self, predictions, targets):
+        raise NotImplementedError()
+
+    def load_inference_results(self):
+        logdir = self.project_dir / self.default_logdir
+        out_dir = logdir / 'infer'
+        out_dir.mkdir(exist_ok=True)
+        results = torch.load(out_dir / 'logits.pkl')
+        targets = torch.load(out_dir / 'targets.pkl')
+        interpretation = torch.load(out_dir / 'interpretations.pkl')
+        return results, targets, interpretation
+
 
 def split_already_done(df, project_dir):
     total_len = 0
