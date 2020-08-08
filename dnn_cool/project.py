@@ -124,7 +124,7 @@ class Project:
     def get_all_tasks(self):
         return self.leaf_tasks + self.flow_tasks
 
-    def get_full_flow(self):
+    def get_full_flow(self) -> TaskFlow:
         return self.flow_tasks[-1]
 
     def get_task(self, task_name):

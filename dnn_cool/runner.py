@@ -188,6 +188,12 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         checkpoint_path = self.project_dir / self.default_logdir / 'checkpoints' / 'best_full.pth'
         ckpt = load_checkpoint(checkpoint_path)
         unpack_checkpoint(ckpt, model)
+
+        thresholds_path = self.project_dir / self.default_logdir / 'tuned_params.pkl'
+        if not thresholds_path.exists():
+            return model
+        tuned_params = torch.load(thresholds_path)
+        self.task_flow.get_decoder().load_tuned(tuned_params)
         return model
 
     def tune(self, predictions, targets):
