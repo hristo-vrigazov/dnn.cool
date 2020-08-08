@@ -108,3 +108,17 @@ class CompositeDecoderTuner:
         if is_root:
             return flow_result.data
         return flow_result
+
+    def load_tuned(self, tuned_params):
+        decoders = self.get_all_decoders()
+        for key, decoder in decoders.items():
+            decoder.load_tuned(tuned_params[key])
+
+    def get_all_decoders(self):
+        decoders = {}
+        for task_name, task in self.task_flow.tasks.items():
+            if task.has_children():
+                decoders.update(getattr(self, task_name).get_all_decoders())
+            else:
+                decoders[self.prefix + task_name] = getattr(self, task_name).decoder
+        return decoders

@@ -71,8 +71,8 @@ class TaskFlowDecoder(Decoder):
     def tune(self, predictions, targets):
         return self.tuner(predictions, targets)
 
-    def load_tuned(self, params):
-        raise NotImplementedError()
+    def load_tuned(self, tuned_params):
+        self.tuner.load_tuned(tuned_params)
 
 
 def threshold_binary(x, threshold=0.5):
