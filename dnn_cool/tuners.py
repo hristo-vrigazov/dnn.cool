@@ -43,7 +43,7 @@ def get_tuning_data(*args, **kwargs):
             return arg
 
 
-class LeafDecoderTuner:
+class LeafTuner:
 
     def __init__(self, task, prefix):
         self.activation = task.get_activation()
@@ -77,9 +77,9 @@ class LeafDecoderTuner:
         return TunedParameters({self.path: tuned_params})
 
 
-class CompositeDecoderTuner:
+class CompositeTuner:
 
-    def __init__(self, task_flow, prefix):
+    def __init__(self, task_flow, prefix=''):
         self.task_flow = task_flow
         self.prefix = prefix
 
@@ -89,9 +89,9 @@ class CompositeDecoderTuner:
 
         for key, task in task_flow.tasks.items():
             if not task.has_children():
-                instance = LeafDecoderTuner(task, prefix)
+                instance = LeafTuner(task, prefix)
             else:
-                instance = CompositeDecoderTuner(task, prefix=f'{prefix}{task.get_name()}.')
+                instance = CompositeTuner(task, prefix=f'{prefix}{task.get_name()}.')
             setattr(self, key, instance)
 
     def __call__(self, *args, **kwargs):

@@ -9,6 +9,7 @@ DOING:
 - [ ] Implement CompositeActivation
 - [ ] Implement CompositeDecoder
 - [ ] Implement CompositeEvaluator
+- [ ] Separation between activation, tuner, decoder and evaluator.
 
 TODO:
 

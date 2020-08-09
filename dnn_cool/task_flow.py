@@ -12,6 +12,7 @@ from dnn_cool.metrics import single_result_accuracy
 from dnn_cool.missing_values import positive_values, positive_values_unsqueezed
 from dnn_cool.modules import SigmoidAndMSELoss, Identity, TaskFlowModule
 from dnn_cool.treelib import TreeExplainer
+from dnn_cool.tuners import CompositeTuner
 
 
 class ITask:
@@ -28,6 +29,9 @@ class ITask:
         return None
 
     def get_decoder(self):
+        return None
+
+    def get_evaluator(self):
         return None
 
     def has_children(self):
@@ -288,3 +292,6 @@ class TaskFlow(ITask):
 
     def get_activation(self) -> Optional[nn.Module]:
         return TaskFlowActivation(self)
+
+    def get_evaluator(self):
+        return None

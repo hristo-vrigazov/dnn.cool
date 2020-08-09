@@ -2,6 +2,8 @@ from collections import OrderedDict
 from functools import partial
 from pathlib import Path
 from time import time
+from typing import Dict, Tuple
+from torch import nn
 
 import numpy as np
 import torch
@@ -9,7 +11,7 @@ from catalyst.dl import SupervisedRunner, EarlyStoppingCallback, InferCallback, 
 from catalyst.utils import load_checkpoint, unpack_checkpoint
 from torch import optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 
 from dnn_cool.catalyst_utils import InterpretationCallback, TensorboardConverters
 from dnn_cool.utils import TransformedSubset, train_test_val_split
@@ -129,7 +131,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         torch.save(interpretation, out_dir / 'interpretations.pkl')
         return results, targets, interpretation
 
-    def create_interpretation_callback(self, **kwargs):
+    def create_interpretation_callback(self, **kwargs) -> InterpretationCallback:
         tensorboard_converters = TensorboardConverters(
             logdir=kwargs['logdir'],
             tensorboard_loggers=self.tensor_loggers,
@@ -138,7 +140,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         interpretation_callback = InterpretationCallback(self.task_flow, tensorboard_converters)
         return interpretation_callback
 
-    def get_default_loaders(self, shuffle_train=True):
+    def get_default_loaders(self, shuffle_train=True) -> Tuple[Dict[str, Dataset], Dict[str, DataLoader]]:
         datasets = self.get_default_datasets()
         train_dataset = datasets['train']
         val_dataset = datasets['valid']
@@ -160,7 +162,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
             del datasets['train']
         return datasets, loaders
 
-    def get_default_datasets(self, **kwargs):
+    def get_default_datasets(self, **kwargs) -> Dict[str, Dataset]:
         dataset = self.task_flow.get_dataset()
         if self.train_test_val_indices is None:
             raise ValueError(f'You must supply either a `loaders` parameter, or give `train_test_val_indices` via'
@@ -179,13 +181,13 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         datasets['infer'] = datasets[kwargs.get('target_loader', 'valid')]
         return datasets
 
-    def batch_to_device(self, batch, device):
+    def batch_to_device(self, batch, device) -> Dict[str, torch.Tensor]:
         return super()._batch2device(batch, device)
 
-    def batch_to_model_device(self, batch):
+    def batch_to_model_device(self, batch) -> Dict[str, torch.Tensor]:
         return super()._batch2device(batch, next(self.model.parameters()).device)
 
-    def best(self):
+    def best(self) -> nn.Module:
         model = self.model
         checkpoint_path = self.project_dir / self.default_logdir / 'checkpoints' / 'best_full.pth'
         ckpt = load_checkpoint(checkpoint_path)
@@ -198,13 +200,15 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         self.task_flow.get_decoder().load_tuned(tuned_params)
         return model
 
-    def tune(self, predictions, targets):
-        tuned_params = self.task_flow.get_decoder().tune(predictions, targets)
+    def tune(self) -> Dict:
+        predictions, targets, interpretations = self.load_inference_results()
+        decoder = self.task_flow.get_decoder()
+        tuned_params = decoder.tune(predictions['valid'], targets['valid'])
         out_path = self.project_dir / self.default_logdir / 'tuned_params.pkl'
         torch.save(tuned_params, out_path)
         return tuned_params
 
-    def load_inference_results(self):
+    def load_inference_results(self) -> Tuple[Dict[str, np.ndarray], Dict[str, np.ndarray], Dict[str, np.ndarray]]:
         logdir = self.project_dir / self.default_logdir
         out_dir = logdir / 'infer'
         out_dir.mkdir(exist_ok=True)
@@ -213,11 +217,14 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         interpretation = torch.load(out_dir / 'interpretations.pkl')
         return results, targets, interpretation
 
-    def load_tuned(self):
+    def load_tuned(self) -> Dict:
         tuned_params = torch.load(self.project_dir / self.default_logdir / 'tuned_params.pkl')
         self.task_flow.get_decoder().load_tuned(tuned_params)
+        return tuned_params
 
-    def evaluate(self, predictions, targets):
+    def evaluate(self):
+        predictions, targets, interpretations = self.load_inference_results()
+        self.load_tuned()
         raise NotImplementedError()
 
 

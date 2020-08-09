@@ -194,8 +194,7 @@ def test_interpretation_default_runner():
 def test_tune_pipeline():
     model, nested_loaders, datasets, project = synthenic_dataset_preparation()
     runner = project.runner(model=model, runner_name='security_logs')
-    predictions, targets, interpretations = runner.load_inference_results()
-    tuned_params = runner.tune(predictions['valid'], targets['valid'])
+    tuned_params = runner.tune()
     print(tuned_params)
 
 
@@ -217,8 +216,7 @@ def test_load_tuned_pipeline_from_decoder():
 def test_evaluation_is_shown():
     model, nested_loaders, datasets, project = synthenic_dataset_preparation()
     runner = project.runner(model=model, runner_name='security_logs')
-    predictions, targets, interpretations = runner.load_inference_results()
-    evaluation_df = runner.evaluate(predictions['test'], targets['test'])
+    evaluation_df = runner.evaluate()
     print(evaluation_df.head())
 
 
