@@ -4,7 +4,6 @@ Some dumb stuff I am playing with.
 
 DOING:
 
-- [ ] Automatic per-task or overall thresholds tuning.
 - [ ] Per-task evaluation information, given that precondition is working correctly.
 - [ ] Overall evaluation information
 
@@ -137,4 +136,5 @@ Done:
 - [x] Store project related stuff in a directory (indices of split, etc.)
 - [x] Handles missing labels correctly.
 - [x] Rethink reduction and variable names
+- [x] Automatic per-task or overall thresholds tuning.
 
