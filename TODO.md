@@ -10,6 +10,7 @@ DOING:
 - [ ] Implement CompositeDecoder
 - [ ] Implement CompositeEvaluator
 - [ ] Separation between activation, tuner, decoder and evaluator.
+- [ ] Refactor everything to reuse the same logic in different flow executions.
 
 TODO:
 

@@ -36,7 +36,9 @@ class BinaryDecoder(Decoder):
         for i, candidate in enumerate(tqdm(self._candidates)):
             preds = (predictions > candidate)
             res[i] = self.metric(preds, targets)
-        return {'threshold': self._candidates[res.argmax()]}
+        params = {'threshold': self._candidates[res.argmax()]}
+        self.load_tuned(params)
+        return params
 
     def load_tuned(self, params):
         self.threshold = params['threshold']
