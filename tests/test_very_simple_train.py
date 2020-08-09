@@ -221,6 +221,16 @@ def test_load_tuned_pipeline_from_decoder():
     flow.get_decoder().load_tuned(tuned_params)
 
 
+def test_evaluation_is_shown():
+    model, nested_loaders, datasets, project = synthenic_dataset_preparation()
+    runner = project.runner(runner_name='security_logs')
+    model = runner.best(model)
+    predictions, targets, interpretations = runner.load_inference_results()
+    evaluation_df = runner.evaluate(model, predictions['test'], targets['test'])
+
+    print(evaluation_df.head())
+
+
 def print_any_prediction(criterion, model, nested_loaders, runner):
     loader = nested_loaders['valid']
     X, y = next(iter(loader))

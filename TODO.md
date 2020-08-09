@@ -80,6 +80,8 @@ TODO:
 - [ ] Stricter typing for `train` and `infer` methods
 - [ ] Maybe handle grouping (like offers in a ecommerce context)
 - [ ] Simple example on CIFAR-10
+- [ ] Simple averaging util for runner boosting
+- [ ] Add the possibility to not store the labels in memory when tuning and evaluating.
 
 Done: 
 

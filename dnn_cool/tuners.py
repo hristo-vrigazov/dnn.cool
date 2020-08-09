@@ -59,7 +59,6 @@ class LeafDecoderTuner:
             preds = self.activation(torch.tensor(preds).float()).detach().cpu().numpy()
         targets = tuning_data.targets[self.path]
 
-        # TODO: This feels very similar to BaseMetricDecorator. Can we separate the common logic?
         precondition = tuning_data.predictions.get(f'precondition|{self.path}', None)
         if self.available is not None:
             available = self.available(torch.tensor(targets).float()).detach().cpu().numpy()
