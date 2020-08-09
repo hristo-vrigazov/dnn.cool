@@ -1,3 +1,5 @@
+import torch
+
 from dataclasses import dataclass
 from typing import Dict
 
@@ -9,9 +11,6 @@ class VisitorData:
 
     def __getattr__(self, item):
         return self
-
-    def visit(self, task, prefix):
-        raise NotImplementedError()
 
 
 class VisitorOut:
@@ -43,31 +42,54 @@ def get_visitor_data(*args, **kwargs):
 class LeafVisitor:
 
     def __init__(self, task, prefix):
-        self.task = task
+        self.activation = task.get_activation()
+        self.decoder = task.get_decoder()
         self.prefix = prefix
+        self.path = self.prefix + task.get_name()
+        self.available = task.get_available_func()
 
     def __call__(self, *args, **kwargs):
         visitor_data = get_visitor_data(*args, **kwargs)
-        return visitor_data.visit(self.task, self.prefix)
+        preds = visitor_data.predictions[self.path]
+        if self.activation is not None:
+            preds = self.activation(torch.tensor(preds).float()).detach().cpu().numpy()
+        targets = visitor_data.targets[self.path]
+
+        precondition = visitor_data.predictions.get(f'precondition|{self.path}', None)
+        if self.available is not None:
+            available = self.available(torch.tensor(targets).float()).detach().cpu().numpy()
+            if precondition is None:
+                precondition = available
+            else:
+                precondition &= available
+
+        if precondition is None:
+            return self.full_result(preds, targets)
+        if precondition.sum() == 0:
+            return self.empty_result()
+        return self.preconditioned_result(preds[precondition], targets[precondition])
+
+    def full_result(self, preds, targets):
+        raise NotImplementedError()
+
+    def empty_result(self):
+        raise NotImplementedError()
+
+    def preconditioned_result(self, preds, targets):
+        raise NotImplementedError()
 
 
 class CompositeVisitor:
 
-    def __init__(self, task_flow, visitor_data_cls, visitor_out_cls, prefix=''):
-        self.task_flow = task_flow
-        self.prefix = prefix
-
+    def __init__(self, task_flow, leaf_visitor_cls, visitor_out_cls, prefix=''):
         self.flow = task_flow.get_flow_func()
-        self.prefix = prefix
-        self.task_name = task_flow.get_name()
-        self.visitor_data_cls = visitor_data_cls
         self.visitor_out_cls = visitor_out_cls
 
         for key, task in task_flow.tasks.items():
             if not task.has_children():
-                instance = LeafVisitor(task, prefix)
+                instance = leaf_visitor_cls(task, prefix)
             else:
-                instance = CompositeVisitor(task, visitor_data_cls, visitor_out_cls, prefix=f'{prefix}{task.get_name()}.')
+                instance = CompositeVisitor(task, leaf_visitor_cls, visitor_out_cls, prefix=f'{prefix}{task.get_name()}.')
             setattr(self, key, instance)
 
     def __call__(self, data):
@@ -77,10 +99,11 @@ class CompositeVisitor:
 
 class RootCompositeVisitor:
 
-    def __init__(self, task_flow, visitor_data_cls, visitor_out_cls, prefix=''):
-        self.composite_visitor = CompositeVisitor(task_flow, visitor_data_cls, visitor_out_cls, prefix)
-        self.visitor_data_cls = visitor_data_cls
+    def __init__(self, task_flow, leaf_visitor_cls, visitor_out_cls, prefix=''):
+        self.prefix = prefix
+        self.task_flow = task_flow
+        self.composite_visitor = CompositeVisitor(task_flow, leaf_visitor_cls, visitor_out_cls, prefix)
 
     def __call__(self, predictions, targets):
-        flow_result = self.composite_visitor(self.visitor_data_cls(predictions, targets))
+        flow_result = self.composite_visitor(VisitorData(predictions, targets))
         return flow_result.data

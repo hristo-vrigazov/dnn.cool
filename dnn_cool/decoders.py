@@ -1,8 +1,10 @@
 import numpy as np
 from sklearn.metrics import accuracy_score
 
-from dnn_cool.tuners import CompositeTuner
 from tqdm import tqdm
+
+from dnn_cool.tuners import TuningVisitor, TunedParams, TunerVisitor
+from dnn_cool.visitors import RootCompositeVisitor
 
 
 class Decoder:
@@ -64,7 +66,7 @@ class CompositeDecoder:
 class TaskFlowDecoder(Decoder):
 
     def __init__(self, task_flow, prefix=''):
-        self.tuner = CompositeTuner(task_flow, prefix)
+        self.tuner = TunerVisitor(task_flow, TuningVisitor, TunedParams, prefix=prefix)
         self.composite_decoder = CompositeDecoder(task_flow, prefix)
 
     def __call__(self, *args, **kwargs):

@@ -12,7 +12,6 @@ from dnn_cool.metrics import single_result_accuracy
 from dnn_cool.missing_values import positive_values, positive_values_unsqueezed
 from dnn_cool.modules import SigmoidAndMSELoss, Identity, TaskFlowModule
 from dnn_cool.treelib import TreeExplainer
-from dnn_cool.tuners import CompositeTuner
 
 
 class ITask:
@@ -295,3 +294,12 @@ class TaskFlow(ITask):
 
     def get_evaluator(self):
         return None
+
+    def get_all_children(self, prefix=''):
+        tasks = {}
+        for task_name, task in self.tasks.items():
+            if task.has_children():
+                tasks.update(task.get_all_children(prefix=f'{prefix}{task.get_name()}.'))
+            else:
+                tasks[prefix + task_name] = task
+        return tasks
