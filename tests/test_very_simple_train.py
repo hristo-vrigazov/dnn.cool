@@ -102,7 +102,7 @@ def test_project_example():
 
 def test_synthetic_dataset():
     model, nested_loaders, datasets, project = synthenic_dataset_preparation()
-    runner = project.runner(runner_name='security_logs')
+    runner = project.runner(model=model, runner_name='security_logs')
     flow: TaskFlow = project.get_full_flow()
     criterion = flow.get_loss()
     callbacks = criterion.catalyst_callbacks()
@@ -123,7 +123,7 @@ def test_inference_synthetic():
     model, nested_loaders, datasets, project = synthenic_dataset_preparation()
     flow: TaskFlow = project.get_full_flow()
     dataset = flow.get_dataset()
-    runner = project.runner(runner_name='security_logs')
+    runner = project.runner(model=model, runner_name='security_logs')
 
     n = 4 * torch.cuda.device_count()
     loader = DataLoader(dataset, batch_size=n, shuffle=False)
@@ -150,7 +150,7 @@ def test_inference_synthetic():
 
 def test_interpretation_synthetic():
     model, nested_loaders, datasets, project = synthenic_dataset_preparation()
-    runner = project.runner(runner_name='security_logs')
+    runner = project.runner(model=model, runner_name='security_logs')
     flow = project.get_full_flow()
 
     loaders = OrderedDict({'infer': nested_loaders['valid']})
@@ -177,7 +177,7 @@ def test_interpretation_synthetic():
 
 def test_synthetic_dataset_default_runner():
     model, nested_loaders, datasets, project = synthenic_dataset_preparation()
-    runner = project.runner(runner_name='default_experiment')
+    runner = project.runner(model=model, runner_name='default_experiment')
     flow: TaskFlow = project.get_full_flow()
     criterion = flow.get_loss()
 
@@ -190,7 +190,7 @@ def test_synthetic_dataset_default_runner():
 
 def test_interpretation_default_runner():
     model, nested_loaders, datasets, project = synthenic_dataset_preparation()
-    runner = project.runner(runner_name='security_logs')
+    runner = project.runner(model=model, runner_name='security_logs')
     model = runner.best(model)
     predictions, targets, interpretations = runner.infer(model=model)
 
@@ -200,7 +200,7 @@ def test_interpretation_default_runner():
 
 def test_tune_pipeline():
     model, nested_loaders, datasets, project = synthenic_dataset_preparation()
-    runner = project.runner(runner_name='security_logs')
+    runner = project.runner(model=model, runner_name='security_logs')
     predictions, targets, interpretations = runner.load_inference_results()
     tuned_params = runner.tune(predictions['valid'], targets['valid'])
     print(tuned_params)
@@ -208,14 +208,14 @@ def test_tune_pipeline():
 
 def test_load_tuned_pipeline():
     model, nested_loaders, datasets, project = synthenic_dataset_preparation()
-    runner = project.runner(runner_name='security_logs')
-    tuned_params = runner.load_tuned(model.flow_module)
+    runner = project.runner(model=model, runner_name='security_logs')
+    tuned_params = runner.load_tuned()
     print(tuned_params)
 
 
 def test_load_tuned_pipeline_from_decoder():
     model, nested_loaders, datasets, project = synthenic_dataset_preparation()
-    runner = project.runner(runner_name='security_logs')
+    runner = project.runner(model=model, runner_name='security_logs')
     tuned_params = torch.load(runner.project_dir / runner.default_logdir / 'tuned_params.pkl')
     flow = project.get_full_flow()
     flow.get_decoder().load_tuned(tuned_params)
@@ -223,10 +223,9 @@ def test_load_tuned_pipeline_from_decoder():
 
 def test_evaluation_is_shown():
     model, nested_loaders, datasets, project = synthenic_dataset_preparation()
-    runner = project.runner(runner_name='security_logs')
+    runner = project.runner(model=model, runner_name='security_logs')
     predictions, targets, interpretations = runner.load_inference_results()
-    decoder = project.get_full_flow().get_decoder()
-    evaluation_df = runner.evaluate(decoder, predictions['test'], targets['test'])
+    evaluation_df = runner.evaluate(predictions['test'], targets['test'])
     print(evaluation_df.head())
 
 

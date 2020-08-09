@@ -4,6 +4,7 @@ from typing import Iterable, Optional, Callable, List, Tuple
 from torch import nn
 from torch.utils.data import Dataset
 
+from dnn_cool.activations import TaskFlowActivation
 from dnn_cool.datasets import FlowDataset, LeafTaskDataset
 from dnn_cool.decoders import sort_declining, BinaryDecoder, TaskFlowDecoder
 from dnn_cool.losses import TaskFlowLoss
@@ -285,5 +286,5 @@ class TaskFlow(ITask):
     def get_decoder(self):
         return TaskFlowDecoder(self)
 
-    # def get_activation(self) -> Optional[nn.Module]:
-    #     return TaskFlowActivation(self)
+    def get_activation(self) -> Optional[nn.Module]:
+        return TaskFlowActivation(self)

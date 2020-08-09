@@ -55,8 +55,8 @@ class InferDictCallback(InferCallback):
 
 class DnnCoolSupervisedRunner(SupervisedRunner):
 
-    def __init__(self, project, early_stop: bool = True, runner_name=None, train_test_val_indices=None):
-        super().__init__()
+    def __init__(self, project, model, early_stop: bool = True, runner_name=None, train_test_val_indices=None):
+        super().__init__(model=model)
         self.task_flow = project.get_full_flow()
 
         self.default_criterion = self.task_flow.get_loss()
@@ -211,12 +211,11 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         interpretation = torch.load(out_dir / 'interpretations.pkl')
         return results, targets, interpretation
 
-    def load_tuned(self, flow_module):
+    def load_tuned(self):
         tuned_params = torch.load(self.project_dir / self.default_logdir / 'tuned_params.pkl')
-        flow_module.load_tuned(tuned_params)
-        return flow_module
+        self.task_flow.get_decoder().load_tuned(tuned_params)
 
-    def evaluate(self, decoder, predictions, targets):
+    def evaluate(self, predictions, targets):
         raise NotImplementedError()
 
 

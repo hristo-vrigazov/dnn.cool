@@ -7,6 +7,8 @@ DOING:
 - [ ] Per-task evaluation information, given that precondition is working correctly.
 - [ ] Overall evaluation information
 - [ ] Implement CompositeActivation
+- [ ] Implement CompositeDecoder
+- [ ] Implement CompositeEvaluator
 
 TODO:
 
