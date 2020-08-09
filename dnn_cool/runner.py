@@ -81,6 +81,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
 
     def train(self, *args, **kwargs):
         kwargs['criterion'] = kwargs.get('criterion', self.default_criterion)
+        kwargs['model'] = kwargs.get('model', self.model)
 
         if not 'optimizer' in kwargs:
             model = kwargs['model']
@@ -100,7 +101,6 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
 
         default_callbacks = [self.create_interpretation_callback(**kwargs)] + self.default_callbacks
         kwargs['callbacks'] = kwargs.get('callbacks', default_callbacks)
-
         super().train(*args, **kwargs)
 
     def infer(self, *args, **kwargs):
@@ -114,6 +114,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         default_callbacks = OrderedDict([("interpretation", interpretation_callback),
                                          ("inference", InferDictCallback())])
         kwargs['callbacks'] = kwargs.get('callbacks', default_callbacks)
+        kwargs['model'] = kwargs.get('model', self.model)
         kwargs.pop("logdir", None)
         del kwargs['datasets']
         super().infer(*args, **kwargs)
@@ -181,10 +182,11 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
     def batch_to_device(self, batch, device):
         return super()._batch2device(batch, device)
 
-    def batch_to_model_device(self, batch, model):
-        return super()._batch2device(batch, next(model.parameters()).device)
+    def batch_to_model_device(self, batch):
+        return super()._batch2device(batch, next(self.model.parameters()).device)
 
-    def best(self, model):
+    def best(self):
+        model = self.model
         checkpoint_path = self.project_dir / self.default_logdir / 'checkpoints' / 'best_full.pth'
         ckpt = load_checkpoint(checkpoint_path)
         unpack_checkpoint(ckpt, model)

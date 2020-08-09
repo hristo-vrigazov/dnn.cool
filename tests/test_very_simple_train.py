@@ -1,25 +1,21 @@
 import tempfile
 from collections import OrderedDict
-from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import pytest
 import torch
 from catalyst.dl import SupervisedRunner
-from catalyst.utils import load_checkpoint, unpack_checkpoint
-from torch import optim, nn
+from torch import optim
 from torch.utils.data import DataLoader
 
 from dnn_cool.catalyst_utils import InterpretationCallback, TensorboardConverters, TensorboardConverter
-from dnn_cool.converters import TypeGuesser, ValuesConverter, TaskConverter, Converters
+from dnn_cool.converters import Converters
 from dnn_cool.project import Project
 from dnn_cool.runner import InferDictCallback
-from dnn_cool.synthetic_dataset import create_df_and_images_tensor, synthenic_dataset_preparation
-from dnn_cool.task_flow import TaskFlow, BoundedRegressionTask, BinaryClassificationTask
+from dnn_cool.synthetic_dataset import synthenic_dataset_preparation
+from dnn_cool.task_flow import TaskFlow
 from dnn_cool.utils import torch_split_dataset
-from dnn_cool.value_converters import binary_value_converter
 
 
 def test_passenger_example(interior_car_task):
@@ -121,14 +117,13 @@ def test_synthetic_dataset():
 
 def test_inference_synthetic():
     model, nested_loaders, datasets, project = synthenic_dataset_preparation()
-    flow: TaskFlow = project.get_full_flow()
-    dataset = flow.get_dataset()
     runner = project.runner(model=model, runner_name='security_logs')
+    model = runner.best()
 
     n = 4 * torch.cuda.device_count()
+    flow: TaskFlow = project.get_full_flow()
+    dataset = flow.get_dataset()
     loader = DataLoader(dataset, batch_size=n, shuffle=False)
-
-    model = runner.best(model)
 
     X, y = next(iter(loader))
     del X['gt']
@@ -155,7 +150,7 @@ def test_interpretation_synthetic():
 
     loaders = OrderedDict({'infer': nested_loaders['valid']})
 
-    model = runner.best(model)
+    model = runner.best()
 
     tensorboard_converters = TensorboardConverters(
         logdir=runner.project_dir / runner.default_logdir,
@@ -167,9 +162,7 @@ def test_interpretation_synthetic():
         ("interpretation", InterpretationCallback(flow, tensorboard_converters)),
         ("inference", InferDictCallback())
     ])
-    r = runner.infer(model,
-                     loaders=loaders,
-                     callbacks=callbacks)
+    r = runner.infer(loaders=loaders, callbacks=callbacks)
 
     interpretations = callbacks["interpretation"].interpretations
     print(interpretations)
@@ -181,7 +174,7 @@ def test_synthetic_dataset_default_runner():
     flow: TaskFlow = project.get_full_flow()
     criterion = flow.get_loss()
 
-    runner.train(model=model, num_epochs=10)
+    runner.train(num_epochs=10)
 
     early_stop_callback = runner.default_callbacks[-1]
     assert early_stop_callback.best_score >= 0, 'Negative loss function!'
@@ -191,7 +184,7 @@ def test_synthetic_dataset_default_runner():
 def test_interpretation_default_runner():
     model, nested_loaders, datasets, project = synthenic_dataset_preparation()
     runner = project.runner(model=model, runner_name='security_logs')
-    model = runner.best(model)
+    model = runner.best()
     predictions, targets, interpretations = runner.infer(model=model)
 
     print(interpretations)
