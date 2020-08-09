@@ -6,11 +6,8 @@ DOING:
 
 - [ ] Per-task evaluation information, given that precondition is working correctly.
 - [ ] Overall evaluation information
-- [ ] Implement CompositeActivation
 - [ ] Implement CompositeDecoder
 - [ ] Implement CompositeEvaluator
-- [ ] Separation between activation, tuner, decoder and evaluator.
-- [ ] Refactor everything to reuse the same logic in different flow executions.
 
 TODO:
 
@@ -145,4 +142,6 @@ Done:
 - [x] Rethink reduction and variable names
 - [x] Automatic per-task or overall thresholds tuning.
 - [x] Activate before tuning
-
+- [x] Refactor everything to reuse the same logic in different flow executions.
+- [x] Separation between activation, tuner, decoder and evaluator.
+- [x] Implement CompositeActivation

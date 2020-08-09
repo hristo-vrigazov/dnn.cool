@@ -220,6 +220,16 @@ def test_evaluation_is_shown():
     print(evaluation_df.head())
 
 
+def test_composite_activation():
+    model, nested_loaders, datasets, project = synthenic_dataset_preparation()
+    runner = project.runner(model=model, runner_name='security_logs')
+    flow = project.get_full_flow()
+    activation = flow.get_activation()
+    predictions, targets, interpretations = runner.load_inference_results()
+    activated_predictions = activation(predictions['test'], targets['test'])
+    print(activated_predictions)
+
+
 def print_any_prediction(criterion, model, nested_loaders, runner):
     loader = nested_loaders['valid']
     X, y = next(iter(loader))
