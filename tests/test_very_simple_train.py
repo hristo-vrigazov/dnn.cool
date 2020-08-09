@@ -224,10 +224,9 @@ def test_load_tuned_pipeline_from_decoder():
 def test_evaluation_is_shown():
     model, nested_loaders, datasets, project = synthenic_dataset_preparation()
     runner = project.runner(runner_name='security_logs')
-    model = runner.best(model)
     predictions, targets, interpretations = runner.load_inference_results()
-    evaluation_df = runner.evaluate(model, predictions['test'], targets['test'])
-
+    decoder = project.get_full_flow().get_decoder()
+    evaluation_df = runner.evaluate(decoder, predictions['test'], targets['test'])
     print(evaluation_df.head())
 
 

@@ -6,6 +6,7 @@ DOING:
 
 - [ ] Per-task evaluation information, given that precondition is working correctly.
 - [ ] Overall evaluation information
+- [ ] Implement CompositeActivation
 
 TODO:
 
@@ -139,4 +140,5 @@ Done:
 - [x] Handles missing labels correctly.
 - [x] Rethink reduction and variable names
 - [x] Automatic per-task or overall thresholds tuning.
+- [x] Activate before tuning
 

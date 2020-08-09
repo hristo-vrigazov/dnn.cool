@@ -216,6 +216,9 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         flow_module.load_tuned(tuned_params)
         return flow_module
 
+    def evaluate(self, decoder, predictions, targets):
+        raise NotImplementedError()
+
 
 def split_already_done(df, project_dir):
     total_len = 0

@@ -284,3 +284,6 @@ class TaskFlow(ITask):
 
     def get_decoder(self):
         return TaskFlowDecoder(self)
+
+    # def get_activation(self) -> Optional[nn.Module]:
+    #     return TaskFlowActivation(self)
