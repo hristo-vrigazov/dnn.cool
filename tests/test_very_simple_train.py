@@ -216,8 +216,8 @@ def test_load_tuned_pipeline_from_decoder():
 def test_evaluation_is_shown():
     model, nested_loaders, datasets, project = synthenic_dataset_preparation()
     runner = project.runner(model=model, runner_name='security_logs')
-    evaluation_df = runner.evaluate()
-    print(evaluation_df.head())
+    evaluation = runner.evaluate()
+    print(evaluation)
 
 
 def test_composite_activation():
