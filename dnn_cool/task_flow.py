@@ -7,7 +7,7 @@ from torch.utils.data import Dataset
 from dnn_cool.activations import CompositeActivation
 from dnn_cool.datasets import FlowDataset, LeafTaskDataset
 from dnn_cool.decoders import sort_declining, BinaryDecoder, TaskFlowDecoder
-from dnn_cool.evaluation import EvaluationCompositeVisitor
+from dnn_cool.evaluation import EvaluationCompositeVisitor, EvaluationVisitor
 from dnn_cool.filter import FilterCompositeVisitor, FilterVisitor
 from dnn_cool.losses import TaskFlowLoss
 from dnn_cool.metrics import single_result_accuracy
@@ -36,7 +36,7 @@ class ITask:
         return FilterVisitor(self, prefix='')
 
     def get_evaluator(self):
-        return None
+        return EvaluationVisitor(self, prefix='')
 
     def has_children(self):
         return False

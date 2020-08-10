@@ -4,9 +4,9 @@ Some dumb stuff I am playing with.
 
 DOING:
 
-- [ ] Per-task evaluation information, given that precondition is working correctly.
-- [ ] Overall evaluation information
-- [ ] Implement CompositeEvaluator
+- [x] Per-task evaluation information, given that precondition is working correctly.
+- [x] Overall evaluation information
+- [x] Implement CompositeEvaluator
 
 TODO:
 
