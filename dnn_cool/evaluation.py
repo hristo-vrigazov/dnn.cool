@@ -1,5 +1,7 @@
+import torch
+
 from dataclasses import dataclass, field
-from typing import Dict
+from typing import Dict, List
 
 from dnn_cool.visitors import LeafVisitor, VisitorOut, RootCompositeVisitor
 
@@ -8,23 +10,39 @@ class EvaluationVisitor(LeafVisitor):
 
     def __init__(self, task, prefix):
         super().__init__(task, prefix)
+        self.metrics = task.get_metrics()
 
     def full_result(self, preds, targets):
-        return EvaluationResults({})
+        return self.compute_metrics(preds, targets)
 
     def empty_result(self):
-        return EvaluationResults({})
+        return EvaluationResults([])
 
     def preconditioned_result(self, preds, targets):
-        return EvaluationResults({})
+        return self.compute_metrics(preds, targets)
+
+    def compute_metrics(self, preds, targets):
+        res = []
+        for metric_name, metric in self.metrics:
+            # No activation, since preds is already activated
+            metric_res = metric(preds, targets, activation=None)
+            if isinstance(metric_res, torch.Tensor):
+                metric_res = metric_res.item()
+            res.append({
+                'task_path': self.path,
+                'metric_name': metric_name,
+                'metric_res': metric_res,
+                'num_samples': len(targets),
+            })
+        return EvaluationResults(res)
 
 
 @dataclass
 class EvaluationResults(VisitorOut):
-    data: Dict = field(default_factory=lambda: {})
+    data: List = field(default_factory=lambda: [])
 
     def __iadd__(self, other):
-        self.data.update(other.data)
+        self.data += other.data
         return self
 
     def reduce(self):
