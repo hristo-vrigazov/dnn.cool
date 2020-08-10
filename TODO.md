@@ -4,9 +4,7 @@ Some dumb stuff I am playing with.
 
 DOING:
 
-- [x] Per-task evaluation information, given that precondition is working correctly.
-- [x] Overall evaluation information
-- [x] Implement CompositeEvaluator
+- [ ] Support multilabel classification problem
 
 TODO:
 
@@ -33,7 +31,6 @@ TODO:
 - [ ] Add option for readable output
 - [ ] Add a lot of predefined tasks and flows
 - [ ] Compute only when precondition is True (will require precomputing)
-- [ ] Support multilabel classification problem
 - [ ] Make sure immutability of objects is preserved
 - [ ] Documentation
 - [ ] Think of useful methods
@@ -85,6 +82,12 @@ TODO:
 - [ ] Add the possibility to not store the labels in memory when tuning and evaluating.
 - [ ] Precondition shape should be handled correctly
 - [ ] Utility for Scikit-learn callbacks/metrics
+- [ ] Test on real dataset
+- [ ] EfficientDet integration
+- [ ] EfficientNet integration
+- [ ] YOLO integration
+- [ ] Mask R-CNN implementation
+- [ ] HuggingFace integration
 
 Done: 
 
@@ -148,4 +151,6 @@ Done:
 - [x] Implement CompositeActivation
 - [x] Implement CompositeDecoder
 - [x] Implement CompositeFilter
-
+- [x] Per-task evaluation information, given that precondition is working correctly.
+- [x] Overall evaluation information
+- [x] Implement CompositeEvaluator
