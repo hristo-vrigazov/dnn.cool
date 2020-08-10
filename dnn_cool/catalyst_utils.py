@@ -3,7 +3,7 @@ from typing import Callable, Dict, Optional, Tuple
 
 import numpy as np
 from catalyst.core import Callback, CallbackOrder, State
-from catalyst.utils.tools.tensorboard import SummaryWriter
+from catalyst.contrib.tools.tensorboard import SummaryWriter
 from dataclasses import dataclass, field
 
 from torch.utils.data import Dataset, SequentialSampler

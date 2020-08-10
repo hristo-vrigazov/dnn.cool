@@ -59,6 +59,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
 
     def __init__(self, project, model, early_stop: bool = True, runner_name=None, train_test_val_indices=None):
         super().__init__(model=model)
+        super()._unfreeze()
         self.task_flow = project.get_full_flow()
 
         self.default_criterion = self.task_flow.get_loss()
