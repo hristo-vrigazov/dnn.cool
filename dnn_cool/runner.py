@@ -58,8 +58,6 @@ class InferDictCallback(InferCallback):
 class DnnCoolSupervisedRunner(SupervisedRunner):
 
     def __init__(self, project, model, early_stop: bool = True, runner_name=None, train_test_val_indices=None):
-        super().__init__(model=model)
-        super()._unfreeze()
         self.task_flow = project.get_full_flow()
 
         self.default_criterion = self.task_flow.get_loss()
@@ -81,6 +79,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
             save_split(self.project_dir / self.default_logdir, train_test_val_indices)
         self.train_test_val_indices = train_test_val_indices
         self.tensor_loggers = project.converters.tensorboard_converters
+        super().__init__(model=model)
 
     def train(self, *args, **kwargs):
         kwargs['criterion'] = kwargs.get('criterion', self.default_criterion)
