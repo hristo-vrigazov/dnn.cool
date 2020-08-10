@@ -1,12 +1,11 @@
+from dataclasses import dataclass, field
 from typing import Dict
 
 import numpy as np
-from dataclasses import dataclass, field
 from sklearn.metrics import accuracy_score
-
 from tqdm import tqdm
 
-from dnn_cool.tuners import TuningVisitor, TunedParams, TunerVisitor
+from dnn_cool.tuners import TunerVisitor
 from dnn_cool.visitors import RootCompositeVisitor, VisitorOut, LeafVisitor
 
 
