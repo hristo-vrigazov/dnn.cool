@@ -1,7 +1,8 @@
-import torch
-
 from dataclasses import dataclass, field
-from typing import Dict, List
+from typing import List
+
+import pandas as pd
+import torch
 
 from dnn_cool.visitors import LeafVisitor, VisitorOut, RootCompositeVisitor
 
@@ -46,7 +47,7 @@ class EvaluationResults(VisitorOut):
         return self
 
     def reduce(self):
-        return self.data
+        return pd.DataFrame(self.data)
 
 
 class EvaluationCompositeVisitor(RootCompositeVisitor):
