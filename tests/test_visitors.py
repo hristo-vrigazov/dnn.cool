@@ -32,6 +32,9 @@ def test_simple_visitor():
         def __iadd__(self, other):
             self.data.update(other.data)
             return self
+        
+        def reduce(self):
+            return self.data
 
     visitor = RootCompositeVisitor(flow, TuningVisitor, TunedParams)
     predictions, targets, intepretations = runner.load_inference_results()

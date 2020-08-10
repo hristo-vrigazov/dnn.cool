@@ -27,6 +27,9 @@ class ActivationsFiltered(VisitorOut):
         self.data.update(other.data)
         return self
 
+    def reduce(self):
+        return self.data
+
 
 class CompositeActivation(RootCompositeVisitor):
 

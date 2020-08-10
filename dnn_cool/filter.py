@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from dnn_cool.visitors import LeafVisitor, VisitorOut, RootCompositeVisitor
 
 
-class TuningVisitor(LeafVisitor):
+class FilterVisitor(LeafVisitor):
 
     def __init__(self, task, prefix):
         super().__init__(task, prefix)
@@ -22,18 +22,15 @@ class TuningVisitor(LeafVisitor):
 
 
 @dataclass
-class TunedParams(VisitorOut):
+class FilterParams(VisitorOut):
     data: Dict = field(default_factory=lambda: {})
 
     def __iadd__(self, other):
         self.data.update(other.data)
         return self
 
-    def reduce(self):
-        return self.data
 
-
-class TunerVisitor(RootCompositeVisitor):
+class FilterCompositeVisitor(RootCompositeVisitor):
 
     def __init__(self, task_flow, prefix):
         super().__init__(task_flow, TuningVisitor, TunedParams, prefix=prefix)

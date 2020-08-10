@@ -30,6 +30,9 @@ class VisitorOut:
     def __or__(self, other):
         return self
 
+    def reduce(self):
+        raise NotImplementedError()
+
 
 def get_visitor_data(*args, **kwargs):
     all_args = [*args, *kwargs.values()]
@@ -106,4 +109,4 @@ class RootCompositeVisitor:
 
     def __call__(self, predictions, targets):
         flow_result = self.composite_visitor(VisitorData(predictions, targets))
-        return flow_result.data
+        return flow_result.reduce()

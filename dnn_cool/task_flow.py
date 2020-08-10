@@ -295,6 +295,9 @@ class TaskFlow(ITask):
     def get_evaluator(self):
         return None
 
+    def get_filter(self):
+        return 
+
     def get_all_children(self, prefix=''):
         tasks = {}
         for task_name, task in self.tasks.items():

@@ -72,6 +72,9 @@ class DecodedData(VisitorOut):
         self.data.update(other.data)
         return self
 
+    def reduce(self):
+        return self.data
+
 
 class CompositeDecoder(RootCompositeVisitor):
 

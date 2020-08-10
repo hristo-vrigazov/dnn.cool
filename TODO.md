@@ -7,7 +7,7 @@ DOING:
 - [ ] Per-task evaluation information, given that precondition is working correctly.
 - [ ] Overall evaluation information
 - [ ] Implement CompositeEvaluator
-- [ ] Implement filter of real
+- [ ] Implement CompositeFilter
 
 TODO:
 
