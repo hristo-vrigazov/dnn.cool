@@ -230,6 +230,16 @@ def test_composite_activation():
     print(activated_predictions)
 
 
+def test_composite_decoding():
+    model, nested_loaders, datasets, project = synthenic_dataset_preparation()
+    runner = project.runner(model=model, runner_name='security_logs')
+    flow = project.get_full_flow()
+    decoder = flow.get_decoder()
+    predictions, targets, interpretations = runner.load_inference_results()
+    activated_predictions = decoder(predictions['test'], targets['test'])
+    print(activated_predictions)
+
+
 def print_any_prediction(criterion, model, nested_loaders, runner):
     loader = nested_loaders['valid']
     X, y = next(iter(loader))

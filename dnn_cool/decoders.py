@@ -1,10 +1,13 @@
+from typing import Dict
+
 import numpy as np
+from dataclasses import dataclass, field
 from sklearn.metrics import accuracy_score
 
 from tqdm import tqdm
 
 from dnn_cool.tuners import TuningVisitor, TunedParams, TunerVisitor
-from dnn_cool.visitors import RootCompositeVisitor
+from dnn_cool.visitors import RootCompositeVisitor, VisitorOut, LeafVisitor
 
 
 class Decoder:
@@ -46,27 +49,40 @@ class BinaryDecoder(Decoder):
         self.threshold = params['threshold']
 
 
-class DecoderDecorator:
+class DecodingVisitor(LeafVisitor):
 
-    def __init__(self, decoder, prefix):
-        self.decoder = decoder
-        self.prefix = prefix
+    def __init__(self, task, prefix):
+        super().__init__(task, prefix)
+
+    def full_result(self, preds, targets):
+        return DecodedData({self.path: self.decoder(preds)})
+
+    def empty_result(self):
+        return DecodedData({self.path: {}})
+
+    def preconditioned_result(self, preds, targets):
+        return DecodedData({self.path: self.decoder(preds)})
 
 
-class CompositeDecoder:
+@dataclass
+class DecodedData(VisitorOut):
+    data: Dict = field(default_factory=lambda: {})
+
+    def __iadd__(self, other):
+        self.data.update(other.data)
+        return self
+
+
+class CompositeDecoder(RootCompositeVisitor):
 
     def __init__(self, task_flow, prefix):
-        self.prefix = prefix
-        self.task_flow = task_flow
-
-    def __call__(self, *args, **kwargs):
-        raise NotImplementedError()
+        super().__init__(task_flow, DecodingVisitor, DecodedData, prefix)
 
 
 class TaskFlowDecoder(Decoder):
 
     def __init__(self, task_flow, prefix=''):
-        self.tuner = TunerVisitor(task_flow, TuningVisitor, TunedParams, prefix=prefix)
+        self.tuner = TunerVisitor(task_flow, prefix=prefix)
         self.composite_decoder = CompositeDecoder(task_flow, prefix)
 
     def __call__(self, *args, **kwargs):

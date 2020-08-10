@@ -6,8 +6,8 @@ DOING:
 
 - [ ] Per-task evaluation information, given that precondition is working correctly.
 - [ ] Overall evaluation information
-- [ ] Implement CompositeDecoder
 - [ ] Implement CompositeEvaluator
+- [ ] Implement filter of real
 
 TODO:
 
@@ -84,6 +84,7 @@ TODO:
 - [ ] Simple example on CIFAR-10
 - [ ] Simple averaging util for runner boosting
 - [ ] Add the possibility to not store the labels in memory when tuning and evaluating.
+- [ ] Precondition shape should be handled correctly
 
 Done: 
 
@@ -145,3 +146,5 @@ Done:
 - [x] Refactor everything to reuse the same logic in different flow executions.
 - [x] Separation between activation, tuner, decoder and evaluator.
 - [x] Implement CompositeActivation
+- [x] Implement CompositeDecoder
+

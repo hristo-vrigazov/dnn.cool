@@ -32,6 +32,9 @@ class TunedParams(VisitorOut):
 
 class TunerVisitor(RootCompositeVisitor):
 
+    def __init__(self, task_flow, prefix):
+        super().__init__(task_flow, TuningVisitor, TunedParams, prefix=prefix)
+
     def load_tuned(self, tuned_params):
         tasks = self.task_flow.get_all_children()
         for path, task in tasks.items():
