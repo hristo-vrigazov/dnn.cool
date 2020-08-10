@@ -246,8 +246,8 @@ def test_composite_filtering():
     flow = project.get_full_flow()
     filter_func = flow.get_filter()
     predictions, targets, interpretations = runner.load_inference_results()
-    activated_predictions = filter_func(predictions['test'], targets['test'])
-    print(activated_predictions)
+    filtered_results = filter_func(predictions['test'], targets['test'])
+    print(filtered_results)
 
 
 def print_any_prediction(criterion, model, nested_loaders, runner):

@@ -7,7 +7,6 @@ DOING:
 - [ ] Per-task evaluation information, given that precondition is working correctly.
 - [ ] Overall evaluation information
 - [ ] Implement CompositeEvaluator
-- [ ] Implement CompositeFilter
 
 TODO:
 
@@ -147,4 +146,5 @@ Done:
 - [x] Separation between activation, tuner, decoder and evaluator.
 - [x] Implement CompositeActivation
 - [x] Implement CompositeDecoder
+- [x] Implement CompositeFilter
 

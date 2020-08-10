@@ -11,29 +11,36 @@ class FilterVisitor(LeafVisitor):
         super().__init__(task, prefix)
 
     def full_result(self, preds, targets):
-        return TunedParams(self.decoder.tune(preds, targets))
+        return FilterParams(predictions={self.path: preds}, targets={self.path: targets})
 
     def empty_result(self):
-        return TunedParams({self.path: {}})
+        return FilterParams(predictions={}, targets={})
 
     def preconditioned_result(self, preds, targets):
-        tuned_params = self.decoder.tune(preds, targets)
-        return TunedParams({self.path: tuned_params})
+        return FilterParams(predictions={self.path: preds}, targets={self.path: targets})
 
 
 @dataclass
 class FilterParams(VisitorOut):
-    data: Dict = field(default_factory=lambda: {})
+    predictions: Dict = field(default_factory=lambda: {})
+    targets: Dict = field(default_factory=lambda: {})
 
     def __iadd__(self, other):
-        self.data.update(other.data)
+        self.predictions.update(other.predictions)
+        self.targets.update(other.targets)
         return self
+
+    def reduce(self):
+        return {
+            'predictions': self.predictions,
+            'targets': self.targets
+        }
 
 
 class FilterCompositeVisitor(RootCompositeVisitor):
 
     def __init__(self, task_flow, prefix):
-        super().__init__(task_flow, TuningVisitor, TunedParams, prefix=prefix)
+        super().__init__(task_flow, FilterVisitor, FilterParams, prefix=prefix)
 
     def load_tuned(self, tuned_params):
         tasks = self.task_flow.get_all_children()
