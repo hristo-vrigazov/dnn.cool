@@ -22,6 +22,9 @@ class Metric:
             outputs = self.activation(outputs)
         if decode:
             outputs = self.decoder(outputs)
+        return self._invoke_metric(outputs, targets)
+
+    def _invoke_metric(self, outputs, targets):
         return self.metric_fc(outputs, targets)
 
 
@@ -29,6 +32,19 @@ class Accuracy(Metric):
 
     def __init__(self):
         super().__init__(single_result_accuracy)
+
+
+class NumpyMetric(Metric):
+
+    def __init__(self, metric_fc):
+        super().__init__(metric_fc)
+
+    def _invoke_metric(self, outputs, targets, activate=True, decode=True):
+        if isinstance(outputs, torch.Tensor):
+            outputs = outputs.detach().cpu().numpy()
+        if isinstance(targets, torch.Tensor):
+            targets = targets.cpu().numpy()
+        return self.metric_fc(outputs, targets)
 
 
 def single_result_accuracy(outputs, targets, *args, **kwargs):

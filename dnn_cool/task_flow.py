@@ -1,6 +1,7 @@
 from functools import partial
 from typing import Iterable, Optional, Callable, Tuple
 
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_auc_score
 from torch import nn
 from torch.utils.data import Dataset
 
@@ -10,7 +11,7 @@ from dnn_cool.decoders import sort_declining, BinaryDecoder, TaskFlowDecoder
 from dnn_cool.evaluation import EvaluationCompositeVisitor, EvaluationVisitor
 from dnn_cool.filter import FilterCompositeVisitor, FilterVisitor
 from dnn_cool.losses import TaskFlowLoss
-from dnn_cool.metrics import single_result_accuracy, Metric
+from dnn_cool.metrics import single_result_accuracy, Metric, NumpyMetric, Accuracy
 from dnn_cool.missing_values import positive_values, positive_values_unsqueezed
 from dnn_cool.modules import SigmoidAndMSELoss, Identity, TaskFlowModule
 from dnn_cool.treelib import TreeExplainer
@@ -196,7 +197,11 @@ class BinaryClassificationTask(Task):
                  decoder: Callable = BinaryDecoder(),
                  module: nn.Module = Identity(),
                  metrics: Tuple[str, Metric] = (
-                         ('accuracy', Metric(single_result_accuracy)),
+                         ('accuracy', Accuracy()),
+                         ('f1_score', NumpyMetric(f1_score)),
+                         ('precision', NumpyMetric(precision_score)),
+                         ('recall', NumpyMetric(recall_score)),
+                         ('roc_auc', NumpyMetric(roc_auc_score))
                  )):
         super().__init__(name=name,
                          labels=labels,

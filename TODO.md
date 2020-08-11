@@ -10,6 +10,7 @@ DOING:
 - [ ] Utility for per-sample loss function
 - [ ] Update synthetic dataset to include classification and multi-label classification
 - [ ] Cleaner representations for results
+- [ ] Draw ROC curve callback
 
 TODO:
 
@@ -74,7 +75,6 @@ TODO:
 - [ ] Noobj stuff in YOLO
 - [ ] Bert integration
 - [ ] Bertviz integration
-- [ ] Draw ROC curve callback
 - [ ] Handle case when the precondition is not a single number
 - [ ] Implement example body pose estimation
 - [ ] Angular data regression: https://stats.stackexchange.com/questions/218407/encoding-angle-data-for-neural-network/218547#218547
