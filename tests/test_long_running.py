@@ -8,7 +8,6 @@ from torch.utils.data import DataLoader
 from dnn_cool.synthetic_dataset import synthenic_dataset_preparation
 from dnn_cool.task_flow import TaskFlow
 from dnn_cool.utils import torch_split_dataset
-from tests.test_very_simple_train import print_any_prediction
 
 
 def test_passenger_example(interior_car_task):
@@ -75,3 +74,15 @@ def test_synthetic_dataset_default_runner():
     early_stop_callback = runner.default_callbacks[-1]
     assert early_stop_callback.best_score >= 0, 'Negative loss function!'
     print_any_prediction(criterion, model, nested_loaders, runner)
+
+
+def print_any_prediction(criterion, model, nested_loaders, runner):
+    loader = nested_loaders['valid']
+    X, y = next(iter(loader))
+    X = runner._batch2device(X, next(model.parameters()).device)
+    y = runner._batch2device(y, next(model.parameters()).device)
+    model = model.eval()
+    pred = model(X)
+    res = criterion(pred, y)
+    print(res.item())
+    print(pred, y)
