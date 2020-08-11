@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Iterable, Optional, Callable, List, Tuple
+from typing import Iterable, Optional, Callable, Tuple
 
 from torch import nn
 from torch.utils.data import Dataset
@@ -10,7 +10,7 @@ from dnn_cool.decoders import sort_declining, BinaryDecoder, TaskFlowDecoder
 from dnn_cool.evaluation import EvaluationCompositeVisitor, EvaluationVisitor
 from dnn_cool.filter import FilterCompositeVisitor, FilterVisitor
 from dnn_cool.losses import TaskFlowLoss
-from dnn_cool.metrics import single_result_accuracy
+from dnn_cool.metrics import single_result_accuracy, Metric
 from dnn_cool.missing_values import positive_values, positive_values_unsqueezed
 from dnn_cool.modules import SigmoidAndMSELoss, Identity, TaskFlowModule
 from dnn_cool.treelib import TreeExplainer
@@ -18,10 +18,11 @@ from dnn_cool.treelib import TreeExplainer
 
 class ITask:
 
-    def __init__(self, name: str, inputs, available_func=None):
+    def __init__(self, name: str, inputs, available_func=None, metrics: Tuple[str, Metric] = ()):
         self.name = name
         self.inputs = inputs
-        self.available_func = available_func
+        self._available_func = available_func
+        self._metrics = metrics
 
     def get_name(self):
         return self.name
@@ -42,7 +43,7 @@ class ITask:
         return False
 
     def get_available_func(self):
-        return self.available_func
+        return self._available_func
 
     def get_loss(self):
         raise NotImplementedError()
@@ -68,7 +69,10 @@ class ITask:
         raise NotImplementedError()
 
     def get_metrics(self):
-        return []
+        for i in range(len(self._metrics)):
+            metric_name, metric = self._metrics[i]
+            metric.bind_to_task(self)
+        return self._metrics
 
 
 class Task(ITask):
@@ -83,8 +87,8 @@ class Task(ITask):
                  activation: Optional[nn.Module] = None,
                  decoder: Callable = None,
                  module: Optional[nn.Module] = Identity(),
-                 metrics: List[Tuple[str, Callable]] = ()):
-        super().__init__(name, inputs, available_func)
+                 metrics: Tuple[str, Metric] = ()):
+        super().__init__(name, inputs, available_func, metrics)
         self._activation = activation
         self._decoder = decoder
         self._loss = loss
@@ -92,7 +96,6 @@ class Task(ITask):
         self._module = module
         self._inputs = inputs
         self._labels = labels
-        self._metrics = metrics
 
     def get_activation(self) -> Optional[nn.Module]:
         return self._activation
@@ -118,9 +121,6 @@ class Task(ITask):
     def get_dataset(self, **kwargs):
         return LeafTaskDataset(self._inputs, self._labels)
 
-    def get_metrics(self):
-        return self._metrics
-
 
 class BinaryHardcodedTask(Task):
 
@@ -134,7 +134,7 @@ class BinaryHardcodedTask(Task):
                  activation: Optional[nn.Module] = None,
                  decoder: Callable = None,
                  module: nn.Module = Identity(),
-                 metrics=()):
+                 metrics: Tuple[str, Metric] = ()):
         super().__init__(name=name,
                          labels=labels,
                          loss=loss,
@@ -195,8 +195,8 @@ class BinaryClassificationTask(Task):
                  activation: Optional[nn.Module] = nn.Sigmoid(),
                  decoder: Callable = BinaryDecoder(),
                  module: nn.Module = Identity(),
-                 metrics=(
-                         ('acc_0.5', partial(single_result_accuracy, threshold=0.5, activation='Sigmoid')),
+                 metrics: Tuple[str, Metric] = (
+                         ('accuracy', Metric(single_result_accuracy)),
                  )):
         super().__init__(name=name,
                          labels=labels,
@@ -227,10 +227,7 @@ class ClassificationTask(Task):
                  activation=nn.Softmax(dim=-1),
                  decoder=sort_declining,
                  module: nn.Module = Identity(),
-                 metrics=(
-                         ('top_1_acc', partial(single_result_accuracy, topk=(1,), activation='Softmax')),
-                         ('top_3_acc', partial(single_result_accuracy, topk=(3,), activation='Softmax')),
-                 )):
+                 metrics=()):
         super().__init__(name=name,
                          labels=labels,
                          loss=loss,

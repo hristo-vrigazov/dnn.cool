@@ -9,6 +9,7 @@ DOING:
 - [ ] Utility for Scikit-learn callbacks/metrics
 - [ ] Utility for per-sample loss function
 - [ ] Update synthetic dataset to include classification and multi-label classification
+- [ ] Cleaner representations for results
 
 TODO:
 
@@ -22,7 +23,6 @@ TODO:
 - [ ] Set learning rate per task feature
 - [ ] UI splitting helper
 - [ ] ONNX converter (if possible) - with static analysis.
-- [ ] Cleaner representations for results
 - [ ] Work on error messages
 - [ ] Allow custom entries in the FlowDict
 - [ ] Add to latex option (automatically generate loss functions in latex)
