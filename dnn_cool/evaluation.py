@@ -27,15 +27,23 @@ class EvaluationVisitor(LeafVisitor):
         for metric_name, metric in self.metrics:
             # No activation, since preds is already activated
             metric_res = metric(preds, targets, activate=False, decode=True)
-            if isinstance(metric_res, torch.Tensor):
-                metric_res = metric_res.item()
-            res.append({
-                'task_path': self.path,
-                'metric_name': metric_name,
-                'metric_res': metric_res,
-                'num_samples': len(targets),
-            })
+            if metric.is_multi_metric():
+                args = metric.list_args()
+                for i in range(len(metric_res)):
+                    res.append(self.create_evaluation_record(f'{metric_name}_{args[i]}', metric_res[i], targets))
+            else:
+                res.append(self.create_evaluation_record(metric_name, metric_res, targets))
         return EvaluationResults(res)
+
+    def create_evaluation_record(self, metric_name, metric_res, targets):
+        if isinstance(metric_res, torch.Tensor):
+            metric_res = metric_res.item()
+        return {
+            'task_path': self.path,
+            'metric_name': metric_name,
+            'metric_res': metric_res,
+            'num_samples': len(targets),
+        }
 
 
 @dataclass

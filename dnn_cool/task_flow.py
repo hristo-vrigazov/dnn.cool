@@ -10,7 +10,7 @@ from dnn_cool.decoders import sort_declining, BinaryDecoder, TaskFlowDecoder
 from dnn_cool.evaluation import EvaluationCompositeVisitor, EvaluationVisitor
 from dnn_cool.filter import FilterCompositeVisitor, FilterVisitor
 from dnn_cool.losses import TaskFlowLoss
-from dnn_cool.metrics import Metric, NumpyMetric, Accuracy
+from dnn_cool.metrics import TorchMetric, NumpyMetric, Accuracy
 from dnn_cool.missing_values import positive_values, positive_values_unsqueezed
 from dnn_cool.modules import SigmoidAndMSELoss, Identity, TaskFlowModule
 from dnn_cool.treelib import TreeExplainer
@@ -18,7 +18,7 @@ from dnn_cool.treelib import TreeExplainer
 
 class ITask:
 
-    def __init__(self, name: str, inputs, available_func=None, metrics: Tuple[str, Metric] = ()):
+    def __init__(self, name: str, inputs, available_func=None, metrics: Tuple[str, TorchMetric] = ()):
         self.name = name
         self.inputs = inputs
         self._available_func = available_func
@@ -87,7 +87,7 @@ class Task(ITask):
                  activation: Optional[nn.Module] = None,
                  decoder: Callable = None,
                  module: Optional[nn.Module] = Identity(),
-                 metrics: Tuple[str, Metric] = ()):
+                 metrics: Tuple[str, TorchMetric] = ()):
         super().__init__(name, inputs, available_func, metrics)
         self._activation = activation
         self._decoder = decoder
@@ -134,7 +134,7 @@ class BinaryHardcodedTask(Task):
                  activation: Optional[nn.Module] = None,
                  decoder: Callable = None,
                  module: nn.Module = Identity(),
-                 metrics: Tuple[str, Metric] = ()):
+                 metrics: Tuple[str, TorchMetric] = ()):
         super().__init__(name=name,
                          labels=labels,
                          loss=loss,
@@ -195,7 +195,7 @@ class BinaryClassificationTask(Task):
                  activation: Optional[nn.Module] = nn.Sigmoid(),
                  decoder: Callable = BinaryDecoder(),
                  module: nn.Module = Identity(),
-                 metrics: Tuple[str, Metric] = (
+                 metrics: Tuple[str, TorchMetric] = (
                          ('accuracy', Accuracy()),
                          ('f1_score', NumpyMetric(f1_score)),
                          ('precision', NumpyMetric(precision_score)),

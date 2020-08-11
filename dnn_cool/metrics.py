@@ -3,7 +3,7 @@ import torch
 from catalyst.utils.metrics import accuracy
 
 
-class Metric:
+class TorchMetric:
 
     def __init__(self, metric_fc, is_multimetric=False, list_args=None):
         self.activation = None
@@ -19,6 +19,8 @@ class Metric:
     def __call__(self, outputs, targets, activate=True, decode=True):
         if (self.activation is None) or (self.decoder is None):
             raise ValueError(f'The metric is not binded to a task, but is already used.')
+        outputs = torch.as_tensor(outputs)
+        targets = torch.as_tensor(targets)
 
         if activate:
             outputs = self.activation(outputs)
@@ -36,13 +38,18 @@ class Metric:
         return self._list_args
 
 
-class Accuracy(Metric):
+class Accuracy(TorchMetric):
 
     def __init__(self):
         super().__init__(accuracy, is_multimetric=True, list_args=(1, 3, 5))
 
+    def _invoke_metric(self, outputs, targets):
+        if len(outputs.shape) <= 1:
+            outputs = outputs.unsqueeze(dim=-1)
+        return self.metric_fc(outputs, targets)
 
-class NumpyMetric(Metric):
+
+class NumpyMetric(TorchMetric):
 
     def __init__(self, metric_fc):
         super().__init__(metric_fc)
