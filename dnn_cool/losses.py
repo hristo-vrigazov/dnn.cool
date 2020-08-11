@@ -1,4 +1,9 @@
+from typing import List
+
 import torch
+from dataclasses import dataclass
+
+from catalyst.core import MultiMetricCallback
 from torch import nn
 
 from dnn_cool.utils import any_value
@@ -125,6 +130,20 @@ class MetricLossDecorator(BaseMetricDecorator):
         return metric_res
 
 
+@dataclass
+class MultiMetricLossItems:
+    loss_items_list: List[LossItems]
+
+    def mean(self):
+        return [loss_items.mean() for loss_items in self.loss_items_list]
+
+
+class MultiMetricLossDecorator(BaseMetricDecorator):
+
+    def postprocess_results(self, loss_items, metric_res, precondition):
+        return MultiMetricLossItems(metric_res)
+
+
 class TaskFlowLoss(nn.Module):
 
     def __init__(self, task_flow, parent_reduction, child_reduction, prefix=''):
@@ -190,7 +209,10 @@ class TaskFlowLoss(nn.Module):
                 if task.has_children():
                     all_metrics += child_loss.get_metrics()
                 else:
-                    metric_decorator = MetricLossDecorator(task, child_loss.prefix, metric)
+                    if not metric.is_multi_metric():
+                        metric_decorator = MetricLossDecorator(task, child_loss.prefix, metric)
+                    else:
+                        metric_decorator = MultiMetricLossDecorator(task, child_loss.prefix, metric)
                     all_metrics.append((metric_name, metric_decorator))
         return all_metrics
 
@@ -199,8 +221,14 @@ class TaskFlowLoss(nn.Module):
         callbacks = []
         for leaf_loss in self.get_leaf_losses():
             callbacks.append(MetricCallback(f'loss_{leaf_loss.prefix}{leaf_loss.task_name}', leaf_loss))
-        for metric_name, metric in self.get_metrics():
-            callbacks.append(MetricCallback(f'{metric_name}_{metric.prefix}{metric.task_name}', metric))
+        for metric_name, metric_decorator in self.get_metrics():
+            metric = metric_decorator.metric
+            full_name = f'{metric_name}_{metric_decorator.prefix}{metric_decorator.task_name}'
+            if metric.is_multi_metric():
+                callback = MultiMetricCallback(full_name, metric_decorator, metric.list_args())
+            else:
+                callback = MetricCallback(full_name, metric_decorator)
+            callbacks.append(callback)
         return callbacks
 
 

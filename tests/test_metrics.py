@@ -22,7 +22,7 @@ def test_binary_accuracy(simple_binary_data):
     metric = Accuracy()
     metric.bind_to_task(task_mock)
 
-    res = metric(x, y, activate=True, decode=True).item()
+    res = metric(x, y, activate=True, decode=True)[0].item()
     assert res >= 0.70
 
 

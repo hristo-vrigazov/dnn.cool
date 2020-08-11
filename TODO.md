@@ -4,9 +4,8 @@ Some dumb stuff I am playing with.
 
 DOING:
 
-- [ ] Better abstraction of metric - is it operating on logits, activated or decoded? etc.
+- [ ] Proper handling of multimetrics (not adding them one by one).
 - [ ] Support multilabel classification problem
-- [ ] Utility for Scikit-learn callbacks/metrics
 - [ ] Utility for per-sample loss function
 - [ ] Update synthetic dataset to include classification and multi-label classification
 - [ ] Cleaner representations for results
@@ -41,7 +40,6 @@ TODO:
 - [ ] Add the possibility to predict given the precondition is true (very useful for evaluation)
 - [ ] Test with very weird cases
 - [ ] Receptive field slicing
-- [ ] Proper handling of multimetrics (not adding them one by one).
 - [ ] Augmentations helper
 - [ ] Incremental re-run
 - [ ] Support for classification special case handling.
@@ -161,3 +159,6 @@ Done:
 - [x] Per-task evaluation information, given that precondition is working correctly.
 - [x] Overall evaluation information
 - [x] Implement CompositeEvaluator
+- [x] Utility for Scikit-learn callbacks/metrics
+- [x] Better abstraction of metric - is it operating on logits, activated or decoded? etc.
+
