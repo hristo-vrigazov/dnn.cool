@@ -109,7 +109,7 @@ def test_synthetic_dataset():
         optimizer=optim.Adam(model.parameters(), lr=1e-4),
         loaders=nested_loaders,
         callbacks=callbacks,
-        num_epochs=2,
+        num_epochs=10,
     )
 
     print_any_prediction(criterion, model, nested_loaders, runner)
