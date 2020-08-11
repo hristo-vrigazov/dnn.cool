@@ -4,11 +4,14 @@ Some dumb stuff I am playing with.
 
 DOING:
 
+- [ ] Better abstraction of metric - is it operating on logits, activated or decoded? etc.
 - [ ] Support multilabel classification problem
+- [ ] Utility for Scikit-learn callbacks/metrics
+- [ ] Utility for per-sample loss function
+- [ ] Update synthetic dataset to include classification and multi-label classification
 
 TODO:
 
-- [ ] Utility for per-sample loss function
 - [ ] Combine Grad-CAM (for classification task) with best/worst in Tensorboard
 - [ ] Clean separation of tests for low-level API and high-level API
 - [ ] Implement some common decoders
@@ -81,13 +84,17 @@ TODO:
 - [ ] Simple averaging util for runner boosting
 - [ ] Add the possibility to not store the labels in memory when tuning and evaluating.
 - [ ] Precondition shape should be handled correctly
-- [ ] Utility for Scikit-learn callbacks/metrics
 - [ ] Test on real dataset
 - [ ] EfficientDet integration
 - [ ] EfficientNet integration
 - [ ] YOLO integration
 - [ ] Mask R-CNN implementation
 - [ ] HuggingFace integration
+- [ ] Update to new dependencies (Catalyst in particular handles metrics differently)
+- [ ] Stable metric utilities
+- [ ] Example training on ImageNet + localization
+- [ ] Common converters implementation
+- [ ] Make it possible to add additional metrics for TaskFlow
 
 Done: 
 

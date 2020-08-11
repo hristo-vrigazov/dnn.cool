@@ -112,8 +112,8 @@ class InterpretationCallback(Callback):
     def on_batch_end(self, state: State):
         if not isinstance(state.loaders[state.loader_name].sampler, SequentialSampler):
             return
-        outputs = state.batch_out['logits']
-        targets = state.batch_in['targets']
+        outputs = state.output['logits']
+        targets = state.input['targets']
         self.interpretations[state.loader_name]['overall'].append(to_numpy(self.overall_loss(outputs, targets)))
 
         for loss in self.leaf_losses:
