@@ -3,7 +3,8 @@ import torch
 from torch import nn
 from torch.utils.data import Dataset, TensorDataset
 
-from dnn_cool.task_flow import BinaryClassificationTask, TaskFlow, ClassificationTask
+from dnn_cool.decoders import BinaryDecoder
+from dnn_cool.task_flow import BinaryClassificationTask, TaskFlow, ClassificationTask, Task
 
 
 @pytest.fixture(scope='package')
@@ -135,3 +136,11 @@ def interior_car_task():
 
     return InteriorMonitorModule(), flow
 
+
+@pytest.fixture(scope='package')
+def simple_binary_data():
+    x = torch.tensor([-3., 0., 19., -12., 23., 1. -1., -1.]).unsqueeze(dim=-1)
+    y = torch.tensor([1, 1, 1, 0, 1, 0, 0])
+
+    task_mock = Task(decoder=BinaryDecoder(), activation=nn.Sigmoid(), labels=None, loss=None, name='mock_task', per_sample_loss=None)
+    return x, y, task_mock

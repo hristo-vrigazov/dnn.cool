@@ -9,6 +9,22 @@ from torch import nn
 from dnn_cool.utils import any_value
 
 
+class ReducedPerSample(nn.Module):
+
+    def __init__(self, loss, reduction):
+        super().__init__()
+        self.loss = loss
+        self.reduction = reduction
+
+    def forward(self, *args, **kwargs):
+        loss_results = self.loss(*args, **kwargs)
+        n_dims = len(loss_results.shape)
+        if n_dims > 1:
+            dims_to_reduce = tuple(range(1, n_dims))
+            return self.reduction(loss_results, dim=dims_to_reduce, keepdim=True)
+        return loss_results
+
+
 class LossFlowData:
 
     def __init__(self, outputs, targets):

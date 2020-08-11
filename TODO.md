@@ -4,12 +4,11 @@ Some dumb stuff I am playing with.
 
 DOING:
 
-- [ ] Proper handling of multimetrics (not adding them one by one).
 - [ ] Support multilabel classification problem
-- [ ] Utility for per-sample loss function
 - [ ] Update synthetic dataset to include classification and multi-label classification
 - [ ] Cleaner representations for results
 - [ ] Draw ROC curve callback
+- [ ] Add and implement nice default metrics for different tasks.
 
 TODO:
 
@@ -43,7 +42,6 @@ TODO:
 - [ ] Augmentations helper
 - [ ] Incremental re-run
 - [ ] Support for classification special case handling.
-- [ ] Add and implement nice default metrics for different tasks.
 - [ ] Think of default values for different tasks.
 - [ ] Add per sample activation
 - [ ] Spend time thinking about user-friendliness of each class (think about what mistakes would people do?).
@@ -93,6 +91,7 @@ TODO:
 - [ ] Example training on ImageNet + localization
 - [ ] Common converters implementation
 - [ ] Make it possible to add additional metrics for TaskFlow
+- [ ] Create example notebook and upload it to Colab
 
 Done: 
 
@@ -161,4 +160,7 @@ Done:
 - [x] Implement CompositeEvaluator
 - [x] Utility for Scikit-learn callbacks/metrics
 - [x] Better abstraction of metric - is it operating on logits, activated or decoded? etc.
+- [x] Proper handling of multimetrics (not adding them one by one).
+- [x] Utility for per-sample loss function
+
 
