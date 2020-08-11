@@ -9,6 +9,7 @@ DOING:
 - [ ] Cleaner representations for results
 - [ ] Draw ROC curve callback
 - [ ] Add and implement nice default metrics for different tasks.
+- [ ] Improve test coverage, especially the user-friendliness part
 
 TODO:
 
@@ -17,7 +18,6 @@ TODO:
 - [ ] Implement some common decoders
 - [ ] Implement some common metrics
 - [ ] Implement inference when we don't have ground truth
-- [ ] Improve test coverage, especially the user-friendliness part
 - [ ] Freeze-all but task feature (including Batch Norm) - may include parameter group
 - [ ] Set learning rate per task feature
 - [ ] UI splitting helper
