@@ -26,7 +26,7 @@ class EvaluationVisitor(LeafVisitor):
         res = []
         for metric_name, metric in self.metrics:
             # No activation, since preds is already activated
-            metric_res = metric(preds, targets, activate=False)
+            metric_res = metric(preds, targets, activate=False, decode=True)
             if isinstance(metric_res, torch.Tensor):
                 metric_res = metric_res.item()
             res.append({
