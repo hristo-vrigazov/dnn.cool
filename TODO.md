@@ -13,6 +13,7 @@ DOING:
 
 TODO:
 
+- [ ] Helper for using built-in callbacks for a specific task
 - [ ] Combine Grad-CAM (for classification task) with best/worst in Tensorboard
 - [ ] Clean separation of tests for low-level API and high-level API
 - [ ] Implement some common decoders
