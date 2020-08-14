@@ -1,22 +1,26 @@
+from functools import partial
+
 import torch
 
 from catalyst.utils.metrics import accuracy
+from sklearn.metrics import f1_score
 
 
 class TorchMetric:
 
-    def __init__(self, metric_fc, is_multimetric=False, list_args=None):
+    def __init__(self, metric_fn, decode=True, is_multimetric=False, list_args=None):
         self.activation = None
         self.decoder = None
-        self.metric_fc = metric_fc
+        self.metric_fn = metric_fn
         self._is_multimetric = is_multimetric
         self._list_args = list_args
+        self._decode = decode
 
     def bind_to_task(self, task):
         self.activation = task.get_activation()
         self.decoder = task.get_decoder()
 
-    def __call__(self, outputs, targets, activate=True, decode=True):
+    def __call__(self, outputs, targets, activate=True):
         if (self.activation is None) or (self.decoder is None):
             raise ValueError(f'The metric is not binded to a task, but is already used.')
         outputs = torch.as_tensor(outputs)
@@ -24,12 +28,12 @@ class TorchMetric:
 
         if activate:
             outputs = self.activation(outputs)
-        if decode:
+        if self._decode:
             outputs = self.decoder(outputs)
         return self._invoke_metric(outputs, targets)
 
     def _invoke_metric(self, outputs, targets):
-        return self.metric_fc(outputs, targets)
+        return self.metric_fn(outputs, targets)
 
     def is_multi_metric(self):
         return self._is_multimetric
@@ -41,34 +45,51 @@ class TorchMetric:
 class BinaryAccuracy(TorchMetric):
 
     def __init__(self):
-        super().__init__(accuracy, is_multimetric=False)
+        super().__init__(accuracy, decode=True, is_multimetric=False)
 
     def _invoke_metric(self, outputs, targets):
         if len(outputs.shape) <= 1:
             outputs = outputs.unsqueeze(dim=-1)
-        return self.metric_fc(outputs, targets)[0]
+        return self.metric_fn(outputs, targets)[0]
 
 
 class ClassificationAccuracy(TorchMetric):
 
     def __init__(self):
-        super().__init__(accuracy, is_multimetric=True, list_args=(1, 3, 5))
-
-    def __call__(self, outputs, targets, activate=True, decode=True):
-        return super(ClassificationAccuracy, self).__call__(outputs, targets, activate=activate, decode=False)
+        super().__init__(accuracy, decode=False, is_multimetric=True, list_args=(1, 3, 5))
 
 
 class NumpyMetric(TorchMetric):
 
-    def __init__(self, metric_fc):
-        super().__init__(metric_fc)
+    def __init__(self, metric_fn, decode=True, is_multimetric=False, list_args=None):
+        super().__init__(metric_fn, decode, is_multimetric, list_args)
 
-    def _invoke_metric(self, outputs, targets, activate=True, decode=True):
+    def _invoke_metric(self, outputs, targets):
         if isinstance(outputs, torch.Tensor):
             outputs = outputs.detach().cpu().numpy()
         if isinstance(targets, torch.Tensor):
             targets = targets.cpu().numpy()
-        return self.metric_fc(outputs, targets)
+        return self.metric_fn(outputs, targets)
+
+
+class ClassificationNumpyMetric(NumpyMetric):
+
+    def __init__(self, metric_fn, decode=True, is_multimetric=False, list_args=None):
+        super().__init__(metric_fn, decode=decode, is_multimetric=is_multimetric, list_args=list_args)
+
+    def _invoke_metric(self, outputs, targets):
+        if isinstance(outputs, torch.Tensor):
+            outputs = outputs.detach().cpu().numpy()
+        if isinstance(targets, torch.Tensor):
+            targets = targets.cpu().numpy()
+        outputs = outputs[..., 0]
+        return self.metric_fn(outputs, targets)
+
+
+class ClassificationF1Score(ClassificationNumpyMetric):
+
+    def __init__(self):
+        super().__init__(partial(f1_score, average='micro'))
 
 
 def single_result_accuracy(outputs, targets, *args, **kwargs):
