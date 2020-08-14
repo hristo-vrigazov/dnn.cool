@@ -134,7 +134,7 @@ class ClassificationRecall(ClassificationNumpyMetric):
 
 class MeanAbsoluteError(TorchMetric):
 
-    def __init__(self, decode=True, is_multimetric=False, list_args=None):
+    def __init__(self, decode=False, is_multimetric=False, list_args=None):
         super().__init__(nn.L1Loss(), decode, is_multimetric, list_args)
 
 

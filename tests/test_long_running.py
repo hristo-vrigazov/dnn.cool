@@ -38,7 +38,7 @@ def test_passenger_example(interior_car_task):
             loaders=nested_loaders,
             callbacks=callbacks,
             logdir=tmp_dir,
-            num_epochs=40,
+            num_epochs=20,
         )
 
     print_any_prediction(criterion, model, nested_loaders, runner)
@@ -54,10 +54,10 @@ def test_synthetic_dataset():
     runner.train(
         model=model,
         criterion=criterion,
-        optimizer=optim.Adam(model.parameters(), lr=1e-4),
+        optimizer=optim.Adam(model.parameters(), lr=1e-3),
         loaders=nested_loaders,
         callbacks=callbacks,
-        num_epochs=10,
+        num_epochs=5,
     )
 
     print_any_prediction(criterion, model, nested_loaders, runner)
@@ -69,7 +69,7 @@ def test_synthetic_dataset_default_runner():
     flow: TaskFlow = project.get_full_flow()
     criterion = flow.get_loss()
 
-    runner.train(num_epochs=10)
+    runner.train(num_epochs=5)
 
     early_stop_callback = runner.default_callbacks[-1]
     assert early_stop_callback.best_score >= 0, 'Negative loss function!'
