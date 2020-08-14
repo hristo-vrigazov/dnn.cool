@@ -66,7 +66,7 @@ def generate_door_closed_image(door_locked):
     return img, res
 
 
-def draw_person(img, res):
+def draw_person(img, res, shirt_type='blue'):
     head_radius = 6
     offsets = np.random.randint(-10, 10, size=4)
     head = int(30 + offsets[0]), int(10 + offsets[1])
@@ -83,19 +83,31 @@ def draw_person(img, res):
     d = head_radius * 2
     rec_start = head[0] - head_radius + offsets[0], head[1] + head_radius + offsets[1]
     rec_end = rec_start[0] + d + offsets[2], rec_start[1] + 30 + offsets[3]
-    cv2.rectangle(img, rec_start, rec_end, color=(0, 0, 255), thickness=-1)
+
+    if shirt_type == 'blue':
+        color = (0, 0, 255)
+        shirt_label = 0
+    elif shirt_type == 'red':
+        color = (255, 0, 0)
+        shirt_label = 1
+    else:
+        color = (0, 255, 0)
+        shirt_label = 2
+
+    cv2.rectangle(img, rec_start, rec_end, color=color, thickness=-1)
 
     res['body_x1'] = rec_start[0]
     res['body_y1'] = rec_start[1]
     res['body_w'] = rec_end[0] - rec_start[0]
     res['body_h'] = rec_end[1] - rec_start[1]
+    res['shirt_type'] = shirt_label
 
     return img, res
 
 
-def generate_image_with_person():
+def generate_image_with_person(shirt_type='blue'):
     img, res = generate_door_open_image()
-    img, res = draw_person(img, res)
+    img, res = draw_person(img, res, shirt_type)
     return img, res
 
 
@@ -104,7 +116,9 @@ def generate_sample():
                   generate_door_open_image,
                   partial(generate_door_closed_image, door_locked=True),
                   partial(generate_door_closed_image, door_locked=False),
-                  generate_image_with_person]
+                  partial(generate_image_with_person, shirt_type='blue'),
+                  partial(generate_image_with_person, shirt_type='red'),
+                  partial(generate_image_with_person, shirt_type='green')]
     choice = np.random.randint(0, len(generators), size=1)[0]
     return generators[choice]()
 

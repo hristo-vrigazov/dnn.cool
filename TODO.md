@@ -4,8 +4,8 @@ Some dumb stuff I am playing with.
 
 DOING:
 
-- [ ] Support multilabel classification problem
 - [ ] Update synthetic dataset to include classification and multi-label classification
+- [ ] Support multilabel classification problem
 - [ ] Cleaner representations for results
 - [ ] Draw ROC curve callback
 - [ ] Add and implement nice default metrics for different tasks.
