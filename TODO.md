@@ -93,6 +93,7 @@ TODO:
 - [ ] Common converters implementation
 - [ ] Make it possible to add additional metrics for TaskFlow
 - [ ] Create example notebook and upload it to Colab
+- [ ] Ensure that an output of a given task can be passed to a child task
 
 Done: 
 

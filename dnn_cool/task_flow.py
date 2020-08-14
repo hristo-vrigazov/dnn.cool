@@ -1,3 +1,5 @@
+import torch
+
 from typing import Iterable, Optional, Callable, Tuple
 
 from sklearn.metrics import f1_score, precision_score, recall_score
@@ -9,7 +11,7 @@ from dnn_cool.datasets import FlowDataset, LeafTaskDataset
 from dnn_cool.decoders import sort_declining, BinaryDecoder, TaskFlowDecoder
 from dnn_cool.evaluation import EvaluationCompositeVisitor, EvaluationVisitor
 from dnn_cool.filter import FilterCompositeVisitor, FilterVisitor
-from dnn_cool.losses import TaskFlowLoss
+from dnn_cool.losses import TaskFlowLoss, ReducedPerSample
 from dnn_cool.metrics import TorchMetric, NumpyMetric, Accuracy
 from dnn_cool.missing_values import positive_values, positive_values_unsqueezed
 from dnn_cool.modules import SigmoidAndMSELoss, Identity, TaskFlowModule
@@ -159,7 +161,7 @@ class BoundedRegressionTask(Task):
                  name: str,
                  labels,
                  loss=SigmoidAndMSELoss(reduction='mean'),
-                 per_sample_loss=SigmoidAndMSELoss(reduction='none'),
+                 per_sample_loss=ReducedPerSample(SigmoidAndMSELoss(reduction='none'), reduction=torch.sum),
                  available_func: Callable = None,
                  module=Identity(),
                  activation: Optional[nn.Module] = nn.Sigmoid(),
@@ -189,7 +191,7 @@ class BinaryClassificationTask(Task):
                  name: str,
                  labels,
                  loss=nn.BCEWithLogitsLoss(reduction='mean'),
-                 per_sample_loss=nn.BCEWithLogitsLoss(reduction='none'),
+                 per_sample_loss=ReducedPerSample(nn.BCEWithLogitsLoss(reduction='none'), reduction=torch.mean),
                  available_func=positive_values,
                  inputs=None,
                  activation: Optional[nn.Module] = nn.Sigmoid(),
@@ -224,7 +226,7 @@ class ClassificationTask(Task):
                  name: str,
                  labels,
                  loss=nn.CrossEntropyLoss(reduction='mean'),
-                 per_sample_loss=nn.CrossEntropyLoss(reduction='none'),
+                 per_sample_loss=ReducedPerSample(nn.CrossEntropyLoss(reduction='none'), torch.mean),
                  available_func=positive_values_unsqueezed,
                  inputs=None,
                  activation=nn.Softmax(dim=-1),
