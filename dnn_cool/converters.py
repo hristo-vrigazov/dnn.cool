@@ -43,15 +43,19 @@ class TypeGuesser:
 
 @dataclass()
 class ValuesConverter:
+    col_mapping = {}
     type_mapping = {}
 
     def to_values(self, df, col, guessed_type):
+        if col in self.col_mapping:
+            converter = self.col_mapping[col]
+            return Values([col], converter(df[col].values))
         if guessed_type in self.type_mapping:
             converter = self.type_mapping[guessed_type]
             return Values([col], [converter(df[col].values)])
 
         raise KeyError(f'Cannot convert column "{col}" from dataframe, because there is no registered converter'
-                       f' for its guessed type {guessed_type}.')
+                       f' for its guessed type "{guessed_type}".')
 
 
 @dataclass()
