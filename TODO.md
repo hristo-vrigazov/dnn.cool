@@ -37,7 +37,6 @@ TODO:
 - [ ] Make sure immutability of objects is preserved
 - [ ] Documentation
 - [ ] Think of useful methods
-- [ ] Add the possibility to predict given the precondition is true (very useful for evaluation)
 - [ ] Test with very weird cases
 - [ ] Receptive field slicing
 - [ ] Augmentations helper
@@ -56,7 +55,6 @@ TODO:
 - [ ] Add object detection tasks
 - [ ] Add NLP tasks
 - [ ] Implement smart type guessing
-- [ ] Are metrics computed only for when the preconditions are correct?
 - [ ] EfficientNet-based project helper
 - [ ] Implement smart values converter
 - [ ] Implement smart task converter
@@ -164,5 +162,7 @@ Done:
 - [x] Better abstraction of metric - is it operating on logits, activated or decoded? etc.
 - [x] Proper handling of multimetrics (not adding them one by one).
 - [x] Utility for per-sample loss function
+- [x] Add the possibility to predict given the precondition is true (very useful for evaluation)
+- [x] Are metrics computed only for when the preconditions are correct?
 
 

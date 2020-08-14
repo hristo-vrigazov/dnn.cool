@@ -48,6 +48,18 @@ class BinaryDecoder(Decoder):
         self.threshold = params['threshold']
 
 
+class ClassificationDecoder(Decoder):
+
+    def __call__(self, x):
+        return sort_declining(x)
+
+    def tune(self, predictions, targets):
+        pass
+
+    def load_tuned(self, params):
+        pass
+
+
 class DecodingVisitor(LeafVisitor):
 
     def __init__(self, task, prefix):
@@ -102,4 +114,4 @@ def threshold_binary(x, threshold=0.5):
 
 
 def sort_declining(x):
-    return (-x).argsort(dim=-1)
+    return (-x).argsort(-1)

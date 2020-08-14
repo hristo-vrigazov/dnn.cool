@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 
 from dnn_cool.activations import CompositeActivation
 from dnn_cool.datasets import FlowDataset, LeafTaskDataset
-from dnn_cool.decoders import sort_declining, BinaryDecoder, TaskFlowDecoder
+from dnn_cool.decoders import sort_declining, BinaryDecoder, TaskFlowDecoder, Decoder, ClassificationDecoder
 from dnn_cool.evaluation import EvaluationCompositeVisitor, EvaluationVisitor
 from dnn_cool.filter import FilterCompositeVisitor, FilterVisitor
 from dnn_cool.losses import TaskFlowLoss, ReducedPerSample
@@ -87,7 +87,7 @@ class Task(ITask):
                  available_func: Callable = None,
                  inputs=None,
                  activation: Optional[nn.Module] = None,
-                 decoder: Callable = None,
+                 decoder: Decoder = None,
                  module: Optional[nn.Module] = Identity(),
                  metrics: Tuple[str, TorchMetric] = ()):
         super().__init__(name, inputs, available_func, metrics)
@@ -134,7 +134,7 @@ class BinaryHardcodedTask(Task):
                  available_func: Callable = positive_values,
                  inputs=None,
                  activation: Optional[nn.Module] = None,
-                 decoder: Callable = None,
+                 decoder: Decoder = None,
                  module: nn.Module = Identity(),
                  metrics: Tuple[str, TorchMetric] = ()):
         super().__init__(name=name,
@@ -165,7 +165,7 @@ class BoundedRegressionTask(Task):
                  available_func: Callable = None,
                  module=Identity(),
                  activation: Optional[nn.Module] = nn.Sigmoid(),
-                 decoder: Callable = None,
+                 decoder: Decoder = None,
                  inputs=None,
                  metrics=()):
         super().__init__(name=name,
@@ -195,7 +195,7 @@ class BinaryClassificationTask(Task):
                  available_func=positive_values,
                  inputs=None,
                  activation: Optional[nn.Module] = nn.Sigmoid(),
-                 decoder: Callable = BinaryDecoder(),
+                 decoder: Decoder = BinaryDecoder(),
                  module: nn.Module = Identity(),
                  metrics: Tuple[str, TorchMetric] = (
                          ('accuracy', BinaryAccuracy()),
@@ -230,7 +230,7 @@ class ClassificationTask(Task):
                  available_func=positive_values_unsqueezed,
                  inputs=None,
                  activation=nn.Softmax(dim=-1),
-                 decoder=sort_declining,
+                 decoder=ClassificationDecoder(),
                  module: nn.Module = Identity(),
                  metrics=(
                          ('accuracy', ClassificationAccuracy()),

@@ -11,7 +11,7 @@ from dnn_cool.converters import Converters
 from dnn_cool.project import Project
 from dnn_cool.runner import InferDictCallback
 from dnn_cool.synthetic_dataset import synthenic_dataset_preparation
-from dnn_cool.task_flow import TaskFlow
+from dnn_cool.task_flow import TaskFlow, BinaryClassificationTask, ClassificationTask
 
 
 def test_project_example():
@@ -33,6 +33,9 @@ def test_project_example():
     converters = Converters()
     converters.values.type_mapping['category'] = torch.LongTensor
     converters.values.type_mapping['binary'] = torch.BoolTensor
+
+    converters.task.type_mapping['binary'] = BinaryClassificationTask
+    converters.task.type_mapping['category'] = ClassificationTask
 
     project = Project(df, input_col='input',
                       output_col=['camera_blocked', 'door_open', 'uniform_type'],

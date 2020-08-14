@@ -77,7 +77,7 @@ def squeeze_if_needed(tensor):
     if len(tensor.shape) > 2:
         raise ValueError(f'Trying to squeeze the second dimension out of a tensor with shape: {tensor.shape}')
     if len(tensor.shape) == 2:
-        return tensor.squeeze(dim=1)
+        return tensor.squeeze(1)
     return tensor
 
 

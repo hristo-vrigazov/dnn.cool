@@ -26,7 +26,7 @@ class EvaluationVisitor(LeafVisitor):
         res = []
         for metric_name, metric in self.metrics:
             # No activation, since preds is already activated
-            metric_res = metric(preds, targets, activate=False, decode=True)
+            metric_res = metric(preds, targets, activate=False)
             if metric.is_multi_metric():
                 args = metric.list_args()
                 for i in range(len(metric_res)):

@@ -3,6 +3,8 @@ import torch
 from dataclasses import dataclass
 from typing import Dict
 
+from dnn_cool.losses import squeeze_if_needed
+
 
 @dataclass
 class VisitorData:
@@ -70,6 +72,7 @@ class LeafVisitor:
             return self.full_result(preds, targets)
         if precondition.sum() == 0:
             return self.empty_result()
+        precondition = squeeze_if_needed(precondition)
         return self.preconditioned_result(preds[precondition], targets[precondition])
 
     def full_result(self, preds, targets):
