@@ -4,6 +4,7 @@ Some dumb stuff I am playing with.
 
 DOING:
 
+- [ ] There is a bug in the metrics, there are over 100!
 - [ ] Add and implement nice default metrics for different tasks.
 - [ ] Update synthetic dataset to include classification and multi-label classification
 - [ ] Support multilabel classification problem

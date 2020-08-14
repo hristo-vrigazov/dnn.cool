@@ -67,6 +67,7 @@ def test_synthetic_dataset_default_runner():
     runner = project.runner(model=model, runner_name='default_experiment')
     flow: TaskFlow = project.get_full_flow()
     criterion = flow.get_loss()
+    assert len(criterion.get_metrics()) < 100, 'Callbacks are too many!'
 
     runner.train(num_epochs=5)
 
