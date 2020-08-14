@@ -64,7 +64,6 @@ TODO:
 - [ ] Test nested FC layers
 - [ ] Readable/visual result implemenetation - draw bounding boxes, etc.
 - [ ] Add precondition builder for tasks other than binary classification task.
-- [ ] Implement common loss functions with their `per_sample` equivalent.
 - [ ] Distillation utils
 - [ ] Weightwatcher add
 - [ ] Noobj stuff in YOLO
@@ -92,7 +91,7 @@ TODO:
 - [ ] Make it possible to add additional metrics for TaskFlow
 - [ ] Create example notebook and upload it to Colab
 - [ ] Ensure that an output of a given task can be passed to a child task
-- [ ] Are built-in callbacks slowing down things too much?
+- [ ] Are built-in callbacks slowing down things too much? - maybe we can share the flow execution between metrics?
 
 Done: 
 
@@ -165,5 +164,6 @@ Done:
 - [x] Utility for per-sample loss function
 - [x] Add the possibility to predict given the precondition is true (very useful for evaluation)
 - [x] Are metrics computed only for when the preconditions are correct?
+- [x] Implement common loss functions with their `per_sample` equivalent.
 
 
