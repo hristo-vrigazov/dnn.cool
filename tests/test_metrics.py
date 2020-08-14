@@ -1,11 +1,11 @@
 from sklearn.metrics import accuracy_score
 
-from dnn_cool.metrics import Accuracy, NumpyMetric
+from dnn_cool.metrics import BinaryAccuracy, NumpyMetric
 
 
 def test_binary_accuracy(simple_binary_data):
     x, y, task_mock = simple_binary_data
-    metric = Accuracy()
+    metric = BinaryAccuracy()
     metric.bind_to_task(task_mock)
 
     res = metric(x, y, activate=True, decode=True)[0].item()

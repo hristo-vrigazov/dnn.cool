@@ -222,6 +222,7 @@ def synthenic_dataset_preparation():
         out += flow.body_y1(x.features)
         out += flow.body_w(x.features)
         out += flow.body_h(x.features)
+        out += flow.shirt_type(x.features)
         return out
 
     @project.add_flow

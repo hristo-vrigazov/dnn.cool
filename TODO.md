@@ -4,11 +4,11 @@ Some dumb stuff I am playing with.
 
 DOING:
 
+- [ ] Add and implement nice default metrics for different tasks.
 - [ ] Update synthetic dataset to include classification and multi-label classification
 - [ ] Support multilabel classification problem
 - [ ] Cleaner representations for results
 - [ ] Draw ROC curve callback
-- [ ] Add and implement nice default metrics for different tasks.
 - [ ] Improve test coverage, especially the user-friendliness part
 
 TODO:

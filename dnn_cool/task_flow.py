@@ -12,7 +12,7 @@ from dnn_cool.decoders import sort_declining, BinaryDecoder, TaskFlowDecoder
 from dnn_cool.evaluation import EvaluationCompositeVisitor, EvaluationVisitor
 from dnn_cool.filter import FilterCompositeVisitor, FilterVisitor
 from dnn_cool.losses import TaskFlowLoss, ReducedPerSample
-from dnn_cool.metrics import TorchMetric, NumpyMetric, Accuracy
+from dnn_cool.metrics import TorchMetric, NumpyMetric, BinaryAccuracy, ClassificationAccuracy
 from dnn_cool.missing_values import positive_values, positive_values_unsqueezed
 from dnn_cool.modules import SigmoidAndMSELoss, Identity, TaskFlowModule
 from dnn_cool.treelib import TreeExplainer
@@ -198,7 +198,7 @@ class BinaryClassificationTask(Task):
                  decoder: Callable = BinaryDecoder(),
                  module: nn.Module = Identity(),
                  metrics: Tuple[str, TorchMetric] = (
-                         ('accuracy', Accuracy()),
+                         ('accuracy', BinaryAccuracy()),
                          ('f1_score', NumpyMetric(f1_score)),
                          ('precision', NumpyMetric(precision_score)),
                          ('recall', NumpyMetric(recall_score)),
@@ -232,7 +232,9 @@ class ClassificationTask(Task):
                  activation=nn.Softmax(dim=-1),
                  decoder=sort_declining,
                  module: nn.Module = Identity(),
-                 metrics=()):
+                 metrics=(
+                         ('accuracy', ClassificationAccuracy()),
+                 )):
         super().__init__(name=name,
                          labels=labels,
                          loss=loss,

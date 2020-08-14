@@ -38,15 +38,24 @@ class TorchMetric:
         return self._list_args
 
 
-class Accuracy(TorchMetric):
+class BinaryAccuracy(TorchMetric):
 
     def __init__(self):
-        super().__init__(accuracy, is_multimetric=True, list_args=(1, 3, 5))
+        super().__init__(accuracy, is_multimetric=False)
 
     def _invoke_metric(self, outputs, targets):
         if len(outputs.shape) <= 1:
             outputs = outputs.unsqueeze(dim=-1)
-        return self.metric_fc(outputs, targets)
+        return self.metric_fc(outputs, targets)[0]
+
+
+class ClassificationAccuracy(TorchMetric):
+
+    def __init__(self):
+        super().__init__(accuracy, is_multimetric=True, list_args=(1, 3, 5))
+
+    def __call__(self, outputs, targets, activate=True, decode=True):
+        return super(ClassificationAccuracy, self).__call__(outputs, targets, activate=activate, decode=False)
 
 
 class NumpyMetric(TorchMetric):
