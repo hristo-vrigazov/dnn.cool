@@ -151,7 +151,6 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         loaders = OrderedDict({
             'train': train_loader,
             'valid': val_loader,
-            'test': test_loader
         })
 
         # Rename 'train' loader and dataset, since catalyst does not allow inference on train dataset.
@@ -160,6 +159,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
             del loaders['train']
             datasets['infer'] = datasets['train']
             del datasets['train']
+            loaders['test'] = test_loader
         return datasets, loaders
 
     def get_default_datasets(self, **kwargs) -> Dict[str, Dataset]:

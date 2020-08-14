@@ -49,14 +49,13 @@ def test_synthetic_dataset():
     runner = project.runner(model=model, runner_name='security_logs')
     flow: TaskFlow = project.get_full_flow()
     criterion = flow.get_loss()
-    callbacks = criterion.catalyst_callbacks()
 
     runner.train(
         model=model,
         criterion=criterion,
         optimizer=optim.Adam(model.parameters(), lr=1e-3),
         loaders=nested_loaders,
-        callbacks=callbacks,
+        callbacks=[],
         num_epochs=5,
     )
 
