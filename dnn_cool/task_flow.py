@@ -1,8 +1,6 @@
-import torch
-
 from typing import Iterable, Optional, Callable, Tuple
 
-from sklearn.metrics import f1_score, precision_score, recall_score
+import torch
 from torch import nn
 from torch.utils.data import Dataset
 
@@ -12,8 +10,9 @@ from dnn_cool.decoders import sort_declining, BinaryDecoder, TaskFlowDecoder
 from dnn_cool.evaluation import EvaluationCompositeVisitor, EvaluationVisitor
 from dnn_cool.filter import FilterCompositeVisitor, FilterVisitor
 from dnn_cool.losses import TaskFlowLoss, ReducedPerSample
-from dnn_cool.metrics import TorchMetric, NumpyMetric, BinaryAccuracy, ClassificationAccuracy, \
-    ClassificationNumpyMetric, ClassificationF1Score
+from dnn_cool.metrics import TorchMetric, BinaryAccuracy, ClassificationAccuracy, \
+    ClassificationF1Score, ClassificationPrecision, ClassificationRecall, BinaryF1Score, \
+    BinaryPrecision, BinaryRecall
 from dnn_cool.missing_values import positive_values, positive_values_unsqueezed
 from dnn_cool.modules import SigmoidAndMSELoss, Identity, TaskFlowModule
 from dnn_cool.treelib import TreeExplainer
@@ -200,9 +199,9 @@ class BinaryClassificationTask(Task):
                  module: nn.Module = Identity(),
                  metrics: Tuple[str, TorchMetric] = (
                          ('accuracy', BinaryAccuracy()),
-                         ('f1_score', NumpyMetric(f1_score)),
-                         ('precision', NumpyMetric(precision_score)),
-                         ('recall', NumpyMetric(recall_score)),
+                         ('f1_score', BinaryF1Score()),
+                         ('precision', BinaryPrecision()),
+                         ('recall', BinaryRecall()),
                  )):
         super().__init__(name=name,
                          labels=labels,
@@ -236,6 +235,8 @@ class ClassificationTask(Task):
                  metrics=(
                          ('accuracy', ClassificationAccuracy()),
                          ('f1_score', ClassificationF1Score()),
+                         ('precision', ClassificationPrecision()),
+                         ('recall', ClassificationRecall()),
                  )):
         super().__init__(name=name,
                          labels=labels,

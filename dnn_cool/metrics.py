@@ -3,7 +3,7 @@ from functools import partial
 import torch
 
 from catalyst.utils.metrics import accuracy
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, precision_score, recall_score
 
 
 class TorchMetric:
@@ -72,6 +72,24 @@ class NumpyMetric(TorchMetric):
         return self.metric_fn(outputs, targets)
 
 
+class BinaryF1Score(NumpyMetric):
+
+    def __init__(self):
+        super().__init__(f1_score)
+
+
+class BinaryPrecision(NumpyMetric):
+
+    def __init__(self):
+        super().__init__(precision_score)
+
+
+class BinaryRecall(NumpyMetric):
+
+    def __init__(self):
+        super().__init__(recall_score)
+
+
 class ClassificationNumpyMetric(NumpyMetric):
 
     def __init__(self, metric_fn, decode=True, is_multimetric=False, list_args=None):
@@ -90,6 +108,18 @@ class ClassificationF1Score(ClassificationNumpyMetric):
 
     def __init__(self):
         super().__init__(partial(f1_score, average='micro'))
+
+
+class ClassificationPrecision(ClassificationNumpyMetric):
+
+    def __init__(self):
+        super().__init__(partial(precision_score, average='micro'))
+
+
+class ClassificationRecall(ClassificationNumpyMetric):
+
+    def __init__(self):
+        super().__init__(partial(recall_score, average='micro'))
 
 
 def single_result_accuracy(outputs, targets, *args, **kwargs):
