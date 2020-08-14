@@ -58,6 +58,15 @@ class ClassificationAccuracy(TorchMetric):
     def __init__(self):
         super().__init__(accuracy, decode=False, is_multimetric=True, list_args=(1, 3, 5))
 
+    def _invoke_metric(self, outputs, targets):
+        n_classes = outputs.shape[-1]
+        topk = [1]
+        if n_classes > 3:
+            topk.append(3)
+        if n_classes > 5:
+            topk.append(5)
+        return self.metric_fn(outputs, targets, topk=topk)
+
 
 class NumpyMetric(TorchMetric):
 

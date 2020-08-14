@@ -90,9 +90,22 @@ def draw_person(img, res, shirt_type='blue'):
     elif shirt_type == 'red':
         color = (255, 0, 0)
         shirt_label = 1
-    else:
-        color = (0, 255, 0)
+    elif shirt_type == 'yellow':
+        color = (255, 255, 0)
         shirt_label = 2
+    elif shirt_type == 'cyan':
+        color = (0, 255, 255)
+        shirt_label = 3
+    elif shirt_type == 'magenta':
+        color = (255, 0, 255)
+        shirt_label = 4
+    elif shirt_type == 'green':
+        color = (0, 255, 0)
+        shirt_label = 5
+    else:
+        # black
+        color = (0, 0, 0)
+        shirt_label = 6
 
     cv2.rectangle(img, rec_start, rec_end, color=color, thickness=-1)
 
@@ -118,7 +131,12 @@ def generate_sample():
                   partial(generate_door_closed_image, door_locked=False),
                   partial(generate_image_with_person, shirt_type='blue'),
                   partial(generate_image_with_person, shirt_type='red'),
-                  partial(generate_image_with_person, shirt_type='green')]
+                  partial(generate_image_with_person, shirt_type='yellow'),
+                  partial(generate_image_with_person, shirt_type='cyan'),
+                  partial(generate_image_with_person, shirt_type='magenta'),
+                  partial(generate_image_with_person, shirt_type='green'),
+                  partial(generate_image_with_person, shirt_type='black')
+                  ]
     choice = np.random.randint(0, len(generators), size=1)[0]
     return generators[choice]()
 
