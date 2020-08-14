@@ -221,10 +221,10 @@ class TaskFlowLoss(nn.Module):
         all_metrics = []
         for key, task in self._task_flow.tasks.items():
             child_loss = getattr(self, key)
-            for metric_name, metric in task.get_metrics():
-                if task.has_children():
-                    all_metrics += child_loss.get_metrics()
-                else:
+            if task.has_children():
+                all_metrics += child_loss.get_metrics()
+            else:
+                for metric_name, metric in task.get_metrics():
                     if not metric.is_multi_metric():
                         metric_decorator = MetricLossDecorator(task, child_loss.prefix, metric)
                     else:
