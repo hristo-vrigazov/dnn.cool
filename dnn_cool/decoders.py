@@ -1,7 +1,9 @@
+import numpy as np
+import torch
+
 from dataclasses import dataclass, field
 from typing import Dict
 
-import numpy as np
 from sklearn.metrics import accuracy_score
 from tqdm import tqdm
 
@@ -133,8 +135,12 @@ def sort_declining(x):
 
 
 class MultilabelClassificationDecoder(Decoder):
+
+    def __init__(self):
+        self.thresholds = torch.ones(3).unsqueeze(0) * 0.5
+
     def __call__(self, x):
-        raise NotImplementedError()
+        return x > self.thresholds.to(x.device)
 
     def tune(self, predictions, targets):
         raise NotImplementedError()

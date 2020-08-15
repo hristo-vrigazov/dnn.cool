@@ -14,7 +14,7 @@ from dnn_cool.losses import TaskFlowLoss, ReducedPerSample
 from dnn_cool.metrics import TorchMetric, BinaryAccuracy, ClassificationAccuracy, \
     ClassificationF1Score, ClassificationPrecision, ClassificationRecall, BinaryF1Score, \
     BinaryPrecision, BinaryRecall, MeanAbsoluteError
-from dnn_cool.missing_values import positive_values, positive_values_unsqueezed
+from dnn_cool.missing_values import positive_values, positive_values_unsqueezed, has_no_missing_labels
 from dnn_cool.modules import SigmoidAndMSELoss, Identity, TaskFlowModule
 from dnn_cool.treelib import TreeExplainer
 
@@ -260,7 +260,7 @@ class MultilabelClassificationTask(Task):
                  labels,
                  loss=nn.BCEWithLogitsLoss(reduction='mean'),
                  per_sample_loss=ReducedPerSample(nn.BCEWithLogitsLoss(reduction='none'), torch.mean),
-                 available_func=positive_values_unsqueezed,
+                 available_func=has_no_missing_labels,
                  inputs=None,
                  activation=nn.Sigmoid(),
                  decoder=MultilabelClassificationDecoder(),

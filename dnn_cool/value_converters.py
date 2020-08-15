@@ -23,4 +23,6 @@ def multilabel_converter(values):
         labels.append(list(filter(lambda x: len(x) > 0, split)))
     binarizer = MultiLabelBinarizer()
     one_hot_labels = binarizer.fit_transform(labels)
-    return torch.tensor(one_hot_labels).float()
+    res = np.ones((len(values), one_hot_labels.shape[1]), dtype=np.float32) * -1.
+    res[~pd.isna(values)] = one_hot_labels
+    return res

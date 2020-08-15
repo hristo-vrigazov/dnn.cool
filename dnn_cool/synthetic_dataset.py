@@ -243,6 +243,7 @@ def synthenic_dataset_preparation():
         out += flow.face_y1(x.features)
         out += flow.face_w(x.features)
         out += flow.face_h(x.features)
+        out += flow.facial_characteristics(x.features)
         return out
 
     @project.add_flow
