@@ -83,7 +83,7 @@ def select_facial_characteristics():
 
 def draw_person(img, res, shirt_type='blue'):
     head_radius = 6
-    offsets = np.random.randint(-10, 10, size=4)
+    offsets = np.random.randint(-4, 4, size=4)
     head = int(30 + offsets[0]), int(10 + offsets[1])
 
     color, face_characteristics = select_facial_characteristics()

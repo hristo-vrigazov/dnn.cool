@@ -94,6 +94,7 @@ TODO:
 - [ ] Are built-in callbacks slowing down things too much? - maybe we can share the flow execution between metrics?
 - [ ] Utility for storing images of different shapes
 - [ ] Make it possible to run tasks on tensors with shapes whose length is > 2.
+- [ ] Interpretation callback should show results only when precondition is correct
 
 Done: 
 

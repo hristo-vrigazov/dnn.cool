@@ -138,4 +138,10 @@ class MeanAbsoluteError(TorchMetric):
         super().__init__(nn.L1Loss(), decode, is_multimetric, list_args)
 
 
+class MultiLabelClassificationAccuracy(TorchMetric):
 
+    def __init__(self):
+        super().__init__(accuracy, decode=True, is_multimetric=False)
+
+    def _invoke_metric(self, outputs, targets):
+        return self.metric_fn(outputs, targets)[0]

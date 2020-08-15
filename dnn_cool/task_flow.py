@@ -13,7 +13,7 @@ from dnn_cool.filter import FilterCompositeVisitor, FilterVisitor
 from dnn_cool.losses import TaskFlowLoss, ReducedPerSample
 from dnn_cool.metrics import TorchMetric, BinaryAccuracy, ClassificationAccuracy, \
     ClassificationF1Score, ClassificationPrecision, ClassificationRecall, BinaryF1Score, \
-    BinaryPrecision, BinaryRecall, MeanAbsoluteError
+    BinaryPrecision, BinaryRecall, MeanAbsoluteError, MultiLabelClassificationAccuracy
 from dnn_cool.missing_values import positive_values, positive_values_unsqueezed, has_no_missing_labels
 from dnn_cool.modules import SigmoidAndMSELoss, Identity, TaskFlowModule
 from dnn_cool.treelib import TreeExplainer
@@ -265,7 +265,9 @@ class MultilabelClassificationTask(Task):
                  activation=nn.Sigmoid(),
                  decoder=MultilabelClassificationDecoder(),
                  module: nn.Module = Identity(),
-                 metrics=()):
+                 metrics=(
+                         ('accuracy', MultiLabelClassificationAccuracy()),
+                 )):
         super().__init__(name=name,
                          labels=labels,
                          loss=loss,
