@@ -5,6 +5,8 @@ Some dumb stuff I am playing with.
 DOING:
 
 - [ ] Release 0.1.0-alpha
+- [ ] Update to new dependencies (Catalyst in particular handles metrics differently)
+- [ ] Maintain compatibility matrix
 
 TODO:
 
@@ -80,7 +82,6 @@ TODO:
 - [ ] YOLO integration
 - [ ] Mask R-CNN implementation
 - [ ] HuggingFace integration
-- [ ] Update to new dependencies (Catalyst in particular handles metrics differently)
 - [ ] Stable metric utilities
 - [ ] Example training on ImageNet + localization
 - [ ] Common converters implementation
