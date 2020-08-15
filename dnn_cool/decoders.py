@@ -109,6 +109,21 @@ class TaskFlowDecoder(Decoder):
         self.tuner.load_tuned(tuned_params)
 
 
+class BoundedRegressionDecoder(Decoder):
+
+    def __init__(self, scale=224):
+        self.scale = scale
+
+    def __call__(self, x):
+        return x * self.scale
+
+    def tune(self, predictions, targets):
+        return {}
+
+    def load_tuned(self, params):
+        pass
+
+
 def threshold_binary(x, threshold=0.5):
     return x > threshold
 

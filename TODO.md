@@ -4,9 +4,7 @@ Some dumb stuff I am playing with.
 
 DOING:
 
-- [ ] There is a bug in the metrics, there are over 100!
-- [ ] Add and implement nice default metrics for different tasks.
-- [ ] Update synthetic dataset to include classification and multi-label classification
+ -[ ] Test for multi-label classification
 - [ ] Support multilabel classification problem
 - [ ] Cleaner representations for results
 - [ ] Draw ROC curve callback
@@ -14,6 +12,7 @@ DOING:
 
 TODO:
 
+- [ ] Release 0.1.0-alpha
 - [ ] Helper for using built-in callbacks for a specific task
 - [ ] Combine Grad-CAM (for classification task) with best/worst in Tensorboard
 - [ ] Clean separation of tests for low-level API and high-level API
@@ -93,6 +92,7 @@ TODO:
 - [ ] Create example notebook and upload it to Colab
 - [ ] Ensure that an output of a given task can be passed to a child task
 - [ ] Are built-in callbacks slowing down things too much? - maybe we can share the flow execution between metrics?
+- [ ] Utility for storing images of different shapes
 
 Done: 
 
@@ -166,5 +166,8 @@ Done:
 - [x] Add the possibility to predict given the precondition is true (very useful for evaluation)
 - [x] Are metrics computed only for when the preconditions are correct?
 - [x] Implement common loss functions with their `per_sample` equivalent.
+- [x] There is a bug in the metrics, there are over 100!
+- [x] Add and implement nice default metrics for different tasks.
+- [x] Update synthetic dataset to include classification
 
 
