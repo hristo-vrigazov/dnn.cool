@@ -1,11 +1,9 @@
+from dataclasses import dataclass
+from typing import Tuple
+
 import numpy as np
 
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Union, Iterable, Tuple
-
 from dnn_cool.catalyst_utils import TensorboardConverter
-from dnn_cool.task_flow import BinaryClassificationTask, ClassificationTask
 
 
 class Values:
@@ -49,10 +47,10 @@ class ValuesConverter:
     def to_values(self, df, col, guessed_type):
         if col in self.col_mapping:
             converter = self.col_mapping[col]
-            return Values([col], converter(df[col].values))
+            return Values([col], converter(df[col]))
         if guessed_type in self.type_mapping:
             converter = self.type_mapping[guessed_type]
-            return Values([col], [converter(df[col].values)])
+            return Values([col], [converter(df[col])])
 
         raise KeyError(f'Cannot convert column "{col}" from dataframe, because there is no registered converter'
                        f' for its guessed type "{guessed_type}".')

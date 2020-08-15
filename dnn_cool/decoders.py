@@ -130,3 +130,14 @@ def threshold_binary(x, threshold=0.5):
 
 def sort_declining(x):
     return (-x).argsort(-1)
+
+
+class MultilabelClassificationDecoder(Decoder):
+    def __call__(self, x):
+        raise NotImplementedError()
+
+    def tune(self, predictions, targets):
+        raise NotImplementedError()
+
+    def load_tuned(self, params):
+        raise NotImplementedError()

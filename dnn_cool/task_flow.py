@@ -6,7 +6,8 @@ from torch.utils.data import Dataset
 
 from dnn_cool.activations import CompositeActivation
 from dnn_cool.datasets import FlowDataset, LeafTaskDataset
-from dnn_cool.decoders import sort_declining, BinaryDecoder, TaskFlowDecoder, Decoder, ClassificationDecoder
+from dnn_cool.decoders import sort_declining, BinaryDecoder, TaskFlowDecoder, Decoder, ClassificationDecoder, \
+    MultilabelClassificationDecoder
 from dnn_cool.evaluation import EvaluationCompositeVisitor, EvaluationVisitor
 from dnn_cool.filter import FilterCompositeVisitor, FilterVisitor
 from dnn_cool.losses import TaskFlowLoss, ReducedPerSample
@@ -262,14 +263,9 @@ class MultilabelClassificationTask(Task):
                  available_func=positive_values_unsqueezed,
                  inputs=None,
                  activation=nn.Sigmoid(),
-                 decoder=ClassificationDecoder(),
+                 decoder=MultilabelClassificationDecoder(),
                  module: nn.Module = Identity(),
-                 metrics=(
-                         ('accuracy', ClassificationAccuracy()),
-                         ('f1_score', ClassificationF1Score()),
-                         ('precision', ClassificationPrecision()),
-                         ('recall', ClassificationRecall()),
-                 )):
+                 metrics=()):
         super().__init__(name=name,
                          labels=labels,
                          loss=loss,
@@ -280,7 +276,6 @@ class MultilabelClassificationTask(Task):
                          decoder=decoder,
                          module=module,
                          metrics=metrics)
-
 
 
 class TaskFlow(ITask):
