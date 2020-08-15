@@ -252,6 +252,37 @@ class ClassificationTask(Task):
                          metrics=metrics)
 
 
+class MultilabelClassificationTask(Task):
+
+    def __init__(self,
+                 name: str,
+                 labels,
+                 loss=nn.BCEWithLogitsLoss(reduction='mean'),
+                 per_sample_loss=ReducedPerSample(nn.BCEWithLogitsLoss(reduction='none'), torch.mean),
+                 available_func=positive_values_unsqueezed,
+                 inputs=None,
+                 activation=nn.Sigmoid(),
+                 decoder=ClassificationDecoder(),
+                 module: nn.Module = Identity(),
+                 metrics=(
+                         ('accuracy', ClassificationAccuracy()),
+                         ('f1_score', ClassificationF1Score()),
+                         ('precision', ClassificationPrecision()),
+                         ('recall', ClassificationRecall()),
+                 )):
+        super().__init__(name=name,
+                         labels=labels,
+                         loss=loss,
+                         per_sample_loss=per_sample_loss,
+                         available_func=available_func,
+                         inputs=inputs,
+                         activation=activation,
+                         decoder=decoder,
+                         module=module,
+                         metrics=metrics)
+
+
+
 class TaskFlow(ITask):
 
     def __init__(self, name, tasks: Iterable[ITask], flow_func=None, inputs=None, available_func=None):

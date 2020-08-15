@@ -66,18 +66,34 @@ def generate_door_closed_image(door_locked):
     return img, res
 
 
+def select_facial_characteristics():
+    choices = [
+        [(255, 0, 255), (0, 2)],
+        [(0, 255, 255), (1, 2)],
+        [(255, 255, 0), (0, 1)],
+        [(0, 0, 0), ()],
+        [(255, 0, 0), (0,)],
+        [(0, 255, 0), (1,)],
+        [(0, 0, 255), (2,)],
+    ]
+    choice = np.random.randint(0, len(choices), size=1)[0]
+    return choices[choice]
+
+
 def draw_person(img, res, shirt_type='blue'):
     head_radius = 6
     offsets = np.random.randint(-10, 10, size=4)
     head = int(30 + offsets[0]), int(10 + offsets[1])
 
-    img = cv2.circle(img, head, head_radius, color=(0, 255, 0), thickness=-1)
+    color, face_characteristics = select_facial_characteristics()
+    img = cv2.circle(img, head, head_radius, color=color, thickness=-1)
 
     res['person_present'] = True
     res['face_x1'] = head[0] - head_radius
     res['face_y1'] = head[1] - head_radius
     res['face_w'] = 2 * head_radius
     res['face_h'] = 2 * head_radius
+    res['facial_characteristics'] = ','.join(map(str, face_characteristics))
 
     offsets = np.random.randint(-2, 2, size=4)
     d = head_radius * 2
