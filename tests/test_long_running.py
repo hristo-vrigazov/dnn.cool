@@ -69,7 +69,7 @@ def test_synthetic_dataset_default_runner():
     criterion = flow.get_loss()
     assert len(criterion.get_metrics()) < 100, 'Callbacks are too many!'
 
-    runner.train(num_epochs=5)
+    runner.train(num_epochs=2)
 
     early_stop_callback = runner.default_callbacks[-1]
     assert early_stop_callback.best_score >= 0, 'Negative loss function!'

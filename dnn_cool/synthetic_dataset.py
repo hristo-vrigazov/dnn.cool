@@ -239,19 +239,19 @@ def synthenic_dataset_preparation():
 
     @project.add_flow
     def face_regression(flow, x, out):
-        out += flow.face_x1(x.features)
-        out += flow.face_y1(x.features)
-        out += flow.face_w(x.features)
-        out += flow.face_h(x.features)
+        out += flow.face_x1(x.face_localization)
+        out += flow.face_y1(x.face_localization)
+        out += flow.face_w(x.face_localization)
+        out += flow.face_h(x.face_localization)
         out += flow.facial_characteristics(x.features)
         return out
 
     @project.add_flow
     def body_regression(flow, x, out):
-        out += flow.body_x1(x.features)
-        out += flow.body_y1(x.features)
-        out += flow.body_w(x.features)
-        out += flow.body_h(x.features)
+        out += flow.body_x1(x.body_localization)
+        out += flow.body_y1(x.body_localization)
+        out += flow.body_w(x.body_localization)
+        out += flow.body_h(x.body_localization)
         out += flow.shirt_type(x.features)
         return out
 
@@ -285,13 +285,40 @@ def synthenic_dataset_preparation():
             super().__init__()
             self.seq = nn.Sequential(
                 nn.Conv2d(3, 64, kernel_size=5),
+                nn.ReLU(inplace=True),
                 nn.Conv2d(64, 128, kernel_size=5),
+                nn.ReLU(inplace=True),
                 nn.AvgPool2d(2),
                 nn.Conv2d(128, 128, kernel_size=5),
+                nn.ReLU(inplace=True),
                 nn.Conv2d(128, 256, kernel_size=5),
                 nn.AvgPool2d(2),
+                nn.ReLU(inplace=True),
+            )
+
+            self.features_seq = nn.Sequential(
                 nn.Conv2d(256, 256, kernel_size=5),
+                nn.ReLU(inplace=True),
                 nn.Conv2d(256, 256, kernel_size=5),
+                nn.ReLU(inplace=True),
+                nn.AdaptiveAvgPool2d(1),
+                nn.Flatten(),
+            )
+
+            self.face_localization_seq = nn.Sequential(
+                nn.Conv2d(256, 256, kernel_size=5),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(256, 256, kernel_size=5),
+                nn.ReLU(inplace=True),
+                nn.AdaptiveAvgPool2d(1),
+                nn.Flatten(),
+            )
+
+            self.body_localization_seq = nn.Sequential(
+                nn.Conv2d(256, 256, kernel_size=5),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(256, 256, kernel_size=5),
+                nn.ReLU(inplace=True),
                 nn.AdaptiveAvgPool2d(1),
                 nn.Flatten(),
             )
@@ -300,7 +327,10 @@ def synthenic_dataset_preparation():
 
         def forward(self, x):
             res = {}
-            res['features'] = self.seq(x['img'])
+            common = self.seq(x['img'])
+            res['features'] = self.features_seq(common)
+            res['face_localization'] = self.face_localization_seq(common)
+            res['body_localization'] = self.body_localization_seq(common)
             res['gt'] = x.get('gt')
             return self.flow_module(res)
 

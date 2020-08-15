@@ -150,6 +150,7 @@ def test_evaluation_is_shown():
     model, nested_loaders, datasets, project = synthenic_dataset_preparation()
     runner = project.runner(model=model, runner_name='security_logs')
     evaluation = runner.evaluate()
+    pd.set_option('display.max_columns', None)
     print(evaluation)
 
 

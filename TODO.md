@@ -4,8 +4,6 @@ Some dumb stuff I am playing with.
 
 DOING:
 
- -[ ] Test for multi-label classification
-- [ ] Support multilabel classification problem
 - [ ] Cleaner representations for results
 - [ ] Draw ROC curve callback
 - [ ] Improve test coverage, especially the user-friendliness part
@@ -171,5 +169,6 @@ Done:
 - [x] There is a bug in the metrics, there are over 100!
 - [x] Add and implement nice default metrics for different tasks.
 - [x] Update synthetic dataset to include classification
-
+- [x] Test for multi-label classification
+- [x] Support multilabel classification problem
 
