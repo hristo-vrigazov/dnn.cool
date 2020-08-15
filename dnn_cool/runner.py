@@ -226,7 +226,9 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         predictions, targets, interpretations = self.load_inference_results()
         self.load_tuned()
         evaluator = self.task_flow.get_evaluator()
-        return evaluator(predictions['test'], targets['test'])
+        df = evaluator(predictions['test'], targets['test'])
+        df.to_csv(self.project_dir / self.default_logdir / 'evaluation.csv', index=False)
+        return df
 
 
 def split_already_done(df, project_dir):

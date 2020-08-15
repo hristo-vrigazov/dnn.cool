@@ -4,13 +4,11 @@ Some dumb stuff I am playing with.
 
 DOING:
 
-- [ ] Cleaner representations for results
-- [ ] Draw ROC curve callback
-- [ ] Improve test coverage, especially the user-friendliness part
+- [ ] Release 0.1.0-alpha
 
 TODO:
 
-- [ ] Release 0.1.0-alpha
+- [ ] Cleaner representations for results
 - [ ] Helper for using built-in callbacks for a specific task
 - [ ] Combine Grad-CAM (for classification task) with best/worst in Tensorboard
 - [ ] Clean separation of tests for low-level API and high-level API
@@ -93,6 +91,8 @@ TODO:
 - [ ] Utility for storing images of different shapes
 - [ ] Make it possible to run tasks on tensors with shapes whose length is > 2.
 - [ ] Interpretation callback should show results only when precondition is correct
+- [ ] Draw ROC curve callback
+- [ ] Improve test coverage, especially the user-friendliness part
 
 Done: 
 
