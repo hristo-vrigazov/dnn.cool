@@ -15,7 +15,7 @@ from dnn_cool.project import Project
 from dnn_cool.task_flow import BoundedRegressionTask, BinaryClassificationTask, TaskFlow, ClassificationTask, \
     MultilabelClassificationTask
 from dnn_cool.utils import torch_split_dataset
-from dnn_cool.value_converters import binary_value_converter
+from dnn_cool.value_converters import binary_value_converter, classification_converter, multilabel_converter
 from torch import nn
 
 
@@ -180,14 +180,6 @@ def synthenic_dataset_preparation():
         values[np.isnan(values)] = -1
         return torch.tensor(values).float().unsqueeze(dim=-1)
 
-    def classification_converter(values):
-        values[np.isnan(values)] = -1
-        return torch.tensor(values).long()
-
-    def multilabel_converter(values):
-        values[np.isnan(values)] = -1
-        return torch
-
     def bounded_regression_task(name, labels):
         return BoundedRegressionTask(name, labels, module=nn.Linear(256, 1), decoder=BoundedRegressionDecoder(scale=64))
 
@@ -199,12 +191,13 @@ def synthenic_dataset_preparation():
         return ClassificationTask(name, labels, module=nn.Linear(256, n_classes))
 
     def multilabel_task(name, labels):
-        n_classes = labels[labels >= 0].max()
+        n_classes = labels.shape[1]
         return MultilabelClassificationTask(name, labels, module=nn.Linear(256, n_classes))
 
     imgs, df = create_df_and_images_tensor()
     output_col = ['camera_blocked', 'door_open', 'person_present', 'door_locked',
-                  'face_x1', 'face_y1', 'face_w', 'face_h', 'facial_characteristics',
+                  'face_x1', 'face_y1', 'face_w', 'face_h',
+                  'facial_characteristics',
                   'body_x1', 'body_y1', 'body_w', 'body_h', 'shirt_type']
     type_guesser = TypeGuesser()
     type_guesser.type_mapping['camera_blocked'] = 'binary'
