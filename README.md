@@ -206,6 +206,78 @@ flow.get_decoder()              # returns a decoder, which decodes all children 
 flow.get_activation()           # returns an activation function, which invokes the activations of its children
 flow.get_evaluator()            # returns an evaluator, which evaluates every task (given that its respective precondition is satisfied)
 ```
+
+Now let's create some model and use the module provided by the flow.
+
+```python
+class SecurityModule(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+        self.seq = nn.Sequential(
+            nn.Conv2d(3, 64, kernel_size=5),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(64, 128, kernel_size=5),
+            nn.ReLU(inplace=True),
+            nn.AvgPool2d(2),
+            nn.Conv2d(128, 128, kernel_size=5),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(128, 256, kernel_size=5),
+            nn.AvgPool2d(2),
+            nn.ReLU(inplace=True),
+        )
+
+        self.features_seq = nn.Sequential(
+            nn.Conv2d(256, 256, kernel_size=5),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 256, kernel_size=5),
+            nn.ReLU(inplace=True),
+            nn.AdaptiveAvgPool2d(1),
+            nn.Flatten(),
+        )
+
+        self.face_localization_seq = nn.Sequential(
+            nn.Conv2d(256, 256, kernel_size=5),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 256, kernel_size=5),
+            nn.ReLU(inplace=True),
+            nn.AdaptiveAvgPool2d(1),
+            nn.Flatten(),
+        )
+
+        self.body_localization_seq = nn.Sequential(
+            nn.Conv2d(256, 256, kernel_size=5),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 256, kernel_size=5),
+            nn.ReLU(inplace=True),
+            nn.AdaptiveAvgPool2d(1),
+            nn.Flatten(),
+        )
+
+        self.flow_module = flow.torch()
+
+    def forward(self, x):
+        res = {}
+        common = self.seq(x['img'])
+        res['features'] = self.features_seq(common)
+        res['face_localization'] = self.face_localization_seq(common)
+        res['body_localization'] = self.body_localization_seq(common)
+        res['gt'] = x.get('gt')
+        return self.flow_module(res)
+```
+
+As you can see, the model starts with shared features, then splits into 3 groups: `features`, `face_localization` and
+`body_localization`, after this it uses the `flow.torch()` to get the final result and passes ground truth for preconditions
+(only needed when training).
+
+Now, to train the model you can use any framework you like (or use normal Pytorch training loop), but `dnn_cool` has a 
+utility for working with [Catalyst](https://github.com/catalyst-team/catalyst), so we will show how to use it:
+
+```python
+model = SecurityModule()
+runner = project.runner(model=model, runner_name='experiment_run')
+runner.train(num_epochs=5)
+```
  
 ### Features
 
