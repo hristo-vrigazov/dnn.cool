@@ -9,7 +9,22 @@ you can:
 
 ### Example story
 
-Let's say that you are building a home security system.
+Let's say that you are building a home security system. You have collected a bunch of images, and have annotated them. 
+So you have a few columns:
+
+* `camera_blocked` - whether the camera is blocked
+* `door_open` - whether the door of the apartment is open (has meaning only when the camera is not blocked)
+* `door_locked` - whether the door of the apartment is locked (has meaning only when the door is closed)
+* `person_present` - whether a person is present (has meaning only when the door is opened)
+* `face_x1`, `face_y1`, `face_w`, `face_h` - the coordinates of the face of the person (has meaning only when a person 
+is present)
+* `body_x1`, `body_y1`, `body_w`, `body_h` - the coordinates of the body the person (has meaning only when a person is 
+present)
+* `facial_characteristics` - represents characteristics of the face, like color, etc. (has meaning only when a person 
+is present)
+* `shirt_type` - represents a specific type of shirt (e.g white shirt, etc.)
+
+Here's an example of the dataframe with the data you have obtained:
 
 |    |   camera_blocked |   door_open |   person_present |   door_locked |   face_x1 |   face_y1 |   face_w |   face_h | facial_characteristics   |   body_x1 |   body_y1 |   body_w |   body_h |   shirt_type | img    |
 |---:|-----------------:|------------:|-----------------:|--------------:|----------:|----------:|---------:|---------:|:-------------------------|----------:|----------:|---------:|---------:|-------------:|:-------|
