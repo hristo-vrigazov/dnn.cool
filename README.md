@@ -167,6 +167,45 @@ def body_regression(flow, x, out):
     return out
 ``` 
 
+Since these two flows are already added, let's group them into a `TaskFlow` for person-related tasks:
+
+```python
+@project.add_flow
+def person_regression(flow, x, out):
+    out += flow.face_regression(x)
+    out += flow.body_regression(x)
+    return out
+```
+
+And now let's implement the full flow of tasks:
+
+```python
+@project.add_flow
+def full_flow(flow, x, out):
+    out += flow.camera_blocked(x.features)
+    out += flow.door_open(x.features) | (~out.camera_blocked)
+    out += flow.door_locked(x.features) | (~out.door_open)
+    out += flow.person_present(x.features) | out.door_open
+    out += flow.person_regression(x) | out.person_present
+    return out
+```
+
+Here you can notice the `|` operator, which is used as a precondition (read it as `given`, e.g 
+"Door open given that the camera is not blocked"). Let's now get the full flow for the project
+and have a look at some of its methods.
+
+```python
+flow = project.get_full_flow()
+flow.get_loss()                 # returns a loss function that uses the children's loss functions
+flow.get_per_sample_loss()      # returns a loss function that will return a loss item for every sample; useful for interpreting results
+flow.torch()                    # returns a `nn.Module` that uses the children's modules, according to the logic described in the task flow
+flow.get_dataset()              # returns a Pytorch `Dataset` class, which includes the preconditions needed to know which weights should be updated
+flow.get_metrics()              # returns a list of metrics, which consists of the metrics of its children
+flow.get_treelib_explainer()    # returns an object that when called, draws a tree of the decision making, based on the task flow
+flow.get_decoder()              # returns a decoder, which decodes all children tasks
+flow.get_activation()           # returns an activation function, which invokes the activations of its children
+flow.get_evaluator()            # returns an evaluator, which evaluates every task (given that its respective precondition is satisfied)
+```
  
 ### Features
 
