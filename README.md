@@ -3,11 +3,17 @@
 A bunch of utilities for multi-task learning, not much for now. To get a better idea of the `dnn_cool`'s goals,
 you can:
  
-* Read a [story](#example-story) about an example application
+* Read a [story](#motivational-story) about an example application
 * Check out its [features](#features)
 * Have a look at [code](#code-examples) examples
 
-### Example story
+Installation is as usual:
+
+```bash
+pip install dnn_cool
+```
+
+### Motivational story
 
 Let's say that you are building a home security system. You have collected a bunch of images, and have annotated them. 
 So you have a few columns:
@@ -23,6 +29,8 @@ present)
 * `facial_characteristics` - represents characteristics of the face, like color, etc. (has meaning only when a person 
 is present)
 * `shirt_type` - represents a specific type of shirt (e.g white shirt, etc.)
+
+Let's say that you also could not annotate all of the images, so we will put `nan` when there is no annotation.
 
 Here's an example of the dataframe with the data you have obtained:
 
@@ -49,6 +57,22 @@ Here's an example of the dataframe with the data you have obtained:
 | 18 |                0 |           1 |                1 |           nan |        24 |         1 |       12 |       12 |                          |        22 |        11 |       13 |       28 |            2 | 18.jpg |
 | 19 |                0 |           0 |                0 |             0 |       nan |       nan |      nan |      nan | nan                      |       nan |       nan |      nan |      nan |          nan | 19.jpg |
 
+Now, how would you approach this? Let's summarize the options below
+
+1. Train a neural network for every small task - this will definitely work, but will be extremely heavy (you will have 
+14 different neural networks) - moreover, every model will extract similar low-level features. Will have huge
+memory and computational requirements, will end up very expensive.
+2. Use a pretrained face detector/body detector and train neural network per every other task - this suffers from the same
+issues before, there are still going to be a lot of neural networks, plus you don't know if the pretrained detector
+would be suitable for your use case, since detectors usually are pretrained for a large number of classes. Also, notice
+how after we have detected the face, we also want to predict the facial characteristics, and for the body we want to 
+predict the shirt type - this means that we would have to train these separately, or we would have to understand
+the detector in detail to know how to modify it.
+3. Multi-task learning approach, where some initial features are extracted, then from a certain point on,
+there are branches for every task separately. This is the most lightweight and all things considered the best option,
+but it is not so trivial to implement. Notice that for example when the camera is blocked, we should not backpropagate
+for the other tasks, since there is no way for us to know where the person would be etc.
+ 
 ### Features
 
 Main features are:
