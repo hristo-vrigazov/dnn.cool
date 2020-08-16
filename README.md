@@ -89,7 +89,6 @@ output_col = ['camera_blocked', 'door_open', 'person_present', 'door_locked',
               'body_x1', 'body_y1', 'body_w', 'body_h']
 
 converters = Converters()
-
 type_guesser = converters.type
 type_guesser.type_mapping['camera_blocked'] = 'binary'
 type_guesser.type_mapping['door_open'] = 'binary'
@@ -104,6 +103,8 @@ type_guesser.type_mapping['body_y1'] = 'continuous'
 type_guesser.type_mapping['body_w'] = 'continuous'
 type_guesser.type_mapping['body_h'] = 'continuous'
 type_guesser.type_mapping['img'] = 'img'
+type_guesser.type_mapping['shirt_type'] = 'category'
+type_guesser.type_mapping['facial_characteristics'] = 'multilabel'
 ```
 
 Then we have to specify how would we convert the values from a given dataframe column to actual tensor values.
@@ -276,8 +277,61 @@ utility for working with [Catalyst](https://github.com/catalyst-team/catalyst), 
 ```python
 model = SecurityModule()
 runner = project.runner(model=model, runner_name='experiment_run')
-runner.train(num_epochs=5)
+runner.train(num_epochs=10)
 ```
+
+Great, we have found the best weights of the model! But for binary classification tasks, multi-label classification tasks
+etc. we have to tune the thresholds after the sigmoid! To do that, just call:
+
+```python
+runner.infer()                  # Dumps the predictions, targets and per-task interpretations in the directory for the run
+tuned_params = runner.tune()    # Tunes the thresholds per task
+```
+
+This calls the tuners for every specific task and selects the best threshold for every task. 
+Great, now let's evaluate the model with the best-found thresholds:
+
+```python
+evaluation_df = runner.evaluate()
+evaluation_df
+```
+
+Here's an example output on a synthetic dataset:
+
+|    | task_path                                                | metric_name         |   metric_res |   num_samples |
+|---:|:---------------------------------------------------------|:--------------------|-------------:|--------------:|
+|  0 | camera_blocked                                           | accuracy            |   1          |           996 |
+|  1 | camera_blocked                                           | f1_score            |   1          |           996 |
+|  2 | camera_blocked                                           | precision           |   1          |           996 |
+|  3 | camera_blocked                                           | recall              |   1          |           996 |
+|  4 | door_open                                                | accuracy            |   1          |           902 |
+|  5 | door_open                                                | f1_score            |   1          |           902 |
+|  6 | door_open                                                | precision           |   1          |           902 |
+|  7 | door_open                                                | recall              |   1          |           902 |
+|  8 | door_locked                                              | accuracy            |   1          |           201 |
+|  9 | door_locked                                              | f1_score            |   1          |           201 |
+| 10 | door_locked                                              | precision           |   1          |           201 |
+| 11 | door_locked                                              | recall              |   1          |           201 |
+| 12 | person_present                                           | accuracy            |   1          |           701 |
+| 13 | person_present                                           | f1_score            |   1          |           701 |
+| 14 | person_present                                           | precision           |   1          |           701 |
+| 15 | person_present                                           | recall              |   1          |           701 |
+| 16 | person_regression.face_regression.face_x1                | mean_absolute_error |   0.013935   |           611 |
+| 17 | person_regression.face_regression.face_y1                | mean_absolute_error |   0.0268986  |           611 |
+| 18 | person_regression.face_regression.face_w                 | mean_absolute_error |   0.0115682  |           611 |
+| 19 | person_regression.face_regression.face_h                 | mean_absolute_error |   0.0121426  |           611 |
+| 20 | person_regression.face_regression.facial_characteristics | accuracy            |   0.996727   |           611 |
+| 21 | person_regression.body_regression.body_x1                | mean_absolute_error |   0.00877354 |           611 |
+| 22 | person_regression.body_regression.body_y1                | mean_absolute_error |   0.0188446  |           611 |
+| 23 | person_regression.body_regression.body_w                 | mean_absolute_error |   0.020874   |           611 |
+| 24 | person_regression.body_regression.body_h                 | mean_absolute_error |   0.0145986  |           611 |
+| 25 | person_regression.body_regression.shirt_type             | accuracy_1          |   1          |           611 |
+| 26 | person_regression.body_regression.shirt_type             | accuracy_3          |   1          |           611 |
+| 27 | person_regression.body_regression.shirt_type             | accuracy_5          |   1          |           611 |
+| 28 | person_regression.body_regression.shirt_type             | f1_score            |   1          |           611 |
+| 29 | person_regression.body_regression.shirt_type             | precision           |   1          |           611 |
+| 30 | person_regression.body_regression.shirt_type             | recall              |   1          |           611 |
+
  
 ### Features
 
