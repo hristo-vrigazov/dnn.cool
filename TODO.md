@@ -8,6 +8,7 @@ DOING:
 - [ ] Update to new dependencies (Catalyst in particular handles metrics differently)
 - [ ] Maintain compatibility matrix
 - [ ] Documentation
+- [ ] Create example notebook and upload it to Colab
 
 TODO:
 
@@ -86,7 +87,6 @@ TODO:
 - [ ] Example training on ImageNet + localization
 - [ ] Common converters implementation
 - [ ] Make it possible to add additional metrics for TaskFlow
-- [ ] Create example notebook and upload it to Colab
 - [ ] Ensure that an output of a given task can be passed to a child task
 - [ ] Are built-in callbacks slowing down things too much? - maybe we can share the flow execution between metrics?
 - [ ] Utility for storing images of different shapes
