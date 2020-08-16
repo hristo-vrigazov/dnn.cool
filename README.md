@@ -6,6 +6,7 @@ you can:
 * Read a [story](#motivational-story) about an example application
 * Check out its [features](#features)
 * Have a look at [code](#code-examples) examples
+* Interested in [how it works](#how-does-it-work)?
 
 Installation is as usual:
 
@@ -69,9 +70,15 @@ how after we have detected the face, we also want to predict the facial characte
 predict the shirt type - this means that we would have to train these separately, or we would have to understand
 the detector in detail to know how to modify it.
 3. Multi-task learning approach, where some initial features are extracted, then from a certain point on,
-there are branches for every task separately. This is the most lightweight and all things considered the best option,
+there are branches for every task separately. This is the most lightweight and the best option in terms of quality 
+(because it is a well known fact that multi-task learning improves generalization)
 but it is not so trivial to implement. Notice that for example when the camera is blocked, we should not backpropagate
-for the other tasks, since there is no way for us to know where the person would be etc.
+for the other tasks, since there is no way for us to know where the person would be etc. The model has to learn **conditional 
+objectives**, which are not so easy to keep track of for several reasons.
+ 
+This library `dnn_cool` aims to make the conditional objectives approach much easier, therefore is named **D**eep 
+**N**eural **N**etworks for **C**onditional **O**bjectives **o**riented **l**earning.
+
  
 ### Features
 
@@ -113,3 +120,5 @@ but if the model thinks the camera is blocked, then the explanation would be:
 ```
 
 ### Code examples
+
+### How does it work?
