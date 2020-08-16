@@ -5,7 +5,6 @@ you can:
  
 * Read a [story](#motivational-story) about an example application
 * Check out its [features](#features)
-* Have a look at [code](#code-examples) examples
 * Interested in [how it works](#how-does-it-work)?
 
 Installation is as usual:
@@ -372,6 +371,6 @@ but if the model thinks the camera is blocked, then the explanation would be:
 │   └── camera_blocked | decoded: [ True], activated: [1.], logits: [76.367676]
 ```
 
-### Code examples
-
 ### How does it work?
+
+I will tell you soon!
