@@ -371,6 +371,20 @@ but if the model thinks the camera is blocked, then the explanation would be:
 │   └── camera_blocked | decoded: [ True], activated: [1.], logits: [76.367676]
 ```
 
+Many complex neural networks can be trivially implemented with DNN.cool. For example YOLO is:
+
+```python
+@project.add_flow
+def yolo_flow(flow, x, out):
+    out += flow.obj_exists(x.features)
+    out += flow.obj_x(x.features) | out.obj_exists
+    out += flow.obj_y(x.features) | out.obj_exists
+    out += flow.obj_w(x.features) | out.obj_exists
+    out += flow.obj_h(x.features) | out.obj_exists
+    out += flow.obj_class(x.features) | out.obj_exists
+    return out
+```
+
 ### How does it work?
 
 I will tell you soon!
