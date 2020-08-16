@@ -7,6 +7,7 @@ DOING:
 - [ ] Release 0.1.0-alpha
 - [ ] Update to new dependencies (Catalyst in particular handles metrics differently)
 - [ ] Maintain compatibility matrix
+- [ ] Documentation
 
 TODO:
 
@@ -33,7 +34,6 @@ TODO:
 - [ ] Add a lot of predefined tasks and flows
 - [ ] Compute only when precondition is True (will require precomputing)
 - [ ] Make sure immutability of objects is preserved
-- [ ] Documentation
 - [ ] Think of useful methods
 - [ ] Test with very weird cases
 - [ ] Receptive field slicing

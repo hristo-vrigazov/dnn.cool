@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 
 from dnn_cool.activations import CompositeActivation
 from dnn_cool.datasets import FlowDataset, LeafTaskDataset
-from dnn_cool.decoders import sort_declining, BinaryDecoder, TaskFlowDecoder, Decoder, ClassificationDecoder, \
+from dnn_cool.decoders import BinaryDecoder, TaskFlowDecoder, Decoder, ClassificationDecoder, \
     MultilabelClassificationDecoder
 from dnn_cool.evaluation import EvaluationCompositeVisitor, EvaluationVisitor
 from dnn_cool.filter import FilterCompositeVisitor, FilterVisitor
