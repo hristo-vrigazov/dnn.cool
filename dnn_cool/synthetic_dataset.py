@@ -7,11 +7,13 @@ import torch
 
 from functools import partial
 
+from joblib import delayed
 from torch.utils.data import DataLoader
 
 from dnn_cool.converters import TypeGuesser, ValuesConverter, TaskConverter, Converters
 from dnn_cool.decoders import Decoder, BoundedRegressionDecoder
 from dnn_cool.project import Project
+from dnn_cool.task_converters import To
 from dnn_cool.task_flow import BoundedRegressionTask, BinaryClassificationTask, TaskFlow, ClassificationTask, \
     MultilabelClassificationTask
 from dnn_cool.utils import torch_split_dataset
@@ -225,7 +227,8 @@ def synthenic_dataset_preparation(n=int(1e4)):
 
     task_converter = TaskConverter()
 
-    task_converter.type_mapping['binary'] = binary_classification_task
+    task_converter.type_mapping['binary'] = To(BinaryClassificationTask,
+                                               module_supplier=partial(nn.Linear, in_features=256, out_features=1))
     task_converter.type_mapping['continuous'] = bounded_regression_task
     task_converter.type_mapping['category'] = classification_task
     task_converter.type_mapping['multilabel'] = multilabel_task

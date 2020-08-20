@@ -4,7 +4,6 @@ Some dumb stuff I am playing with.
 
 DOING:
 
-- [ ] Cleaner representations for results
 - [ ] Documentation
 - [ ] EfficientNet-based project helper
 - [ ] Friendlier converters, so that users don't have to make partial functions
@@ -81,6 +80,7 @@ TODO:
 - [ ] Test on real dataset
 - [ ] EfficientDet integration
 - [ ] EfficientNet integration
+- [ ] CenterNet integration
 - [ ] YOLO integration
 - [ ] Mask R-CNN implementation
 - [ ] HuggingFace integration
@@ -96,6 +96,8 @@ TODO:
 - [ ] Improve test coverage, especially the user-friendliness part
 - [ ] Create videos
 - [ ] Create colab notebook for PyPi version
+- [ ] Implement GIoU https://giou.stanford.edu/
+- [ ] Implement DETR https://github.com/facebookresearch/detr/tree/master
 
 Done: 
 
@@ -177,4 +179,5 @@ Done:
 - [x] Release 0.1.0-alpha
 - [x] Create example notebook and upload it to Colab
 - [x] Add per sample activation
+- [x] Cleaner representations for results
 
