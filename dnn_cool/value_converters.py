@@ -1,3 +1,5 @@
+from typing import Union
+
 import numpy as np
 import pandas as pd
 import torch
@@ -26,3 +28,14 @@ def multilabel_converter(values):
     res = np.ones((len(values), one_hot_labels.shape[1]), dtype=np.float32) * -1.
     res[~pd.isna(values)] = one_hot_labels
     return res
+
+
+class ImageCoordinatesValuesConverter:
+
+    def __init__(self, dim: Union[float, np.ndarray]):
+        self.dim = dim
+
+    def __call__(self, values):
+        values = values.astype(float) / self.dim
+        values[np.isnan(values)] = -1
+        return torch.tensor(values).float().unsqueeze(dim=-1)

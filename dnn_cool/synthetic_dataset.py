@@ -17,7 +17,8 @@ from dnn_cool.task_converters import To
 from dnn_cool.task_flow import BoundedRegressionTask, BinaryClassificationTask, TaskFlow, ClassificationTask, \
     MultilabelClassificationTask
 from dnn_cool.utils import torch_split_dataset
-from dnn_cool.value_converters import binary_value_converter, classification_converter, multilabel_converter
+from dnn_cool.value_converters import binary_value_converter, classification_converter, multilabel_converter, \
+    ImageCoordinatesValuesConverter
 from torch import nn
 
 
@@ -177,11 +178,6 @@ def create_df_and_images_tensor(n=int(1e4)):
 
 
 def synthenic_dataset_preparation(n=int(1e4)):
-    def bounded_regression_converter(values):
-        values = values.astype(float) / 64
-        values[np.isnan(values)] = -1
-        return torch.tensor(values).float().unsqueeze(dim=-1)
-
     imgs, df = create_df_and_images_tensor(n)
     output_col = ['camera_blocked', 'door_open', 'person_present', 'door_locked',
                   'face_x1', 'face_y1', 'face_w', 'face_h',
@@ -207,7 +203,7 @@ def synthenic_dataset_preparation(n=int(1e4)):
     values_converter = ValuesConverter()
     values_converter.type_mapping['img'] = lambda x: imgs
     values_converter.type_mapping['binary'] = binary_value_converter
-    values_converter.type_mapping['continuous'] = bounded_regression_converter
+    values_converter.type_mapping['continuous'] = ImageCoordinatesValuesConverter(dim=64)
     values_converter.type_mapping['category'] = classification_converter
     values_converter.type_mapping['multilabel'] = multilabel_converter
 
