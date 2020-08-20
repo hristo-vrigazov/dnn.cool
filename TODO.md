@@ -4,7 +4,6 @@ Some dumb stuff I am playing with.
 
 DOING:
 
-- [ ] Friendlier converters, so that users don't have to make partial functions
 - [ ] Documentation
 - [ ] EfficientNet-based project helper
 - [ ] Stricter typing for `train` and `infer` methods
@@ -16,7 +15,6 @@ TODO:
 - [ ] Improve README.md design
 - [ ] Update to new dependencies (Catalyst in particular handles metrics differently)
 - [ ] Maintain compatibility matrix
-
 - [ ] Helper for using built-in callbacks for a specific task
 - [ ] Combine Grad-CAM (for classification task) with best/worst in Tensorboard
 - [ ] Clean separation of tests for low-level API and high-level API
@@ -60,17 +58,17 @@ TODO:
 - [ ] Implement smart values converter
 - [ ] Implement smart task converter
 - [ ] Handle different types when used as precondition, and as ground truth
+- [ ] Add precondition builder for tasks other than binary classification task.
+- [ ] Handle case when the precondition is not a single number
 - [ ] Think of common ways users can shoot themselves in the foot, and add helper messages
 - [ ] Make sure multiple inputs are correctly handled.
 - [ ] Test nested FC layers
 - [ ] Readable/visual result implemenetation - draw bounding boxes, etc.
-- [ ] Add precondition builder for tasks other than binary classification task.
 - [ ] Distillation utils
 - [ ] Weightwatcher add
 - [ ] Noobj stuff in YOLO
-- [ ] Bert integration
+- [ ] Bert integration (splitting etc.)
 - [ ] Bertviz integration
-- [ ] Handle case when the precondition is not a single number
 - [ ] Implement example body pose estimation
 - [ ] Angular data regression: https://stats.stackexchange.com/questions/218407/encoding-angle-data-for-neural-network/218547#218547
 - [ ] Maybe handle grouping (like offers in a ecommerce context)
@@ -182,4 +180,5 @@ Done:
 - [x] Add per sample activation
 - [x] Cleaner representations for results
 - [x] Fix the bug that instances are shared between tasks!
+- [x] Friendlier converters, so that users don't have to make partial functions
 
