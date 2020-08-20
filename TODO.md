@@ -4,7 +4,6 @@ Some dumb stuff I am playing with.
 
 DOING:
 
-- [ ] Fix the bug that instances are shared between tasks!
 - [ ] Friendlier converters, so that users don't have to make partial functions
 - [ ] Documentation
 - [ ] EfficientNet-based project helper
@@ -182,4 +181,5 @@ Done:
 - [x] Create example notebook and upload it to Colab
 - [x] Add per sample activation
 - [x] Cleaner representations for results
+- [x] Fix the bug that instances are shared between tasks!
 

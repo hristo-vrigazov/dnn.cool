@@ -182,20 +182,6 @@ def synthenic_dataset_preparation(n=int(1e4)):
         values[np.isnan(values)] = -1
         return torch.tensor(values).float().unsqueeze(dim=-1)
 
-    def bounded_regression_task(name, labels):
-        return BoundedRegressionTask(name, labels, module=nn.Linear(256, 1), decoder=BoundedRegressionDecoder(scale=64))
-
-    def binary_classification_task(name, labels):
-        return BinaryClassificationTask(name, labels, module=nn.Linear(256, 1))
-
-    def classification_task(name, labels):
-        n_classes = len(labels[labels >= 0].unique())
-        return ClassificationTask(name, labels, module=nn.Linear(256, n_classes))
-
-    def multilabel_task(name, labels):
-        n_classes = labels.shape[1]
-        return MultilabelClassificationTask(name, labels, module=nn.Linear(256, n_classes))
-
     imgs, df = create_df_and_images_tensor(n)
     output_col = ['camera_blocked', 'door_open', 'person_present', 'door_locked',
                   'face_x1', 'face_y1', 'face_w', 'face_h',
@@ -229,9 +215,15 @@ def synthenic_dataset_preparation(n=int(1e4)):
 
     task_converter.type_mapping['binary'] = To(BinaryClassificationTask,
                                                module_supplier=partial(nn.Linear, in_features=256, out_features=1))
-    task_converter.type_mapping['continuous'] = bounded_regression_task
-    task_converter.type_mapping['category'] = classification_task
-    task_converter.type_mapping['multilabel'] = multilabel_task
+    task_converter.type_mapping['continuous'] = To(BoundedRegressionTask,
+                                                   module_supplier=partial(nn.Linear, in_features=256, out_features=1),
+                                                   decoder_supplier=partial(BoundedRegressionDecoder, scale=64))
+    n_classes = classification_converter(df['shirt_type']).max().item() + 1
+    task_converter.type_mapping['category'] = To(ClassificationTask,
+                                                 module_supplier=partial(nn.Linear, in_features=256, out_features=n_classes))
+    n_classes = multilabel_converter(df['facial_characteristics']).shape[1]
+    task_converter.type_mapping['multilabel'] = To(MultilabelClassificationTask,
+                                                   module_supplier=partial(nn.Linear, in_features=256, out_features=n_classes))
 
     converters = Converters()
     converters.task = task_converter
