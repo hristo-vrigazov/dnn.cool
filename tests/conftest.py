@@ -142,5 +142,14 @@ def simple_binary_data():
     x = torch.tensor([-3., 0., 19., -12., 23., 1. -1., -1.]).unsqueeze(dim=-1)
     y = torch.tensor([1, 1, 1, 0, 1, 0, 0])
 
-    task_mock = Task(decoder=BinaryDecoder(), activation=nn.Sigmoid(), labels=None, loss=None, name='mock_task', per_sample_loss=None)
+    task_mock = Task(decoder=BinaryDecoder(),
+                     activation=nn.Sigmoid(),
+                     labels=None,
+                     loss=None,
+                     name='mock_task',
+                     per_sample_loss=None,
+                     available_func=None,
+                     inputs=None,
+                     metrics=[],
+                     module=None)
     return x, y, task_mock

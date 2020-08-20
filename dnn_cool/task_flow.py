@@ -1,7 +1,9 @@
-from typing import Iterable, Optional, Callable, Tuple
+from typing import Iterable, Optional, Callable, Tuple, Any
 
 import torch
 import os
+
+from dataclasses import dataclass, field
 from torch import nn
 from torch.utils.data import Dataset
 
@@ -25,8 +27,8 @@ class ITask:
     def __init__(self, name: str, inputs, available_func=None, metrics: Tuple[str, TorchMetric] = ()):
         self.name = name
         self.inputs = inputs
-        self._available_func = available_func
-        self._metrics = metrics
+        self.available_func = available_func
+        self.metrics = metrics
 
     def get_name(self):
         return self.name
@@ -47,7 +49,7 @@ class ITask:
         return False
 
     def get_available_func(self):
-        return self._available_func
+        return self.available_func
 
     def get_loss(self):
         raise NotImplementedError()
@@ -56,11 +58,6 @@ class ITask:
         raise NotImplementedError()
 
     def torch(self):
-        """
-        Creates a new instance of a Pytorch module, that has to be invoked for those parts of the input, for which
-        the precondition is satisfied.
-        :return:
-        """
         raise NotImplementedError()
 
     def get_inputs(self, *args, **kwargs):
@@ -73,10 +70,10 @@ class ITask:
         raise NotImplementedError()
 
     def get_metrics(self):
-        for i in range(len(self._metrics)):
-            metric_name, metric = self._metrics[i]
+        for i in range(len(self.metrics)):
+            metric_name, metric = self.metrics[i]
             metric.bind_to_task(self)
-        return self._metrics
+        return self.metrics
 
     def __repr__(self):
         params = (
@@ -94,51 +91,42 @@ class ITask:
         return res
 
 
+@dataclass
 class Task(ITask):
-
-    def __init__(self,
-                 name: str,
-                 labels,
-                 loss: Callable,
-                 per_sample_loss: Callable,
-                 available_func: Callable = None,
-                 inputs=None,
-                 activation: Optional[nn.Module] = None,
-                 decoder: Decoder = None,
-                 module: Optional[nn.Module] = Identity(),
-                 metrics: Tuple[str, TorchMetric] = ()):
-        super().__init__(name, inputs, available_func, metrics)
-        self._activation = activation
-        self._decoder = decoder
-        self._loss = loss
-        self._per_sample_loss = per_sample_loss
-        self._module = module
-        self._inputs = inputs
-        self._labels = labels
+    name: str
+    labels: Any
+    loss: nn.Module
+    per_sample_loss: nn.Module
+    available_func: Callable
+    inputs: Any
+    activation: Optional[nn.Module]
+    decoder: Decoder
+    module: nn.Module
+    metrics: Tuple[str, TorchMetric]
 
     def get_activation(self) -> Optional[nn.Module]:
-        return self._activation
+        return self.activation
 
     def get_decoder(self):
-        return self._decoder
+        return self.decoder
 
     def get_loss(self):
-        return self._loss
+        return self.loss
 
     def get_per_sample_loss(self):
-        return self._per_sample_loss
+        return self.per_sample_loss
 
     def torch(self):
-        return self._module
+        return self.module
 
     def get_inputs(self, *args, **kwargs):
-        return self._inputs
+        return self.inputs
 
     def get_labels(self, *args, **kwargs):
-        return self._labels
+        return self.labels
 
     def get_dataset(self, **kwargs):
-        return LeafTaskDataset(self._inputs, self._labels)
+        return LeafTaskDataset(self.inputs, self.labels)
 
 
 class BinaryHardcodedTask(Task):
