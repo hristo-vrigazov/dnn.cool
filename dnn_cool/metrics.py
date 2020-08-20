@@ -160,3 +160,12 @@ def get_default_bounded_regression_metrics():
     return (
         ('mean_absolute_error', MeanAbsoluteError()),
     )
+
+
+def get_default_classification_metrics():
+    return (
+        ('accuracy', ClassificationAccuracy()),
+        ('f1_score', ClassificationF1Score()),
+        ('precision', ClassificationPrecision()),
+        ('recall', ClassificationRecall()),
+    )
