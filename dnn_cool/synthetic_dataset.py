@@ -158,11 +158,11 @@ def generate_sample():
     return generators[choice]()
 
 
-def create_df_and_images_tensor():
+def create_df_and_images_tensor(n=int(1e4)):
     imgs = []
     rows = []
     names = []
-    for i in range(int(1e4)):
+    for i in range(n):
         img, row = generate_sample()
         imgs.append(torch.tensor(img).permute(2, 0, 1))
         rows.append(row)
@@ -174,7 +174,7 @@ def create_df_and_images_tensor():
     return torch.stack(imgs, dim=0).float() / 255., df
 
 
-def synthenic_dataset_preparation():
+def synthenic_dataset_preparation(n=int(1e4)):
     def bounded_regression_converter(values):
         values = values.astype(float) / 64
         values[np.isnan(values)] = -1
@@ -194,7 +194,7 @@ def synthenic_dataset_preparation():
         n_classes = labels.shape[1]
         return MultilabelClassificationTask(name, labels, module=nn.Linear(256, n_classes))
 
-    imgs, df = create_df_and_images_tensor()
+    imgs, df = create_df_and_images_tensor(n)
     output_col = ['camera_blocked', 'door_open', 'person_present', 'door_locked',
                   'face_x1', 'face_y1', 'face_w', 'face_h',
                   'facial_characteristics',

@@ -4,15 +4,19 @@ Some dumb stuff I am playing with.
 
 DOING:
 
-- [ ] Release 0.1.0-alpha
-- [ ] Update to new dependencies (Catalyst in particular handles metrics differently)
-- [ ] Maintain compatibility matrix
+- [ ] Cleaner representations for results
 - [ ] Documentation
-- [ ] Create example notebook and upload it to Colab
+- [ ] EfficientNet-based project helper
+- [ ] Friendlier converters, so that users don't have to make partial functions
+- [ ] Stricter typing for `train` and `infer` methods
+- [ ] Common converters implementation
 
 TODO:
 
-- [ ] Cleaner representations for results
+- [ ] Improve README.md design
+- [ ] Update to new dependencies (Catalyst in particular handles metrics differently)
+- [ ] Maintain compatibility matrix
+
 - [ ] Helper for using built-in callbacks for a specific task
 - [ ] Combine Grad-CAM (for classification task) with best/worst in Tensorboard
 - [ ] Clean separation of tests for low-level API and high-level API
@@ -42,7 +46,6 @@ TODO:
 - [ ] Incremental re-run
 - [ ] Support for classification special case handling.
 - [ ] Think of default values for different tasks.
-- [ ] Add per sample activation
 - [ ] Spend time thinking about user-friendliness of each class (think about what mistakes would people do?).
 - [ ] Good tests about possible gt leak
 - [ ] Implement tracing for static analysis (later)
@@ -54,7 +57,6 @@ TODO:
 - [ ] Add object detection tasks
 - [ ] Add NLP tasks
 - [ ] Implement smart type guessing
-- [ ] EfficientNet-based project helper
 - [ ] Implement smart values converter
 - [ ] Implement smart task converter
 - [ ] Handle different types when used as precondition, and as ground truth
@@ -71,7 +73,6 @@ TODO:
 - [ ] Handle case when the precondition is not a single number
 - [ ] Implement example body pose estimation
 - [ ] Angular data regression: https://stats.stackexchange.com/questions/218407/encoding-angle-data-for-neural-network/218547#218547
-- [ ] Stricter typing for `train` and `infer` methods
 - [ ] Maybe handle grouping (like offers in a ecommerce context)
 - [ ] Simple example on CIFAR-10
 - [ ] Simple averaging util for runner boosting
@@ -85,7 +86,6 @@ TODO:
 - [ ] HuggingFace integration
 - [ ] Stable metric utilities
 - [ ] Example training on ImageNet + localization
-- [ ] Common converters implementation
 - [ ] Make it possible to add additional metrics for TaskFlow
 - [ ] Ensure that an output of a given task can be passed to a child task
 - [ ] Are built-in callbacks slowing down things too much? - maybe we can share the flow execution between metrics?
@@ -94,6 +94,8 @@ TODO:
 - [ ] Interpretation callback should show results only when precondition is correct
 - [ ] Draw ROC curve callback
 - [ ] Improve test coverage, especially the user-friendliness part
+- [ ] Create videos
+- [ ] Create colab notebook for PyPi version
 
 Done: 
 
@@ -172,4 +174,7 @@ Done:
 - [x] Update synthetic dataset to include classification
 - [x] Test for multi-label classification
 - [x] Support multilabel classification problem
+- [x] Release 0.1.0-alpha
+- [x] Create example notebook and upload it to Colab
+- [x] Add per sample activation
 

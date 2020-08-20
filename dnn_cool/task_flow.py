@@ -1,6 +1,7 @@
 from typing import Iterable, Optional, Callable, Tuple
 
 import torch
+import os
 from torch import nn
 from torch.utils.data import Dataset
 
@@ -76,6 +77,21 @@ class ITask:
             metric_name, metric = self._metrics[i]
             metric.bind_to_task(self)
         return self._metrics
+
+    def __repr__(self):
+        params = (
+            ('name', self.get_name()),
+            ('module', self.torch()),
+            ('loss', self.get_loss()),
+            ('activation', self.get_activation()),
+            ('decoder', self.get_decoder()),
+            ('available_func', self.get_available_func()),
+            ('per_sample_loss', self.get_per_sample_loss())
+        )
+        params_str = os.linesep.join(map(lambda x: f'\t{x[0]}={x[1]}', params))
+        params_str = f'{os.linesep}{params_str}{os.linesep}'
+        res = f'{self.__class__.__module__}.{self.__class__.__name__}({params_str}) at {hex(id(self))}'
+        return res
 
 
 class Task(ITask):
@@ -348,3 +364,4 @@ class TaskFlow(ITask):
             else:
                 tasks[prefix + task_name] = task
         return tasks
+
