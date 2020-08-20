@@ -16,7 +16,8 @@ from dnn_cool.filter import FilterCompositeVisitor, FilterVisitor
 from dnn_cool.losses import TaskFlowLoss, ReducedPerSample
 from dnn_cool.metrics import TorchMetric, BinaryAccuracy, ClassificationAccuracy, \
     ClassificationF1Score, ClassificationPrecision, ClassificationRecall, BinaryF1Score, \
-    BinaryPrecision, BinaryRecall, MeanAbsoluteError, MultiLabelClassificationAccuracy
+    BinaryPrecision, BinaryRecall, MeanAbsoluteError, MultiLabelClassificationAccuracy, get_default_binary_metrics, \
+    get_default_bounded_regression_metrics
 from dnn_cool.missing_values import positive_values, positive_values_unsqueezed, has_no_missing_labels
 from dnn_cool.modules import SigmoidAndMSELoss, Identity, TaskFlowModule
 from dnn_cool.treelib import TreeExplainer
@@ -60,13 +61,13 @@ class ITask:
     def torch(self):
         raise NotImplementedError()
 
-    def get_inputs(self, *args, **kwargs):
+    def get_inputs(self):
         return self.inputs
 
-    def get_labels(self, *args, **kwargs):
+    def get_labels(self):
         raise NotImplementedError()
 
-    def get_dataset(self, **kwargs):
+    def get_dataset(self):
         raise NotImplementedError()
 
     def get_metrics(self):
@@ -129,31 +130,21 @@ class Task(ITask):
         return LeafTaskDataset(self.inputs, self.labels)
 
 
+@dataclass()
 class BinaryHardcodedTask(Task):
-
-    def __init__(self,
-                 name: str,
-                 labels,
-                 loss: Callable = None,
-                 per_sample_loss: Callable = None,
-                 available_func: Callable = positive_values,
-                 inputs=None,
-                 activation: Optional[nn.Module] = None,
-                 decoder: Decoder = None,
-                 module: nn.Module = Identity(),
-                 metrics: Tuple[str, TorchMetric] = ()):
-        super().__init__(name=name,
-                         labels=labels,
-                         loss=loss,
-                         per_sample_loss=per_sample_loss,
-                         available_func=available_func,
-                         inputs=inputs,
-                         activation=activation,
-                         decoder=decoder,
-                         module=module,
-                         metrics=metrics)
+    name: str
+    labels: Any
+    loss: nn.Module = None
+    per_sample_loss: nn.Module = None
+    available_func: Callable = positive_values
+    inputs: Any = None
+    activation: Optional[nn.Module] = None
+    decoder: Decoder = None
+    module: nn.Module = Identity()
+    metrics: Tuple[str, TorchMetric] = ()
 
 
+@dataclass()
 class BoundedRegressionTask(Task):
     """
     Represents a regression task, where the labels are normalized between 0 and 1. Examples include bounding box top
@@ -161,65 +152,36 @@ class BoundedRegressionTask(Task):
     * activation - `nn.Sigmoid()` - so that the output is in `[0, 1]`
     * loss - `SigmoidAndMSELoss` - sigmoid on the logits, then standard mean squared error loss.
     """
-
-    def __init__(self,
-                 name: str,
-                 labels,
-                 loss=SigmoidAndMSELoss(reduction='mean'),
-                 per_sample_loss=ReducedPerSample(SigmoidAndMSELoss(reduction='none'), reduction=torch.sum),
-                 available_func: Callable = None,
-                 module=Identity(),
-                 activation: Optional[nn.Module] = nn.Sigmoid(),
-                 decoder: Decoder = None,
-                 inputs=None,
-                 metrics=(
-                         ('mean_absolute_error', MeanAbsoluteError()),
-                 )):
-        super().__init__(name=name,
-                         labels=labels,
-                         loss=loss,
-                         per_sample_loss=per_sample_loss,
-                         available_func=available_func,
-                         inputs=inputs,
-                         activation=activation,
-                         decoder=decoder,
-                         module=module,
-                         metrics=metrics)
+    name: str
+    labels: Any
+    loss: nn.Module = field(default_factory=lambda: SigmoidAndMSELoss(reduction='mean'))
+    per_sample_loss: nn.Module = field(default_factory=lambda: ReducedPerSample(SigmoidAndMSELoss(reduction='none'), reduction=torch.sum))
+    available_func: Callable = field(default_factory=lambda: positive_values)
+    module: nn.Module = field(default_factory=lambda: nn.Identity())
+    activation: nn.Module = field(default_factory=lambda: nn.Sigmoid())
+    decoder: Decoder = None
+    inputs: Any = None
+    metrics: Tuple = field(default_factory=get_default_bounded_regression_metrics)
 
 
+@dataclass()
 class BinaryClassificationTask(Task):
     """
     Represents a normal binary classification task. Labels should be between 0 and 1.
     * activation - `nn.Sigmoid()`
     * loss - ``nn.BCEWithLogitsLoss()`
     """
-
-    def __init__(self,
-                 name: str,
-                 labels,
-                 loss=nn.BCEWithLogitsLoss(reduction='mean'),
-                 per_sample_loss=ReducedPerSample(nn.BCEWithLogitsLoss(reduction='none'), reduction=torch.mean),
-                 available_func=positive_values,
-                 inputs=None,
-                 activation: Optional[nn.Module] = nn.Sigmoid(),
-                 decoder: Decoder = BinaryDecoder(),
-                 module: nn.Module = Identity(),
-                 metrics: Tuple[str, TorchMetric] = (
-                         ('accuracy', BinaryAccuracy()),
-                         ('f1_score', BinaryF1Score()),
-                         ('precision', BinaryPrecision()),
-                         ('recall', BinaryRecall()),
-                 )):
-        super().__init__(name=name,
-                         labels=labels,
-                         loss=loss,
-                         per_sample_loss=per_sample_loss,
-                         available_func=available_func,
-                         inputs=inputs,
-                         activation=activation,
-                         decoder=decoder,
-                         module=module,
-                         metrics=metrics)
+    name: str
+    labels: Any
+    loss: nn.Module = field(default_factory=lambda: nn.BCEWithLogitsLoss(reduction='mean'))
+    per_sample_loss: nn.Module = field(
+        default_factory=lambda: ReducedPerSample(nn.BCEWithLogitsLoss(reduction='none'), reduction=torch.mean))
+    available_func: Callable = positive_values
+    inputs: Any = None
+    activation: Optional[nn.Module] = nn.Sigmoid()
+    decoder: Decoder = field(default_factory=BinaryDecoder)
+    module: nn.Module = Identity()
+    metrics: Tuple[str, TorchMetric] = field(default_factory=get_default_binary_metrics)
 
 
 class ClassificationTask(Task):

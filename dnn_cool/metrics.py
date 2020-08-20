@@ -145,3 +145,18 @@ class MultiLabelClassificationAccuracy(TorchMetric):
 
     def _invoke_metric(self, outputs, targets):
         return self.metric_fn(outputs, targets)[0]
+
+
+def get_default_binary_metrics():
+    return (
+             ('accuracy', BinaryAccuracy()),
+             ('f1_score', BinaryF1Score()),
+             ('precision', BinaryPrecision()),
+             ('recall', BinaryRecall()),
+    )
+
+
+def get_default_bounded_regression_metrics():
+    return (
+        ('mean_absolute_error', MeanAbsoluteError()),
+    )

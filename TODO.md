@@ -4,14 +4,16 @@ Some dumb stuff I am playing with.
 
 DOING:
 
+- [ ] Fix the bug that instances are shared between tasks!
+- [ ] Friendlier converters, so that users don't have to make partial functions
 - [ ] Documentation
 - [ ] EfficientNet-based project helper
-- [ ] Friendlier converters, so that users don't have to make partial functions
 - [ ] Stricter typing for `train` and `infer` methods
 - [ ] Common converters implementation
 
 TODO:
 
+- [ ] Simplify ITask by using more properties
 - [ ] Improve README.md design
 - [ ] Update to new dependencies (Catalyst in particular handles metrics differently)
 - [ ] Maintain compatibility matrix
