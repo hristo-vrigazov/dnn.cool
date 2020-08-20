@@ -17,7 +17,8 @@ from dnn_cool.losses import TaskFlowLoss, ReducedPerSample
 from dnn_cool.metrics import TorchMetric, BinaryAccuracy, ClassificationAccuracy, \
     ClassificationF1Score, ClassificationPrecision, ClassificationRecall, BinaryF1Score, \
     BinaryPrecision, BinaryRecall, MeanAbsoluteError, MultiLabelClassificationAccuracy, get_default_binary_metrics, \
-    get_default_bounded_regression_metrics, get_default_classification_metrics
+    get_default_bounded_regression_metrics, get_default_classification_metrics, \
+    get_default_multilabel_classification_metrics
 from dnn_cool.missing_values import positive_values, positive_values_unsqueezed, has_no_missing_labels
 from dnn_cool.modules import SigmoidAndMSELoss, Identity, TaskFlowModule
 from dnn_cool.treelib import TreeExplainer
@@ -202,31 +203,23 @@ class ClassificationTask(Task):
     metrics: Tuple[str, TorchMetric] = field(default_factory=get_default_classification_metrics)
 
 
+@dataclass()
 class MultilabelClassificationTask(Task):
-
-    def __init__(self,
-                 name: str,
-                 labels,
-                 loss=nn.BCEWithLogitsLoss(reduction='mean'),
-                 per_sample_loss=ReducedPerSample(nn.BCEWithLogitsLoss(reduction='none'), torch.mean),
-                 available_func=has_no_missing_labels,
-                 inputs=None,
-                 activation=nn.Sigmoid(),
-                 decoder=MultilabelClassificationDecoder(),
-                 module: nn.Module = Identity(),
-                 metrics=(
-                         ('accuracy', MultiLabelClassificationAccuracy()),
-                 )):
-        super().__init__(name=name,
-                         labels=labels,
-                         loss=loss,
-                         per_sample_loss=per_sample_loss,
-                         available_func=available_func,
-                         inputs=inputs,
-                         activation=activation,
-                         decoder=decoder,
-                         module=module,
-                         metrics=metrics)
+    """
+    Represents a classification task. Labels should be integers from 0 to N-1, where N is the number of classes
+    * activation - `nn.Softmax(dim=-1)`
+    * loss - `nn.CrossEntropyLoss()`
+    """
+    name: str
+    labels: Any
+    loss: nn.Module = nn.BCEWithLogitsLoss(reduction='mean')
+    per_sample_loss: nn.Module = ReducedPerSample(nn.BCEWithLogitsLoss(reduction='none'), torch.mean)
+    available_func: Callable = has_no_missing_labels
+    inputs: Any = None
+    activation: Optional[nn.Module] = nn.Sigmoid()
+    decoder: Decoder = field(default_factory=MultilabelClassificationDecoder)
+    module: nn.Module = Identity()
+    metrics: Tuple[str, TorchMetric] = field(default_factory=get_default_multilabel_classification_metrics)
 
 
 class TaskFlow(ITask):

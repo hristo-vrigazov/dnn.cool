@@ -169,3 +169,9 @@ def get_default_classification_metrics():
         ('precision', ClassificationPrecision()),
         ('recall', ClassificationRecall()),
     )
+
+
+def get_default_multilabel_classification_metrics():
+    return (
+        ('accuracy', MultiLabelClassificationAccuracy()),
+    )
