@@ -8,6 +8,9 @@ DOING:
 - [ ] EfficientNet-based project helper
 - [ ] Stricter typing for `train` and `infer` methods
 - [ ] Common converters implementation
+- [ ] Add to latex option (automatically generate loss functions in latex)
+- [ ] Handle case when the precondition is not a single number
+- [ ] Precondition shape should be handled correctly
 
 TODO:
 
@@ -27,7 +30,6 @@ TODO:
 - [ ] ONNX converter (if possible) - with static analysis.
 - [ ] Work on error messages
 - [ ] Allow custom entries in the FlowDict
-- [ ] Add to latex option (automatically generate loss functions in latex)
 - [ ] Implement YOLO for example
 - [ ] Add possibility to add weights based on masks
 - [ ] Correct operations override for magic methods
@@ -59,7 +61,6 @@ TODO:
 - [ ] Implement smart task converter
 - [ ] Handle different types when used as precondition, and as ground truth
 - [ ] Add precondition builder for tasks other than binary classification task.
-- [ ] Handle case when the precondition is not a single number
 - [ ] Think of common ways users can shoot themselves in the foot, and add helper messages
 - [ ] Make sure multiple inputs are correctly handled.
 - [ ] Test nested FC layers
@@ -75,7 +76,6 @@ TODO:
 - [ ] Simple example on CIFAR-10
 - [ ] Simple averaging util for runner boosting
 - [ ] Add the possibility to not store the labels in memory when tuning and evaluating.
-- [ ] Precondition shape should be handled correctly
 - [ ] Test on real dataset
 - [ ] EfficientDet integration
 - [ ] EfficientNet integration
