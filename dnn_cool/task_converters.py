@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, Callable
+from typing import Optional, Tuple, Callable, Union
 
 from torch import nn
 
@@ -48,3 +48,24 @@ class To:
             kwargs['activation'] = self.activation
 
         return self.task_cls(name=name, labels=labels, **kwargs)
+
+
+class EfficientNetHead:
+    in_features_dict = {
+        "efficientnet-b0": 1280,
+        "efficientnet-b1": 1280,
+        "efficientnet-b2": 1408,
+        "efficientnet-b3": 1536,
+        "efficientnet-b4": 1792,
+        "efficientnet-b5": 2048,
+        "efficientnet-b6": 2304,
+        "efficientnet-b7": 2560,
+        "efficientnet-b8": 2816
+    }
+
+    @staticmethod
+    def create(model: Union[str, int], out_features, bias=True):
+        if isinstance(model, int):
+            model = f'efficientnet-b{model}'
+        in_features = EfficientNetHead.in_features_dict[model]
+        return nn.Linear(in_features, out_features, bias)
