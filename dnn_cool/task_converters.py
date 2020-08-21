@@ -1,9 +1,11 @@
+from functools import partial
 from typing import Optional, Tuple, Callable, Union
 
 from torch import nn
 
 from dnn_cool.decoders import Decoder
 from dnn_cool.metrics import TorchMetric
+from dnn_cool.task_flow import ClassificationTask
 
 
 class To:
@@ -65,7 +67,37 @@ class EfficientNetHead:
 
     @staticmethod
     def create(model: Union[str, int], out_features, bias=True):
+        return EfficientNetHead.create_supplier(model, out_features, bias)()
+
+    @staticmethod
+    def create_supplier(model: Union[str, int], out_features, bias=True):
         if isinstance(model, int):
             model = f'efficientnet-b{model}'
         in_features = EfficientNetHead.in_features_dict[model]
-        return nn.Linear(in_features, out_features, bias)
+        return partial(nn.Linear, in_features=in_features, out_features=out_features, bias=bias)
+
+
+class ToEfficient(To):
+
+    def __init__(self,
+                 task_cls,
+                 model: Union[str, int],
+                 n_classes: int,
+                 bias=True,
+                 loss_supplier: Callable[[], nn.Module] = None,
+                 per_sample_loss_supplier: Callable[[], nn.Module] = None,
+                 decoder_supplier: Callable[[], Decoder] = None,
+                 available_func=None,
+                 inputs=None,
+                 activation: Optional[nn.Module] = None,
+                 metrics: Tuple[str, TorchMetric] = None):
+        module_supplier = EfficientNetHead.create_supplier(model, n_classes, bias)
+        super().__init__(task_cls,
+                         module_supplier,
+                         loss_supplier,
+                         per_sample_loss_supplier,
+                         decoder_supplier,
+                         available_func,
+                         inputs,
+                         activation,
+                         metrics)
