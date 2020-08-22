@@ -17,7 +17,7 @@ To see the predefined tasks for this release, see [list of predefined tasks](lis
 ### Introduction
 
 A framework for multi-task learning, where you may precondition tasks and compose them into bigger tasks.
-Many complex neural networks can be trivially implemented with DNN.cool.
+Many complex neural networks can be trivially implemented with `dnn_cool`.
 For example, creating a neural network that does classification and localization is as simple as:
 
 ```python
@@ -61,10 +61,7 @@ above, `obj_x`, `obj_y`, `obj_w`, `obj_h` are bounded regression tasks.
 
 ### Examples
 
-* [Colab notebook](https://colab.research.google.com/drive/1fEidcOszTI9JXptbuU5GGC-O_yxb6hxO?usp=sharing) on synthetic dataset
-* [Markdown story](./story.md) on synthetic dataset
-
-1. Imagenet classification
+#### Quick Imagenet example
 
 We just have to add a `ClassificationTask` named `classifier` and add the flow below:
 
@@ -115,6 +112,7 @@ that executes our `imagenet_flow` only when the camera is not blocked.
 def full_flow(flow, x, out):
     out += flow.camera_blocked(x.features)
     out += flow.imagenet_flow(x.features) | (~out.camera_blocked)
+    return out
 ```
 
 But what if for example we want to check if the object is a kite, and if it is, to classify its color?
@@ -135,6 +133,8 @@ def object_flow(flow, x, out):
 
 I think you can see what `dnn_cool` is meant to do! :)
 
+To see a full walkthrough on a synthetic dataset, check out the [Colab notebook](https://colab.research.google.com/drive/1fEidcOszTI9JXptbuU5GGC-O_yxb6hxO?usp=sharing)
+or the [markdown write-up](./story.md).
 
 ### Features
 
@@ -291,4 +291,29 @@ but if the model thinks the camera is blocked, then the explanation would be:
 
 ### Customization
 
+Since `flow.torch()` returns a normal `nn.Module`, you can use any library you are used to. If you use 
+[Catalyst](https://github.com/catalyst-team/catalyst), `dnn_cool` provides a bunch of useful callbacks. Creating
+a new task is as simple as creating a new instance of this dataclass:
+
+```python
+@dataclass
+class Task(ITask):
+    name: str
+    labels: Any
+    loss: nn.Module
+    per_sample_loss: nn.Module
+    available_func: Callable
+    inputs: Any
+    activation: Optional[nn.Module]
+    decoder: Decoder
+    module: nn.Module
+    metrics: Tuple[str, TorchMetric]
+```
+
+Alternatively, you can subclass `ITask` and implement its inferface.
+
 ### Inspiration
+
+* [Andrej Karpathy: Tesla Autopilot and Multi-Task Learning for Perception and Prediction](https://www.youtube.com/watch?v=IHH47nZ7FZU)
+* [PyTorch at Tesla - Andrej Karpathy, Tesla](https://www.youtube.com/watch?v=oBklltKXtDE)
+* [Multitask learning - Andrew Ng](https://www.youtube.com/watch?v=UdXfsAr4Gjw)
