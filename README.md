@@ -1,17 +1,42 @@
 ## DNN Cool: Deep Neural Networks for Conditional objective oriented learning
 
-A bunch of utilities for multi-task learning, not much for now. To get a better idea of the `dnn_cool`'s goals,
-you can:
- 
-* Read a [story](#motivational-story) about an example application
-* Check out its [features](#features)
-* Interested in [how it works](#how-does-it-work)?
+A bunch of utilities for multi-task learning, where you may precondition tasks and compose them into bigger task.
+For example, creating a neural network that does classification and localization is as simple as:
+
+```python
+@project.add_flow
+def classification_localization_flow(flow, x, out):
+    out += flow.obj_exists(x.features)
+    out += flow.obj_x(x.features) | out.obj_exists
+    out += flow.obj_y(x.features) | out.obj_exists
+    out += flow.obj_w(x.features) | out.obj_exists
+    out += flow.obj_h(x.features) | out.obj_exists
+    out += flow.obj_class(x.features) | out.obj_exists
+    return out
+```
+
+If for example you want to classify first if the camera is blocked and then do localizaiton, you could do:
+
+```python
+@project.add_flow
+def full_flow(flow, x, out):
+    out += flow.camera_blocked(x.cam_features)
+    out += flow.classification_localization_flow(x.localization_features) | out.camera_blocked
+```
+
+More information is available below.
 
 Installation is as usual:
 
 ```bash
 pip install dnn_cool
 ```
+
+*  
+* Read a [story](#motivational-story) about an example application
+* Check out its [features](#features)
+* Interested in [how it works](#how-does-it-work)?
+
 
 ### Motivational story
 

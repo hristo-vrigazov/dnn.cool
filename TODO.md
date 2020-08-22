@@ -4,18 +4,19 @@ Some dumb stuff I am playing with.
 
 DOING:
 
+- [ ] Improve README.md design
+- [ ] Release 0.1.0
 - [ ] Documentation
-- [ ] EfficientNet-based project helper
 - [ ] Stricter typing for `train` and `infer` methods
 - [ ] Common converters implementation
 - [ ] Add to latex option (automatically generate loss functions in latex)
 - [ ] Handle case when the precondition is not a single number
 - [ ] Precondition shape should be handled correctly
+- [ ] EfficientNet integration - splitting, etc.
 
 TODO:
 
 - [ ] Simplify ITask by using more properties
-- [ ] Improve README.md design
 - [ ] Update to new dependencies (Catalyst in particular handles metrics differently)
 - [ ] Maintain compatibility matrix
 - [ ] Helper for using built-in callbacks for a specific task
@@ -78,7 +79,6 @@ TODO:
 - [ ] Add the possibility to not store the labels in memory when tuning and evaluating.
 - [ ] Test on real dataset
 - [ ] EfficientDet integration
-- [ ] EfficientNet integration
 - [ ] CenterNet integration
 - [ ] YOLO integration
 - [ ] Mask R-CNN implementation
@@ -181,4 +181,6 @@ Done:
 - [x] Cleaner representations for results
 - [x] Fix the bug that instances are shared between tasks!
 - [x] Friendlier converters, so that users don't have to make partial functions
+- [x] EfficientNet-based project helper
+
 
