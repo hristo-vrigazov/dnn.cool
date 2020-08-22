@@ -8,7 +8,8 @@ pip install dnn_cool
 
 * [Introduction](#introduction): What is `dnn_cool` in a nutshell?
 * [Features](#features): a list of the utilities that `dnn_cool` provides for you
-* [Example](#motivational-story): Read a walkthrough of solving a multi-task problem with `dnn_cool`.
+* [Example](#example): a simple step-by-step example.
+* [Full example](#motivational-story): Read a walkthrough of solving a multi-task problem with `dnn_cool`.
 * [Customization](#customization): Learn how to add new tasks, modify them, etc.
 * [How does it work](#how-does-it-work): A detailed explanation of the inner-workings and assumptions of `dnn_cool`
 * [Inspiration](#inspiration): list of papers and videos which inspired this library
@@ -18,6 +19,7 @@ To see the predefined tasks for this release, see [list of predefined tasks](lis
 ### Introduction
 
 A framework for multi-task learning, where you may precondition tasks and compose them into bigger tasks.
+Many complex neural networks can be trivially implemented with DNN.cool.
 For example, creating a neural network that does classification and localization is as simple as:
 
 ```python
@@ -66,14 +68,38 @@ Main features are:
 * [Task precondition](#task-preconditioning)
 * [Missing values handling](#missing-values)
 * [Task composition](#task-composition)
+* [Tensorboard metrics logging](#tensorboard-logging)
+* [Task interpretations](#task-interpretation)
+* [Task evaluation](#task-evaluation)
+* [Task threshold tuning](#task-threshold-tuning)
+* [Dataset generation](#dataset-generation)
 * [Tree explanations](#tree-explanations)
 
 ##### Task preconditioning
 
+Use the `|` for task preconditioning (think of `P(A|B)` notation). Preconditioning - ` A | B` means that:
 
-* Support for nested tasks - tasks which contain other tasks
-* Support for handling missing values 
-* Treelib explanation generator, for example:
+* Include the ground truth for `B` in the input batch when training
+* When training, update the weights of the `A` only when `B` is satisfied in the ground truth.
+* When training, compute the loss function for `A` only when `B` is satisfied in the ground truth
+* When training, compute the metrics for `A` only when `B` is satisfied in the ground truth.
+* When tuning threshold for `A`, optimize only on values for which `B` is satisfied in the ground truth.
+* When doing inference, compute the metrics for `A` only when the precondition is satisfied according to the decoded
+result of the `B` task
+* When generating tree explanation in inference mode, do not show the branch for `A` if `B` is not 
+satisfied.
+* When computing results interpretation, include only loss terms when the precondition is satisfied.
+
+
+##### Missing values
+
+##### Task composition
+##### Tensorboard logging
+##### Task interpretation
+##### Task evaluation
+##### Task threshold tuning
+##### Dataset generation
+##### Tree explanations
 
 ```
 ├── inp 1
@@ -103,20 +129,6 @@ but if the model thinks the camera is blocked, then the explanation would be:
 ```
 ├── inp 2
 │   └── camera_blocked | decoded: [ True], activated: [1.], logits: [76.367676]
-```
-
-Many complex neural networks can be trivially implemented with DNN.cool. For example YOLO is:
-
-```python
-@project.add_flow
-def yolo_flow(flow, x, out):
-    out += flow.obj_exists(x.features)
-    out += flow.obj_x(x.features) | out.obj_exists
-    out += flow.obj_y(x.features) | out.obj_exists
-    out += flow.obj_w(x.features) | out.obj_exists
-    out += flow.obj_h(x.features) | out.obj_exists
-    out += flow.obj_class(x.features) | out.obj_exists
-    return out
 ```
 
 ### Motivational story
