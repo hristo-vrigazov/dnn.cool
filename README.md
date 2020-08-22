@@ -90,8 +90,18 @@ result of the `B` task
 satisfied.
 * When computing results interpretation, include only loss terms when the precondition is satisfied.
 
+Usually, you have to keep track of all this stuff manually, which makes adding new preconditions very difficult. 
+`dnn_cool` makes this stuff easy, so that you can chain a long list of preconditions without worrying you forgot 
+something.
 
 ##### Missing values
+
+Sometimes for an input you don't have labels for all tasks. With `dnn_cool`, you can just mark the missing label and
+`dnn_cool` will update only the weights of the tasks for which labels are available. 
+
+This feature has the awesome property that you don't need a single dataset with all tasks labeled, you can
+have different datasets for different tasks and it will work. For example, you can train a single object detection 
+neural network that trains its classifier head on ImageNet, and its detection head on COCO.
 
 ##### Task composition
 ##### Tensorboard logging
