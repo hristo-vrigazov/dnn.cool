@@ -97,6 +97,7 @@ TODO:
 - [ ] Create colab notebook for PyPi version
 - [ ] Implement GIoU https://giou.stanford.edu/
 - [ ] Implement DETR https://github.com/facebookresearch/detr/tree/master
+- [ ] Add the possibility to add additional stuff to TaskFlow (not just its children's stuff)
 
 Done: 
 
