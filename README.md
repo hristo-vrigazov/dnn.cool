@@ -1,5 +1,13 @@
 ## DNN Cool: Deep Neural Networks for Conditional objective oriented learning
 
+* [Intorduction](#introduction): What is `dnn_cool` in a nutshell?
+* [Features](#features): a list of the utilities that `dnn_cool` provides for you
+* [Example](#motivational-story): Read a walkthrough of solving a multi-task problem with `dnn_cool`.
+* [Customization](#customization): Learn how to add new tasks, modify them, etc.
+* [How does it work](#how-does-it-work): A detailed explanation of the inner-workings and assumptions of `dnn_cool`
+
+### Introduction
+
 A bunch of utilities for multi-task learning, where you may precondition tasks and compose them into bigger task.
 For example, creating a neural network that does classification and localization is as simple as:
 
@@ -24,18 +32,14 @@ def full_flow(flow, x, out):
     out += flow.classification_localization_flow(x.localization_features) | out.camera_blocked
 ```
 
-More information is available below.
-
+Based on there "task flows" as we tell them, dnn_cool provides a bunch of goodies.
 Installation is as usual:
 
 ```bash
 pip install dnn_cool
 ```
 
-*  
-* Read a [story](#motivational-story) about an example application
-* Check out its [features](#features)
-* Interested in [how it works](#how-does-it-work)?
+
 
 
 ### Motivational story
