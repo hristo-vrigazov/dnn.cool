@@ -14,7 +14,7 @@ For example, creating a neural network that does classification and localization
 
 ```python
 @project.add_flow
-def classification_localization_flow(flow, x, out):
+def localize_flow(flow, x, out):
     out += flow.obj_exists(x.features)
     out += flow.obj_x(x.features) | out.obj_exists
     out += flow.obj_y(x.features) | out.obj_exists
@@ -30,7 +30,7 @@ If for example you want to classify first if the camera is blocked and then do l
 @project.add_flow
 def full_flow(flow, x, out):
     out += flow.camera_blocked(x.cam_features)
-    out += flow.classification_localization_flow(x.localization_features) | out.camera_blocked
+    out += flow.localize_flow(x.localization_features) | out.camera_blocked
 ```
 
 Based on there "task flows" as we tell them, dnn_cool provides a bunch of goodies.
