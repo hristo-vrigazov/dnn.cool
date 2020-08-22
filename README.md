@@ -7,8 +7,8 @@ pip install dnn_cool
 ```
 
 * [Introduction](#introduction): What is `dnn_cool` in a nutshell?
-* [Features](#features): a list of the utilities that `dnn_cool` provides for you
 * [Examples](#examples): a simple step-by-step example.
+* [Features](#features): a list of the utilities that `dnn_cool` provides for you
 * [Customization](#customization): Learn how to add new tasks, modify them, etc.
 * [Inspiration](#inspiration): list of papers and videos which inspired this library
 
@@ -58,6 +58,83 @@ above, `obj_class` is a `ClassificationTask`
 * `BoundedRegressionTask` - sigmoid activation, rescaling decoder, mean squared error loss function. In the examples 
 above, `obj_x`, `obj_y`, `obj_w`, `obj_h` are bounded regression tasks.
 * `TaskFlow` - a composite task, that contains a list of children tasks. We saw 2 task flows above. 
+
+### Examples
+
+* [Colab notebook](https://colab.research.google.com/drive/1fEidcOszTI9JXptbuU5GGC-O_yxb6hxO?usp=sharing) on synthetic dataset
+* [Markdown story](./story.md) on synthetic dataset
+
+1. Imagenet classification
+
+We just have to add a `ClassificationTask` named `classifier` and add the flow below:
+
+```python
+@project.add_flow()
+def imagenet_model(flow, x, out):
+    out += flow.classifier(x.features)
+    return out
+```
+
+That's great! But what if there is not an object always? Then we have to first check if an object exists. Let's
+add a `BinaryClassificationTask` and use it as a precondition to classifier.
+
+```python
+@project.add_flow()
+def imagenet_model(flow, x, out):
+    out += flow.object_exists(x.features)
+    out += flow.classifier(x.features) | out.object_exists
+    return out
+```
+
+But what if we also want to localize the object? Then we have to add new tasks that regress the bounding box. Let's 
+call them `object_x`, `object_y`, `object_w`, `object_h` and make them a `BoundedRegressionTask`. To avoid 
+preconditioning all tasks on `object_exists`, let's group them first. Then we modify the 
+flow:
+
+```python
+@project.add_flow()
+def object_flow(flow, x, out):
+    out += flow.classifier(x.features)
+    out += flow.object_x(x.features)
+    out += flow.object_y(x.features)
+    out += flow.object_w(x.features)
+    out += flow.object_h(x.features)
+    return out 
+
+@project.add_flow()
+def imagenet_flow(flow, x, out):
+    out += flow.object_exists(x.features)
+    out += flow.object_flow(x.features) | out.object_exists
+    return out
+```
+
+But what if the camera is blocked? Then there is no need to do anything, so let's create a new flow
+that executes our `imagenet_flow` only when the camera is not blocked.
+
+```python
+def full_flow(flow, x, out):
+    out += flow.camera_blocked(x.features)
+    out += flow.imagenet_flow(x.features) | (~out.camera_blocked)
+```
+
+But what if for example we want to check if the object is a kite, and if it is, to classify its color?
+Then we would have to modify our `object_flow` as follows:
+
+```python
+@project.add_flow()
+def object_flow(flow, x, out):
+    out += flow.classifier(x.features)
+    out += flow.object_x(x.features)
+    out += flow.object_y(x.features)
+    out += flow.object_w(x.features)
+    out += flow.object_h(x.features)
+    out += flow.is_kite(x.features)
+    out += flow.color(x.features) | out.is_kite
+    return out 
+```
+
+I think you can see what `dnn_cool` is meant to do! :)
+
 
 ### Features
 
@@ -211,8 +288,6 @@ but if the model thinks the camera is blocked, then the explanation would be:
 ├── inp 2
 │   └── camera_blocked | decoded: [ True], activated: [1.], logits: [76.367676]
 ```
-
-### Examples
 
 ### Customization
 
