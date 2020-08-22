@@ -45,7 +45,7 @@ def full_flow(flow, x, out):
     return out
 ```
 
-Based on there "task flows" as we tell them, `dnn_cool` provides a bunch of [features](#features).
+Based on these "task flows" as we tell them, `dnn_cool` provides a bunch of [features](#features).
 Currently, this is the list of the predefined tasks (they are all located in `dnn_cool.task_flow`):
 
 ##### List of predefined tasks
@@ -104,7 +104,31 @@ have different datasets for different tasks and it will work. For example, you c
 neural network that trains its classifier head on ImageNet, and its detection head on COCO.
 
 ##### Task composition
+
+You can group tasks in a task flow (we already saw 2 above - `localize_flow` and `full_flow`). You can use this to
+organize things better, for example when you want to precondition a whole task flow. For example:
+
+```python
+@project.add_flow
+def face_regression(flow, x, out):
+    out += flow.face_x1(x.face_localization)
+    out += flow.face_y1(x.face_localization)
+    out += flow.face_w(x.face_localization)
+    out += flow.face_h(x.face_localization)
+    out += flow.facial_characteristics(x.features)
+    return out
+```
+
 ##### Tensorboard logging
+
+`dnn_cool` logs the loss functions per metric in Tensorboard, e.g:
+
+![Task loss tensorboard log](./static/task_metric.png)
+
+Also, the best and worst inputs per task are logged, for example if the input is an image:
+
+ ![Task interpretation tensorboard log](./static/interpretation_logging.png)
+
 ##### Task interpretation
 ##### Task evaluation
 ##### Task threshold tuning

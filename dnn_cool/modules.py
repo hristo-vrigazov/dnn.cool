@@ -224,7 +224,7 @@ class CompositeModuleOutput:
 
     def __or__(self, precondition: Condition):
         """
-        Note: this has the meaning of a a precondition, not boolean or. Use the method `or_else` instead.
+        Note: this has the meaning of a a precondition, not boolean or.
         :param other: precondition tensor
         :return: self
         """
