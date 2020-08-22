@@ -130,9 +130,57 @@ Also, the best and worst inputs per task are logged in the Tensorboard, for exam
  ![Task interpretation tensorboard log](./static/interpretation_logging.png)
 
 ##### Task evaluation
+
+Per-task evaluation information is available, to pinpoint the exact problem in your network. An example
+evaluation dataframe:
+
+|    | task_path                                                | metric_name         |   metric_res |   num_samples |
+|---:|:---------------------------------------------------------|:--------------------|-------------:|--------------:|
+|  0 | camera_blocked                                           | accuracy            |   0.980326   |           996 |
+|  1 | camera_blocked                                           | f1_score            |   0.974368   |           996 |
+|  2 | camera_blocked                                           | precision           |   0.946635   |           996 |
+|  3 | camera_blocked                                           | recall              |   0.960107   |           996 |
+|  4 | door_open                                                | accuracy            |   0.921215   |           902 |
+|  5 | door_open                                                | f1_score            |   0.966859   |           902 |
+|  6 | door_open                                                | precision           |   0.976749   |           902 |
+|  7 | door_open                                                | recall              |   0.939038   |           902 |
+|  8 | door_locked                                              | accuracy            |   0.983039   |           201 |
+|  9 | door_locked                                              | f1_score            |   0.948372   |           201 |
+| 10 | door_locked                                              | precision           |   0.982583   |           201 |
+| 11 | door_locked                                              | recall              |   0.934788   |           201 |
+| 12 | person_present                                           | accuracy            |   0.999166   |           701 |
+| 13 | person_present                                           | f1_score            |   0.937541   |           701 |
+| 14 | person_present                                           | precision           |   0.927337   |           701 |
+| 15 | person_present                                           | recall              |   0.963428   |           701 |
+| 16 | person_regression.face_regression.face_x1                | mean_absolute_error |   0.0137292  |           611 |
+| 17 | person_regression.face_regression.face_y1                | mean_absolute_error |   0.0232761  |           611 |
+| 18 | person_regression.face_regression.face_w                 | mean_absolute_error |   0.00740503 |           611 |
+| 19 | person_regression.face_regression.face_h                 | mean_absolute_error |   0.0101     |           611 |
+| 20 | person_regression.face_regression.facial_characteristics | accuracy            |   0.932624   |           611 |
+| 21 | person_regression.body_regression.body_x1                | mean_absolute_error |   0.00830785 |           611 |
+| 22 | person_regression.body_regression.body_y1                | mean_absolute_error |   0.0151234  |           611 |
+| 23 | person_regression.body_regression.body_w                 | mean_absolute_error |   0.0130214  |           611 |
+| 24 | person_regression.body_regression.body_h                 | mean_absolute_error |   0.0101     |           611 |
+| 25 | person_regression.body_regression.shirt_type             | accuracy_1          |   0.979934   |           611 |
+| 26 | person_regression.body_regression.shirt_type             | accuracy_3          |   0.993334   |           611 |
+| 27 | person_regression.body_regression.shirt_type             | accuracy_5          |   0.990526   |           611 |
+| 28 | person_regression.body_regression.shirt_type             | f1_score            |   0.928516   |           611 |
+| 29 | person_regression.body_regression.shirt_type             | precision           |   0.959826   |           611 |
+| 30 | person_regression.body_regression.shirt_type             | recall              |   0.968146   |           611 |
+
 ##### Task threshold tuning
+
+Many tasks need to tune their threshold. Just call `flow.get_decoder().tune()` and you will get optimized thresholds
+for the metric you define.
+
 ##### Dataset generation
+
+As noted above, `dnn_cool` will automatically trace the tasks used as a precondition and include the ground truth for 
+them under the key `gt`.
+
 ##### Tree explanations
+
+Examples:
 
 ```
 ├── inp 1
@@ -164,7 +212,7 @@ but if the model thinks the camera is blocked, then the explanation would be:
 │   └── camera_blocked | decoded: [ True], activated: [1.], logits: [76.367676]
 ```
 
-### Example
+### Examples
 
 ### Customization
 
