@@ -48,11 +48,16 @@ Currently, this is the list of the predefined tasks (they are all located in `dn
 
 ##### List of predefined tasks
 
+In the current release (0.1.0), the following tasks are availble out of the box:
+
 * `BinaryClassificationTask` - sigmoid activation, thresholding decoder, binary cross entropy loss function. In the 
 examples above, `camera_blocked` and `obj_exists` are `BinaryClassificationTask`s.
 * `ClassificationTask` - softmax activation, sorting classes decoder, categorical cross entropy loss. In the example 
 above, `obj_class` is a `ClassificationTask`
-*
+* `MultilabelClassificationTask` - sigmoid activation, thresholding decoder, binary cross entropy loss function.
+* `BoundedRegressionTask` - sigmoid activation, rescaling decoder, mean squared error loss function. In the examples 
+above, `obj_x`, `obj_y`, `obj_w`, `obj_h` are bounded regression tasks.
+* `TaskFlow` - a composite tasks, that contains of children tasks. We saw 2 task flows above. 
 
 ### Features
 
