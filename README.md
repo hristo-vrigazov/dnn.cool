@@ -1,10 +1,11 @@
-## DNN Cool: Deep Neural Networks for Conditional objective oriented learning
+## `dnn_cool`: Deep Neural Networks for Conditional objective oriented learning
 
 * [Intorduction](#introduction): What is `dnn_cool` in a nutshell?
 * [Features](#features): a list of the utilities that `dnn_cool` provides for you
 * [Example](#motivational-story): Read a walkthrough of solving a multi-task problem with `dnn_cool`.
 * [Customization](#customization): Learn how to add new tasks, modify them, etc.
 * [How does it work](#how-does-it-work): A detailed explanation of the inner-workings and assumptions of `dnn_cool`
+* [Inspiration](#inspiration): list of videos which inspired this library
 
 ### Introduction
 
@@ -23,7 +24,7 @@ def classification_localization_flow(flow, x, out):
     return out
 ```
 
-If for example you want to classify first if the camera is blocked and then do localizaiton, you could do:
+If for example you want to classify first if the camera is blocked and then do localization, you could do:
 
 ```python
 @project.add_flow
