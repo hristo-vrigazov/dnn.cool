@@ -105,6 +105,8 @@ class OnesCondition(Condition):
         return OnesCondition(self.path)
 
     def to_mask(self, data):
+        if '_availability' in data:
+            return data['_availability'][self.path]
         return torch.ones_like(data[self.path])
 
 
