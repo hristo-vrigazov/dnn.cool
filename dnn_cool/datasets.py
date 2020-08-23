@@ -31,17 +31,20 @@ class FlowDatasetDecorator:
 
     def __init__(self, task, prefix, labels):
         self.task_name = task.get_name()
-        self.available = task.get_available_func()
-        self.task = task
+        self.available = task.get_available_func()(labels)
         self.prefix = prefix
         self.arr = labels
 
     def __call__(self, *args, **kwargs):
         index_holder = discover_index_holder(*args, **kwargs)
         key = self.prefix + self.task_name
-        return FlowDatasetDict(self.prefix, {
+        data = {
             key: self.arr[index_holder.item]
-        })
+        }
+        available = {
+            key: self.available[index_holder.item]
+        }
+        return FlowDatasetDict(self.prefix, data, available)
 
 
 class IndexHolder:
@@ -65,15 +68,17 @@ class FlowDatasetPrecondition:
 
 class FlowDatasetDict:
 
-    def __init__(self, prefix, data):
+    def __init__(self, prefix, data=None, available=None):
         self.prefix = prefix
-        self.data = data
+        self.data = data if data is not None else {}
+        self.available = available if available is not None else {}
         self.gt = {}
 
     def __iadd__(self, other):
         for key, value in other.data.items():
             self.data[key] = value
         self.gt.update(other.gt)
+        self.available.update(other.available)
         return self
 
     def __getattr__(self, item):
@@ -91,6 +96,7 @@ class FlowDatasetDict:
             targets = value
             y[key] = targets
         X['gt'] = self.gt
+        X['gt']['_availability'] = self.available
         return X, y
 
 
@@ -139,4 +145,4 @@ class FlowDataset(Dataset):
 
     def __call__(self, *args, **kwargs):
         index_holder = discover_index_holder(*args, **kwargs)
-        return self.flow(self, index_holder, FlowDatasetDict(self.prefix, {}))
+        return self.flow(self, index_holder, FlowDatasetDict(self.prefix))

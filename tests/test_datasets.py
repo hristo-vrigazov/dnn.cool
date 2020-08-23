@@ -50,6 +50,11 @@ def test_includes_everything_needed_and_stores_gt(example_numerical_flow):
 def test_synthetic_dataset_missing_values():
     model, nested_loaders, datasets, project = synthenic_dataset_preparation(int(1e2))
     dataset = datasets['train']
-    X, y = dataset[0]
 
-    print(X.keys())
+    for i in range(32):
+        X, y = dataset[i]
+        assert 'gt' in X
+        assert '_availability' in X['gt']
+
+        if y['camera_blocked'].item() < 0:
+            assert not X['gt']['_availability']['camera_blocked'].item()
