@@ -3,6 +3,7 @@ import pytest
 
 from dnn_cool.datasets import FlowDataset
 from dnn_cool.converters import Values
+from dnn_cool.synthetic_dataset import synthenic_dataset_preparation
 from dnn_cool.task_flow import TaskFlow, BinaryHardcodedTask
 
 
@@ -44,3 +45,11 @@ def test_includes_everything_needed_and_stores_gt(example_numerical_flow):
     assert 'numerical_flow.is_even' in X['gt']
     assert 'numerical_flow.predict_positive' in X['gt']
     assert not 'numerical_flow.multiple_three' in X['gt']
+
+
+def test_synthetic_dataset_missing_values():
+    model, nested_loaders, datasets, project = synthenic_dataset_preparation(int(1e2))
+    dataset = datasets['train']
+    X, y = dataset[0]
+
+    print(X.keys())

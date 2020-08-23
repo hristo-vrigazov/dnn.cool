@@ -1,3 +1,6 @@
+import torch
+
+from dataclasses import dataclass
 from torch.utils.data.dataset import Dataset
 
 
@@ -7,7 +10,7 @@ class LeafTaskDataset(Dataset):
         self.inputs = inputs
         self.labels = labels
         assert len(self.inputs) == len(self.labels), f'The provided inputs and labels are of different length: ' \
-            f'{len(self.inputs)} and {len(self.labels)}'
+                                                     f'{len(self.inputs)} and {len(self.labels)}'
 
     def __getitem__(self, item):
         return self.inputs[item], self.labels[item]
@@ -28,6 +31,8 @@ class FlowDatasetDecorator:
 
     def __init__(self, task, prefix, labels):
         self.task_name = task.get_name()
+        self.available = task.get_available_func()
+        self.task = task
         self.prefix = prefix
         self.arr = labels
 
@@ -48,11 +53,22 @@ class IndexHolder:
         return self
 
 
+@dataclass
+class FlowDatasetPrecondition:
+    prefix: str
+    path: str
+    precondition: torch.Tensor
+
+    def __invert__(self):
+        return self
+
+
 class FlowDatasetDict:
 
     def __init__(self, prefix, data):
         self.prefix = prefix
         self.data = data
+        self.gt = {}
 
     def __add__(self, other):
         for key, value in other.data.items():
@@ -65,27 +81,18 @@ class FlowDatasetDict:
         return self
 
     def __getattr__(self, item):
-        return FlowDatasetDict(self.prefix, {
-            'key': self.prefix + item,
-            'precondition': self.data[self.prefix + item]
-        })
+        return FlowDatasetPrecondition(prefix=self.prefix,
+                                       path=self.prefix + item,
+                                       precondition=self.data[self.prefix + item])
 
-    def __or__(self, other):
+    def __or__(self, other: FlowDatasetPrecondition):
         gt_dict = {}
-        y = other.data['precondition']
-        gt_dict[other.data['key']] = y.bool()
+        y = other.precondition
+        gt_dict[other.path] = y.bool()
         if not ('gt' in self.data):
             self.data['gt'] = {}
         self.data['gt'].update(gt_dict)
         return self
-
-    def __invert__(self):
-        y = self.data['precondition']
-        new_data = {
-            'key': self.data['key'],
-            'precondition': (y.bool())
-        }
-        return FlowDatasetDict(self.prefix, new_data)
 
     def to_dict(self, X):
         y = {}
