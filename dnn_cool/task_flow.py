@@ -1,9 +1,8 @@
+import os
+from dataclasses import dataclass, field
 from typing import Iterable, Optional, Callable, Tuple, Any
 
 import torch
-import os
-
-from dataclasses import dataclass, field
 from torch import nn
 from torch.utils.data import Dataset
 
@@ -14,12 +13,10 @@ from dnn_cool.decoders import BinaryDecoder, TaskFlowDecoder, Decoder, Classific
 from dnn_cool.evaluation import EvaluationCompositeVisitor, EvaluationVisitor
 from dnn_cool.filter import FilterCompositeVisitor, FilterVisitor
 from dnn_cool.losses import TaskFlowLoss, ReducedPerSample
-from dnn_cool.metrics import TorchMetric, BinaryAccuracy, ClassificationAccuracy, \
-    ClassificationF1Score, ClassificationPrecision, ClassificationRecall, BinaryF1Score, \
-    BinaryPrecision, BinaryRecall, MeanAbsoluteError, MultiLabelClassificationAccuracy, get_default_binary_metrics, \
+from dnn_cool.metrics import TorchMetric, get_default_binary_metrics, \
     get_default_bounded_regression_metrics, get_default_classification_metrics, \
     get_default_multilabel_classification_metrics
-from dnn_cool.missing_values import positive_values, positive_values_unsqueezed, has_no_missing_labels
+from dnn_cool.missing_values import positive_values, positive_values_unsqueezed
 from dnn_cool.modules import SigmoidAndMSELoss, Identity, TaskFlowModule
 from dnn_cool.treelib import TreeExplainer
 
@@ -214,7 +211,7 @@ class MultilabelClassificationTask(Task):
     labels: Any
     loss: nn.Module = nn.BCEWithLogitsLoss(reduction='mean')
     per_sample_loss: nn.Module = ReducedPerSample(nn.BCEWithLogitsLoss(reduction='none'), torch.mean)
-    available_func: Callable = has_no_missing_labels
+    available_func: Callable = positive_values
     inputs: Any = None
     activation: Optional[nn.Module] = nn.Sigmoid()
     decoder: Decoder = field(default_factory=MultilabelClassificationDecoder)
