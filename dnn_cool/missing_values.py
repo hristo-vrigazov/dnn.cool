@@ -9,4 +9,4 @@ def positive_values_unsqueezed(tensor):
 
 
 def has_no_missing_labels(tensor):
-    return (tensor >= 0.)[:, :1]
+    return (tensor >= 0.)[:, 0]

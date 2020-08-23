@@ -233,10 +233,10 @@ class TaskFlow(ITask):
             self._flow_func = flow_func
 
     def get_loss(self):
-        return TaskFlowLoss(self, parent_reduction='mean', child_reduction='per_sample')
+        return TaskFlowLoss(self)
 
     def get_per_sample_loss(self):
-        return TaskFlowLoss(self, parent_reduction='per_sample', child_reduction='per_sample')
+        return TaskFlowLoss(self)
 
     def torch(self):
         return TaskFlowModule(self)

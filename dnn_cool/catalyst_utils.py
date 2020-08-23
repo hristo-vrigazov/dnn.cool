@@ -89,15 +89,14 @@ class InterpretationCallback(Callback):
         self.flow = flow
 
         self.overall_loss = flow.get_per_sample_loss()
-        self.leaf_losses = self.overall_loss.get_leaf_losses()
+        self.leaf_losses = self.overall_loss.get_leaf_losses_per_sample()
         self.interpretations = {}
 
         self.tensorboard_converters = tensorboard_converters
 
     def _initialize_interpretations(self):
         interpretaion_dict = {f'overall': []}
-        for leaf_loss in self.leaf_losses:
-            path = f'{leaf_loss.prefix}{leaf_loss.task_name}'
+        for path in self.leaf_losses:
             interpretaion_dict[path] = []
         return interpretaion_dict
 
@@ -116,10 +115,9 @@ class InterpretationCallback(Callback):
         targets = state.input['targets']
         self.interpretations[state.loader_name]['overall'].append(to_numpy(self.overall_loss(outputs, targets)))
 
-        for loss in self.leaf_losses:
-            path = f'{loss.prefix}{loss.task_name}'
-            loss_flow_data = LossFlowData(outputs, targets)
-            loss_items = loss(loss_flow_data).loss_items
+        for path, loss in self.leaf_losses.items():
+            precondition = outputs[f'precondition|{path}']
+            loss_items = loss(outputs[path][precondition], targets[path][precondition])
             self.interpretations[state.loader_name][path].append(to_numpy(loss_items))
 
     def on_loader_end(self, state: State):

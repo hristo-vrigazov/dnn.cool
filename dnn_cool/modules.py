@@ -79,7 +79,8 @@ class ModuleDecorator(nn.Module):
         if decoded_logits is None:
             decoded_logits = self.decoder(activated_logits) if self.decoder is not None else activated_logits
         key = self.prefix + self.task_name
-        return LeafModuleOutput(key, logits, activated_logits, decoded_logits)
+        condition = OnesCondition(key)
+        return LeafModuleOutput(key, logits, activated_logits, decoded_logits, condition)
 
 
 class Condition:
@@ -171,7 +172,7 @@ class LeafModuleOutput:
     logits: torch.Tensor
     activated: torch.Tensor
     decoded: torch.Tensor
-    precondition: Condition = None
+    precondition: Condition
 
     def add_to_composite(self, composite_module_output):
         composite_module_output.logits[self.path] = self.logits
