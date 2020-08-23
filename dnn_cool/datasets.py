@@ -70,14 +70,10 @@ class FlowDatasetDict:
         self.data = data
         self.gt = {}
 
-    def __add__(self, other):
+    def __iadd__(self, other):
         for key, value in other.data.items():
-            if key == 'gt':
-                if not ('gt' in self.data):
-                    self.data['gt'] = {}
-                self.data['gt'].update(other.data['gt'])
-            else:
-                self.data[key] = value
+            self.data[key] = value
+        self.gt.update(other.gt)
         return self
 
     def __getattr__(self, item):
@@ -86,22 +82,15 @@ class FlowDatasetDict:
                                        precondition=self.data[self.prefix + item])
 
     def __or__(self, other: FlowDatasetPrecondition):
-        gt_dict = {}
-        y = other.precondition
-        gt_dict[other.path] = y.bool()
-        if not ('gt' in self.data):
-            self.data['gt'] = {}
-        self.data['gt'].update(gt_dict)
+        self.gt.update({other.path: other.precondition.bool()})
         return self
 
     def to_dict(self, X):
         y = {}
         for key, value in self.data.items():
-            if key == 'gt':
-                X[key] = value
-                continue
             targets = value
             y[key] = targets
+        X['gt'] = self.gt
         return X, y
 
 
