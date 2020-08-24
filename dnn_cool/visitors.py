@@ -51,7 +51,6 @@ class LeafVisitor:
         self.decoder = task.get_decoder()
         self.prefix = prefix
         self.path = self.prefix + task.get_name()
-        self.available = task.get_available_func()
 
     def __call__(self, *args, **kwargs):
         visitor_data = get_visitor_data(*args, **kwargs)
