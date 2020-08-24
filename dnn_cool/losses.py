@@ -107,6 +107,7 @@ class BaseMetricDecorator(nn.Module):
         loss_items = torch.zeros(1, dtype=outputs.dtype, device=outputs.device)
         if precondition.sum() == 0:
             return loss_items
+        precondition = squeeze_if_needed(precondition)
         metric_res = metric(outputs[precondition], targets[precondition])
         return self.postprocess_results(loss_items, metric_res, precondition)
 

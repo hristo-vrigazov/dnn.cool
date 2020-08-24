@@ -49,3 +49,19 @@ class TransformedSubset(Dataset):
 
     def __len__(self):
         return len(self.indices)
+
+
+def to_broadcastable_shape(tensor1, tensor2):
+    if len(tensor1.shape) == len(tensor2.shape):
+        return tensor1, tensor2
+    if len(tensor2.shape) > len(tensor1.shape):
+        return to_broadcastable_smaller(tensor1, tensor2)
+    tensor2, tensor1 = to_broadcastable_smaller(tensor2, tensor1)
+    return tensor1, tensor2
+
+
+def to_broadcastable_smaller(tensor1, tensor2):
+    assert tensor1.shape == tensor2.shape[:len(tensor1.shape)]
+    old_axes = tensor1.shape
+    new_axes = [1] * (len(tensor2.shape) - len(tensor1.shape))
+    return tensor1.view(*old_axes, *new_axes), tensor2

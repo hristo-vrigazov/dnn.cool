@@ -5,6 +5,8 @@ from typing import Dict, Union, Optional
 from dataclasses import dataclass, field
 from torch import nn
 
+from dnn_cool.utils import to_broadcastable_shape
+
 
 class SigmoidAndMSELoss(nn.Module):
 
@@ -163,6 +165,7 @@ class AndCondition(Condition):
     def to_mask(self, data):
         mask_one = self.condition_one.to_mask(data)
         mask_two = self.condition_two.to_mask(data)
+        mask_one, mask_two = to_broadcastable_shape(mask_one, mask_two)
         return mask_one & mask_two
 
 
