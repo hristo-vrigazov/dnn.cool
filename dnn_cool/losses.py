@@ -102,7 +102,7 @@ class BaseMetricDecorator(nn.Module):
     def read_vectors(self, loss_flow_data, metric):
         key = self.prefix + self.task_name
         outputs = loss_flow_data.outputs[key]
-        precondition = loss_flow_data.outputs.get(f'precondition|{key}', None)
+        precondition = loss_flow_data.outputs[f'precondition|{key}']
         targets = loss_flow_data.targets[key]
         loss_items = torch.zeros(1, dtype=outputs.dtype, device=outputs.device)
         if precondition.sum() == 0:

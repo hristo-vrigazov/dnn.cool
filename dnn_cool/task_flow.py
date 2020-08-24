@@ -16,7 +16,7 @@ from dnn_cool.losses import TaskFlowLoss, ReducedPerSample
 from dnn_cool.metrics import TorchMetric, get_default_binary_metrics, \
     get_default_bounded_regression_metrics, get_default_classification_metrics, \
     get_default_multilabel_classification_metrics
-from dnn_cool.missing_values import positive_values, positive_values_unsqueezed
+from dnn_cool.missing_values import positive_values
 from dnn_cool.modules import SigmoidAndMSELoss, Identity, TaskFlowModule
 from dnn_cool.treelib import TreeExplainer
 
@@ -192,7 +192,7 @@ class ClassificationTask(Task):
     labels: Any
     loss: nn.Module = nn.CrossEntropyLoss(reduction='mean')
     per_sample_loss: nn.Module = ReducedPerSample(nn.CrossEntropyLoss(reduction='none'), torch.mean)
-    available_func: Callable = positive_values_unsqueezed
+    available_func: Callable = positive_values
     inputs: Any = None
     activation: Optional[nn.Module] = nn.Sigmoid()
     decoder: Decoder = field(default_factory=ClassificationDecoder)
