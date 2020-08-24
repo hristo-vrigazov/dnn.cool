@@ -63,7 +63,7 @@ def test_project_example():
 
 def test_inference_synthetic():
     model, nested_loaders, datasets, project = synthenic_dataset_preparation()
-    runner = project.runner(model=model, runner_name='security_logs')
+    runner = project.runner(model=model, runner_name='default_experiment')
     model = runner.best()
 
     n = 4 * torch.cuda.device_count()
@@ -85,7 +85,7 @@ def test_inference_synthetic():
 
 def test_interpretation_synthetic():
     model, nested_loaders, datasets, project = synthenic_dataset_preparation()
-    runner = project.runner(model=model, runner_name='security_logs')
+    runner = project.runner(model=model, runner_name='default_experiment')
     flow = project.get_full_flow()
 
     loaders = OrderedDict({'infer': nested_loaders['valid']})
@@ -110,7 +110,7 @@ def test_interpretation_synthetic():
 
 def test_interpretation_default_runner():
     model, nested_loaders, datasets, project = synthenic_dataset_preparation()
-    runner = project.runner(model=model, runner_name='security_logs')
+    runner = project.runner(model=model, runner_name='default_experiment')
     model = runner.best()
     predictions, targets, interpretations = runner.infer(model=model)
 
@@ -120,21 +120,21 @@ def test_interpretation_default_runner():
 
 def test_tune_pipeline():
     model, nested_loaders, datasets, project = synthenic_dataset_preparation()
-    runner = project.runner(model=model, runner_name='security_logs')
+    runner = project.runner(model=model, runner_name='default_experiment')
     tuned_params = runner.tune()
     print(tuned_params)
 
 
 def test_load_tuned_pipeline():
     model, nested_loaders, datasets, project = synthenic_dataset_preparation()
-    runner = project.runner(model=model, runner_name='security_logs')
+    runner = project.runner(model=model, runner_name='default_experiment')
     tuned_params = runner.load_tuned()
     print(tuned_params)
 
 
 def test_load_tuned_pipeline_from_decoder():
     model, nested_loaders, datasets, project = synthenic_dataset_preparation()
-    runner = project.runner(model=model, runner_name='security_logs')
+    runner = project.runner(model=model, runner_name='default_experiment')
     tuned_params = torch.load(runner.project_dir / runner.default_logdir / 'tuned_params.pkl')
     flow = project.get_full_flow()
     flow.get_decoder().load_tuned(tuned_params)
@@ -142,7 +142,7 @@ def test_load_tuned_pipeline_from_decoder():
 
 def test_evaluation_is_shown():
     model, nested_loaders, datasets, project = synthenic_dataset_preparation()
-    runner = project.runner(model=model, runner_name='security_logs')
+    runner = project.runner(model=model, runner_name='default_experiment')
     evaluation = runner.evaluate()
     pd.set_option('display.max_columns', None)
     print(evaluation)
@@ -150,7 +150,7 @@ def test_evaluation_is_shown():
 
 def test_composite_activation():
     model, nested_loaders, datasets, project = synthenic_dataset_preparation()
-    runner = project.runner(model=model, runner_name='security_logs')
+    runner = project.runner(model=model, runner_name='default_experiment')
     flow = project.get_full_flow()
     activation = flow.get_activation()
     predictions, targets, interpretations = runner.load_inference_results()
@@ -160,7 +160,7 @@ def test_composite_activation():
 
 def test_composite_decoding():
     model, nested_loaders, datasets, project = synthenic_dataset_preparation()
-    runner = project.runner(model=model, runner_name='security_logs')
+    runner = project.runner(model=model, runner_name='default_experiment')
     flow = project.get_full_flow()
     decoder = flow.get_decoder()
     predictions, targets, interpretations = runner.load_inference_results()
@@ -170,7 +170,7 @@ def test_composite_decoding():
 
 def test_composite_filtering():
     model, nested_loaders, datasets, project = synthenic_dataset_preparation()
-    runner = project.runner(model=model, runner_name='security_logs')
+    runner = project.runner(model=model, runner_name='default_experiment')
     flow = project.get_full_flow()
     filter_func = flow.get_filter()
     predictions, targets, interpretations = runner.load_inference_results()
