@@ -213,16 +213,21 @@ class TaskFlowLossPerSample(nn.Module):
 
     def forward(self, outputs, targets):
         res = {}
-        bs = len(any_value(outputs))
+        value = any_value(outputs)
+        bs = len(value)
+        overall_loss_items = torch.zeros(bs, device=value.device, dtype=value.dtype)
         for path, loss in self._all_losses.items():
             loss_items = loss(outputs, targets).loss_items
-            res[path] = loss_items.squeeze(dim=-1).detach().cpu().numpy()
-            indices = np.arange(bs)
-            precondition = outputs[f'precondition|{path}'].detach().cpu().numpy()
+            res[path] = loss_items.squeeze(dim=-1)
+            indices = torch.arange(bs, device=value.device)
+            precondition = outputs[f'precondition|{path}']
             axes = tuple(range(1, len(precondition.shape)))
             if len(axes) > 0:
                 precondition = precondition.sum(axis=axes) > 0
             res[f'indices|{path}'] = indices[precondition]
+            overall_loss_items[precondition] += res[path]
+        res['overall'] = overall_loss_items
+        res['indices|overall'] = torch.arange(bs, device=value.device)
         return res
 
     def get_leaf_losses_per_sample(self):

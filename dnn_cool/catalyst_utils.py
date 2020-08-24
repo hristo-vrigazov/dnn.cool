@@ -93,7 +93,10 @@ class InterpretationCallback(Callback):
         self.tensorboard_converters = tensorboard_converters
 
     def _initialize_interpretations(self):
-        interpretation_dict = {}
+        interpretation_dict = {
+            'overall': [],
+            'indices|overall': []
+        }
         for path in self.leaf_losses:
             interpretation_dict[path] = []
             interpretation_dict[f'indices|{path}'] = []
@@ -120,9 +123,10 @@ class InterpretationCallback(Callback):
         for path, loss in overall_res.items():
             if path.startswith('indices'):
                 continue
-            self.interpretations[state.loader_name][path].append(loss)
+            self.interpretations[state.loader_name][path].append(loss.detach().cpu().numpy())
             ind_key = f'indices|{path}'
-            self.interpretations[state.loader_name][ind_key].append(overall_res[ind_key] + start)
+            indices = overall_res[ind_key] + start
+            self.interpretations[state.loader_name][ind_key].append(indices.detach().cpu().numpy())
         self.loader_counts[state.loader_name] += bs
 
     def on_loader_end(self, state: State):
