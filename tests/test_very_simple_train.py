@@ -82,12 +82,6 @@ def test_inference_synthetic():
     tree = treelib_explainer(res)
     tree.show()
 
-    for i in range(n):
-        img = (dataset[i][0]['img'].permute(1, 2, 0).cpu().numpy() * 255).astype(np.uint8)
-        plt.imshow(img)
-        plt.title(f'Img {i}')
-        plt.show()
-
 
 def test_interpretation_synthetic():
     model, nested_loaders, datasets, project = synthenic_dataset_preparation()

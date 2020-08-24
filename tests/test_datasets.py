@@ -48,7 +48,7 @@ def test_includes_everything_needed_and_stores_gt(example_numerical_flow):
 
 
 def test_synthetic_dataset_missing_values():
-    model, nested_loaders, datasets, project = synthenic_dataset_preparation(int(1e2))
+    model, nested_loaders, datasets, project = synthenic_dataset_preparation()
     dataset = datasets['train']
 
     for i in range(32):
