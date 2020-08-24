@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -161,7 +162,9 @@ def generate_sample():
     return generators[choice]()
 
 
-def create_df_and_images_tensor(n=int(1e4)):
+def create_df_and_images_tensor(n=int(1e4), cache_file=Path('dnn_cool_synthetic_dataset.pkl')):
+    if cache_file.exists():
+        return torch.load(cache_file)
     imgs = []
     rows = []
     names = []
@@ -174,7 +177,9 @@ def create_df_and_images_tensor(n=int(1e4)):
     df = pd.DataFrame(rows)
     df['img'] = names
     df.loc[:5, 'camera_blocked'] = np.nan
-    return torch.stack(imgs, dim=0).float() / 255., df
+    res = torch.stack(imgs, dim=0).float() / 255., df
+    torch.save(res, cache_file)
+    return res
 
 
 def synthenic_dataset_preparation(n=int(1e4)):
