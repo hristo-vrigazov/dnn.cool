@@ -56,7 +56,7 @@ class ClassificationDecoder(Decoder):
         return sort_declining(x)
 
     def tune(self, predictions, targets):
-        pass
+        return {}
 
     def load_tuned(self, params):
         pass
