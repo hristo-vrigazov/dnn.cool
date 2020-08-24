@@ -1,8 +1,5 @@
-from typing import List
-
+import numpy as np
 import torch
-from dataclasses import dataclass
-
 from catalyst.core import MultiMetricCallback
 from torch import nn
 
@@ -213,6 +210,20 @@ class TaskFlowLossPerSample(nn.Module):
 
         self._all_children = task_flow.get_all_children(prefix=prefix)
         self._all_losses = self._collect_leaf_losses_per_sample()
+
+    def forward(self, outputs, targets):
+        res = {}
+        bs = len(any_value(outputs))
+        for path, loss in self._all_losses.items():
+            loss_items = loss(outputs, targets).loss_items
+            res[path] = loss_items.squeeze(dim=-1).detach().cpu().numpy()
+            indices = np.arange(bs)
+            precondition = outputs[f'precondition|{path}'].detach().cpu().numpy()
+            axes = tuple(range(1, len(precondition.shape)))
+            if len(axes) > 0:
+                precondition = precondition.sum(axis=axes) > 0
+            res[f'indices|{path}'] = indices[precondition]
+        return res
 
     def get_leaf_losses_per_sample(self):
         return self._all_losses

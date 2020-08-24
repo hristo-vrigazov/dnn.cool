@@ -85,7 +85,8 @@ class InterpretationCallback(Callback):
         super().__init__(CallbackOrder.Metric)
         self.flow = flow
 
-        self.leaf_losses = flow.get_per_sample_loss().get_leaf_losses_per_sample()
+        self.overall_loss = flow.get_per_sample_loss()
+        self.leaf_losses = self.overall_loss.get_leaf_losses_per_sample()
         self.interpretations = {}
         self.loader_counts = {}
 
@@ -112,20 +113,16 @@ class InterpretationCallback(Callback):
             return
         outputs = state.output['logits']
         targets = state.input['targets']
+        overall_res = self.overall_loss(outputs, targets)
+        start = self.loader_counts[state.loader_name]
         bs = len(any_value(outputs))
 
-        for path, loss in self.leaf_losses.items():
-            loss_items = loss(outputs, targets).loss_items
-            self.interpretations[state.loader_name][path].append(loss_items.squeeze(dim=-1).detach().cpu().numpy())
-
-            start = self.loader_counts[state.loader_name]
-            stop = self.loader_counts[state.loader_name] + bs
-            indices = np.arange(start, stop)
-            precondition = outputs[f'precondition|{path}'].detach().cpu().numpy()
-            axes = tuple(range(1, len(precondition.shape)))
-            if len(axes) > 0:
-                precondition = precondition.sum(axis=axes) > 0
-            self.interpretations[state.loader_name][f'indices|{path}'].append(indices[precondition])
+        for path, loss in overall_res.items():
+            if path.startswith('indices'):
+                continue
+            self.interpretations[state.loader_name][path].append(loss)
+            ind_key = f'indices|{path}'
+            self.interpretations[state.loader_name][ind_key].append(overall_res[ind_key] + start)
         self.loader_counts[state.loader_name] += bs
 
     def on_loader_end(self, state: State):
