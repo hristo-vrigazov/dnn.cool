@@ -12,7 +12,7 @@ from dnn_cool.decoders import BinaryDecoder, TaskFlowDecoder, Decoder, Classific
     MultilabelClassificationDecoder
 from dnn_cool.evaluation import EvaluationCompositeVisitor, EvaluationVisitor
 from dnn_cool.filter import FilterCompositeVisitor, FilterVisitor
-from dnn_cool.losses import TaskFlowLoss, ReducedPerSample
+from dnn_cool.losses import TaskFlowLoss, ReducedPerSample, TaskFlowLossPerSample
 from dnn_cool.metrics import TorchMetric, get_default_binary_metrics, \
     get_default_bounded_regression_metrics, get_default_classification_metrics, \
     get_default_multilabel_classification_metrics
@@ -233,7 +233,7 @@ class TaskFlow(ITask):
         return TaskFlowLoss(self)
 
     def get_per_sample_loss(self):
-        return TaskFlowLoss(self)
+        return TaskFlowLossPerSample(self)
 
     def torch(self):
         return TaskFlowModule(self)

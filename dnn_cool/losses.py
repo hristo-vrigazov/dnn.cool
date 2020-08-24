@@ -112,7 +112,6 @@ class BaseMetricDecorator(nn.Module):
 class TaskLossDecorator(BaseMetricDecorator):
 
     def __init__(self, task_name, available_func, prefix, loss):
-        loss = loss
         super().__init__(task_name, available_func, prefix, loss)
 
     def postprocess_results(self, loss_items, metric_res, precondition):
@@ -123,20 +122,6 @@ class MetricLossDecorator(BaseMetricDecorator):
 
     def __init__(self, task_name, available_func, prefix, metric):
         super().__init__(task_name, available_func, prefix, metric)
-
-    def postprocess_results(self, loss_items, metric_res, precondition):
-        return metric_res
-
-
-@dataclass
-class MultiMetricLossItems:
-    loss_items_list: List[LossItems]
-
-    def mean(self):
-        return [loss_items.mean() for loss_items in self.loss_items_list]
-
-
-class MultiMetricLossDecorator(BaseMetricDecorator):
 
     def postprocess_results(self, loss_items, metric_res, precondition):
         return metric_res
@@ -195,20 +180,6 @@ class TaskFlowLoss(nn.Module):
                 all_losses[path] = child_loss
         return all_losses
 
-    def get_leaf_losses_per_sample(self):
-        all_losses = {}
-        for key, task in self._task_flow.tasks.items():
-            child_loss = getattr(self, key)
-            if task.has_children():
-                all_losses.update(child_loss.get_leaf_losses_per_sample())
-            else:
-                path = child_loss.prefix + child_loss.task_name
-                all_losses[path] = TaskLossDecorator(task.get_name(),
-                                                     task.get_available_func(),
-                                                     child_loss.prefix,
-                                                     task.get_per_sample_loss())
-        return all_losses
-
     def get_metrics(self):
         all_metrics = []
         for key, task in self._task_flow.tasks.items():
@@ -217,16 +188,10 @@ class TaskFlowLoss(nn.Module):
                 all_metrics += child_loss.get_metrics()
             else:
                 for metric_name, metric in task.get_metrics():
-                    if not metric.is_multi_metric():
-                        metric_decorator = MetricLossDecorator(task.get_name(),
-                                                               task.get_available_func(),
-                                                               child_loss.prefix,
-                                                               metric)
-                    else:
-                        metric_decorator = MultiMetricLossDecorator(task.get_name(),
-                                                                    task.get_available_func(),
-                                                                    child_loss.prefix,
-                                                                    metric)
+                    metric_decorator = MetricLossDecorator(task.get_name(),
+                                                           task.get_available_func(),
+                                                           child_loss.prefix,
+                                                           metric)
                     all_metrics.append((metric_name, metric_decorator))
         return all_metrics
 
@@ -250,3 +215,26 @@ class TaskFlowLoss(nn.Module):
         return callbacks
 
 
+class TaskFlowLossPerSample(nn.Module):
+
+    def __init__(self, task_flow, prefix=''):
+        super().__init__()
+
+        self._all_children = task_flow.get_all_children(prefix=prefix)
+        self._all_losses = self._collect_leaf_losses_per_sample()
+
+    def get_leaf_losses_per_sample(self):
+        return self._all_losses
+
+    def _collect_leaf_losses_per_sample(self):
+        all_losses = {}
+        for path, task in self._all_children.items():
+            if '.' not in path:
+                prefix = ''
+            else:
+                prefix = path.rsplit('.', 1)[0] + '.'
+            all_losses[path] = TaskLossDecorator(task.get_name(),
+                                                 task.get_available_func(),
+                                                 prefix,
+                                                 task.get_per_sample_loss())
+        return all_losses
