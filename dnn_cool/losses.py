@@ -60,46 +60,40 @@ class LossItems:
 
 
 def get_flow_data(*args, **kwargs):
-    is_callback_invoked = len(args) == 2
-    if is_callback_invoked:
-        return is_callback_invoked, LossFlowData(*args)
+    if len(args) == 2:
+        return LossFlowData(*args)
 
     for arg in args:
         if isinstance(arg, LossFlowData):
-            return is_callback_invoked, arg
+            return arg
 
     for arg in kwargs.values():
         if isinstance(arg, LossFlowData):
-            return is_callback_invoked, arg
+            return arg
 
 
 def squeeze_if_needed(tensor):
     if len(tensor.shape) > 2:
         raise ValueError(f'Trying to squeeze the second dimension out of a tensor with shape: {tensor.shape}')
     if len(tensor.shape) == 2:
-        return tensor.squeeze(1)
+        return tensor[:, 0]
     return tensor
 
 
 class BaseMetricDecorator(nn.Module):
 
-    def __init__(self, task, prefix, metric):
+    def __init__(self, task_name, available_func, prefix, metric):
         super().__init__()
-        self.task_name = task.get_name()
-        self.available = task.get_available_func()
+        self.task_name = task_name
+        self.available = available_func
         self.prefix = prefix
         self.metric = metric
 
     def forward(self, *args, **kwargs):
-        is_callback_invoked, loss_flow_data = get_flow_data(*args, **kwargs)
-        loss_items = self.read_vectors(loss_flow_data, self.metric)
+        loss_flow_data = get_flow_data(*args, **kwargs)
+        return self.compute_with_precondition(loss_flow_data, self.metric)
 
-        if is_callback_invoked:
-            return loss_items.mean()
-
-        return LossItems(loss_items)
-
-    def read_vectors(self, loss_flow_data, metric):
+    def compute_with_precondition(self, loss_flow_data, metric):
         key = self.prefix + self.task_name
         outputs = loss_flow_data.outputs[key]
         precondition = loss_flow_data.outputs[f'precondition|{key}']
@@ -112,23 +106,23 @@ class BaseMetricDecorator(nn.Module):
         return self.postprocess_results(loss_items, metric_res, precondition)
 
     def postprocess_results(self, loss_items, metric_res, precondition):
-        raise NotImplementedError()
+        return metric_res
 
 
 class TaskLossDecorator(BaseMetricDecorator):
 
-    def __init__(self, task, prefix):
-        loss = task.get_loss()
-        super().__init__(task, prefix, loss)
+    def __init__(self, task_name, available_func, prefix, loss):
+        loss = loss
+        super().__init__(task_name, available_func, prefix, loss)
 
     def postprocess_results(self, loss_items, metric_res, precondition):
-        return metric_res
+        return LossItems(metric_res)
 
 
 class MetricLossDecorator(BaseMetricDecorator):
 
-    def __init__(self, task, prefix, metric):
-        super().__init__(task, prefix, metric)
+    def __init__(self, task_name, available_func, prefix, metric):
+        super().__init__(task_name, available_func, prefix, metric)
 
     def postprocess_results(self, loss_items, metric_res, precondition):
         return metric_res
@@ -145,7 +139,7 @@ class MultiMetricLossItems:
 class MultiMetricLossDecorator(BaseMetricDecorator):
 
     def postprocess_results(self, loss_items, metric_res, precondition):
-        return MultiMetricLossItems(metric_res)
+        return metric_res
 
 
 class TaskFlowLoss(nn.Module):
@@ -160,7 +154,7 @@ class TaskFlowLoss(nn.Module):
 
         for key, task in task_flow.tasks.items():
             if not task.has_children():
-                instance = TaskLossDecorator(task, prefix)
+                instance = TaskLossDecorator(task.get_name(), task.get_available_func(), prefix, task.get_loss())
             else:
                 instance = TaskFlowLoss(task, prefix=f'{prefix}{task.get_name()}.')
 
@@ -209,18 +203,10 @@ class TaskFlowLoss(nn.Module):
                 all_losses.update(child_loss.get_leaf_losses_per_sample())
             else:
                 path = child_loss.prefix + child_loss.task_name
-                all_losses[path] = task.get_per_sample_loss()
-        return all_losses
-
-    def _base_get_loss_function(self, composite_method, leaf_method):
-        all_losses = {}
-        for key, task in self._task_flow.tasks.items():
-            child_loss = getattr(self, key)
-            path = child_loss.prefix + child_loss.task_name
-            if task.has_children():
-                all_losses.update(getattr(child_loss, composite_method)())
-            else:
-                all_losses[path] = getattr(task, leaf_method)()
+                all_losses[path] = TaskLossDecorator(task.get_name(),
+                                                     task.get_available_func(),
+                                                     child_loss.prefix,
+                                                     task.get_per_sample_loss())
         return all_losses
 
     def get_metrics(self):
@@ -232,9 +218,15 @@ class TaskFlowLoss(nn.Module):
             else:
                 for metric_name, metric in task.get_metrics():
                     if not metric.is_multi_metric():
-                        metric_decorator = MetricLossDecorator(task, child_loss.prefix, metric)
+                        metric_decorator = MetricLossDecorator(task.get_name(),
+                                                               task.get_available_func(),
+                                                               child_loss.prefix,
+                                                               metric)
                     else:
-                        metric_decorator = MultiMetricLossDecorator(task, child_loss.prefix, metric)
+                        metric_decorator = MultiMetricLossDecorator(task.get_name(),
+                                                                    task.get_available_func(),
+                                                                    child_loss.prefix,
+                                                                    metric)
                     all_metrics.append((metric_name, metric_decorator))
         return all_metrics
 
@@ -242,7 +234,11 @@ class TaskFlowLoss(nn.Module):
         from catalyst.core import MetricCallback
         callbacks = []
         for path, loss in self.get_leaf_losses().items():
-            callbacks.append(MetricCallback(f'loss_{path}', loss))
+            metric_decorator = MetricLossDecorator(loss.task_name,
+                                                   loss.available,
+                                                   loss.prefix,
+                                                   loss.metric)
+            callbacks.append(MetricCallback(f'loss_{path}', metric_decorator))
         for metric_name, metric_decorator in self.get_metrics():
             metric = metric_decorator.metric
             full_name = f'{metric_name}_{metric_decorator.prefix}{metric_decorator.task_name}'

@@ -1,19 +1,14 @@
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Dict, Optional, Tuple
 
 import numpy as np
-from catalyst.core import Callback, CallbackOrder, State
 from catalyst.contrib.tools.tensorboard import SummaryWriter
-from dataclasses import dataclass, field
-
+from catalyst.core import Callback, CallbackOrder, State
 from torch.utils.data import Dataset, SequentialSampler
 
-from dnn_cool.losses import LossFlowData
 from dnn_cool.task_flow import TaskFlow
-
-
-def to_numpy(tensor):
-    return tensor.squeeze(dim=-1).detach().cpu().numpy()
+from dnn_cool.utils import any_value
 
 
 def publish_all(prefix, sample, key, writer, mapping, task_name):
@@ -61,9 +56,11 @@ class TensorboardConverters:
 
     def publish(self, state, interpretations):
         for key, value in interpretations.items():
+            if key.startswith('indices'):
+                continue
             sorted_indices = value.argsort()
-            best_indices = sorted_indices[:self.top_k]
-            worst_indices = sorted_indices[-self.top_k:]
+            best_indices = interpretations[f'indices|{key}'][sorted_indices][:self.top_k]
+            worst_indices = interpretations[f'indices|{key}'][sorted_indices][-self.top_k:]
             writer: SummaryWriter = self.loggers[state.loader_name]
             dataset = self.datasets[state.loader_name]
             self._publish_inputs(best_indices, writer, dataset, prefix='best', key=key)
@@ -88,22 +85,24 @@ class InterpretationCallback(Callback):
         super().__init__(CallbackOrder.Metric)
         self.flow = flow
 
-        self.overall_loss = flow.get_per_sample_loss()
-        self.leaf_losses = self.overall_loss.get_leaf_losses_per_sample()
+        self.leaf_losses = flow.get_per_sample_loss().get_leaf_losses_per_sample()
         self.interpretations = {}
+        self.loader_counts = {}
 
         self.tensorboard_converters = tensorboard_converters
 
     def _initialize_interpretations(self):
-        interpretaion_dict = {f'overall': []}
+        interpretation_dict = {}
         for path in self.leaf_losses:
-            interpretaion_dict[path] = []
-        return interpretaion_dict
+            interpretation_dict[path] = []
+            interpretation_dict[f'indices|{path}'] = []
+        return interpretation_dict
 
     def on_loader_start(self, state: State):
         if not isinstance(state.loaders[state.loader_name].sampler, SequentialSampler):
             return
         self.interpretations[state.loader_name] = self._initialize_interpretations()
+        self.loader_counts[state.loader_name] = 0
 
         if self.tensorboard_converters is not None:
             self.tensorboard_converters.initialize(state)
@@ -113,12 +112,21 @@ class InterpretationCallback(Callback):
             return
         outputs = state.output['logits']
         targets = state.input['targets']
-        self.interpretations[state.loader_name]['overall'].append(to_numpy(self.overall_loss(outputs, targets)))
+        bs = len(any_value(outputs))
 
         for path, loss in self.leaf_losses.items():
-            precondition = outputs[f'precondition|{path}']
-            loss_items = loss(outputs[path][precondition], targets[path][precondition])
-            self.interpretations[state.loader_name][path].append(to_numpy(loss_items))
+            loss_items = loss(outputs, targets).loss_items
+            self.interpretations[state.loader_name][path].append(loss_items.squeeze(dim=-1).detach().cpu().numpy())
+
+            start = self.loader_counts[state.loader_name]
+            stop = self.loader_counts[state.loader_name] + bs
+            indices = np.arange(start, stop)
+            precondition = outputs[f'precondition|{path}'].detach().cpu().numpy()
+            axes = tuple(range(1, len(precondition.shape)))
+            if len(axes) > 0:
+                precondition = precondition.sum(axis=axes) > 0
+            self.interpretations[state.loader_name][f'indices|{path}'].append(indices[precondition])
+        self.loader_counts[state.loader_name] += bs
 
     def on_loader_end(self, state: State):
         if not isinstance(state.loaders[state.loader_name].sampler, SequentialSampler):
