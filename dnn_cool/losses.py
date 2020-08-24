@@ -118,15 +118,6 @@ class TaskLossDecorator(BaseMetricDecorator):
         return LossItems(metric_res)
 
 
-class MetricLossDecorator(BaseMetricDecorator):
-
-    def __init__(self, task_name, available_func, prefix, metric):
-        super().__init__(task_name, available_func, prefix, metric)
-
-    def postprocess_results(self, loss_items, metric_res, precondition):
-        return metric_res
-
-
 class TaskFlowLoss(nn.Module):
 
     def __init__(self, task_flow, prefix=''):
@@ -188,7 +179,7 @@ class TaskFlowLoss(nn.Module):
                 all_metrics += child_loss.get_metrics()
             else:
                 for metric_name, metric in task.get_metrics():
-                    metric_decorator = MetricLossDecorator(task.get_name(),
+                    metric_decorator = BaseMetricDecorator(task.get_name(),
                                                            task.get_available_func(),
                                                            child_loss.prefix,
                                                            metric)
@@ -199,7 +190,7 @@ class TaskFlowLoss(nn.Module):
         from catalyst.core import MetricCallback
         callbacks = []
         for path, loss in self.get_leaf_losses().items():
-            metric_decorator = MetricLossDecorator(loss.task_name,
+            metric_decorator = BaseMetricDecorator(loss.task_name,
                                                    loss.available,
                                                    loss.prefix,
                                                    loss.metric)
