@@ -53,10 +53,10 @@ def test_synthetic_dataset():
     runner.train(
         model=model,
         criterion=criterion,
-        optimizer=optim.Adam(model.parameters(), lr=1e-4),
+        optimizer=optim.AdamW(model.parameters(), lr=1e-4),
         loaders=nested_loaders,
         callbacks=[],
-        num_epochs=10,
+        num_epochs=2,
     )
 
     print_any_prediction(criterion, model, nested_loaders, runner)
@@ -69,7 +69,7 @@ def test_synthetic_dataset_default_runner():
     criterion = flow.get_loss()
     assert len(criterion.get_metrics()) < 100, 'Callbacks are too many!'
 
-    runner.train(num_epochs=10)
+    runner.train(num_epochs=2)
 
     early_stop_callback = runner.default_callbacks[-1]
     assert early_stop_callback.best_score >= 0, 'Negative loss function!'

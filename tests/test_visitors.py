@@ -7,7 +7,7 @@ from dnn_cool.visitors import RootCompositeVisitor, VisitorOut, LeafVisitor
 
 def test_simple_visitor():
     model, nested_loaders, datasets, project = synthenic_dataset_preparation()
-    runner = project.runner(model=model, runner_name='security_logs')
+    runner = project.runner(model=model, runner_name='default_experiment')
     flow = project.get_full_flow()
 
     class TuningVisitor(LeafVisitor):
