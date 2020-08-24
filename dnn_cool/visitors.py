@@ -60,16 +60,7 @@ class LeafVisitor:
             preds = self.activation(torch.tensor(preds).float()).detach().cpu().numpy()
         targets = visitor_data.targets[self.path]
 
-        precondition = visitor_data.predictions.get(f'precondition|{self.path}', None)
-        if self.available is not None:
-            available = self.available(torch.tensor(targets).float()).detach().cpu().numpy()
-            if precondition is None:
-                precondition = available
-            else:
-                precondition &= available
-
-        if precondition is None:
-            return self.full_result(preds, targets)
+        precondition = visitor_data.predictions[f'precondition|{self.path}']
         if precondition.sum() == 0:
             return self.empty_result()
         precondition = squeeze_if_needed(precondition)
