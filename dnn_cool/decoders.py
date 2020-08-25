@@ -136,8 +136,8 @@ def sort_declining(x):
 
 class MultilabelClassificationDecoder(Decoder):
 
-    def __init__(self, metric=accuracy_score):
-        self.thresholds = torch.ones(3).unsqueeze(0) * 0.5
+    def __init__(self, n_classes=3, metric=accuracy_score):
+        self.thresholds = torch.ones(n_classes).unsqueeze(0) * 0.5
         self._candidates = np.linspace(0., 1., num=100)
         self.metric = metric
 

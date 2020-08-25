@@ -38,6 +38,16 @@ class MultiLabelValuesConverter:
         res[~pd.isna(values)] = one_hot_labels
         return res
 
+    def state_dict(self):
+        return {
+            'binarizer': self.binarizer,
+            'is_fit': self.is_fit
+        }
+
+    def load_state_dict(self, state_dict):
+        self.binarizer = state_dict['binarizer']
+        self.is_fit = state_dict['is_fit']
+
 
 class ImageCoordinatesValuesConverter:
 

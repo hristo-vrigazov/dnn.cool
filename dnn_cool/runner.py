@@ -79,6 +79,11 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
             save_split(self.project_dir / self.default_logdir, train_test_val_indices)
         self.train_test_val_indices = train_test_val_indices
         self.tensor_loggers = project.converters.tensorboard_converters
+        converters_file = self.project_dir / self.default_logdir / 'converters.pkl'
+        if converters_file.exists():
+            project.converters.load_state_dict(torch.load(converters_file))
+        else:
+            torch.save(project.converters.state_dict(), converters_file)
         super().__init__(model=model)
 
     def train(self, *args, **kwargs):

@@ -15,7 +15,7 @@ def publish_all(prefix, sample, key, writer, mapping, task_name):
     if key in mapping:
         publishers = mapping[key]
         for publisher in publishers:
-            publisher(writer, sample, prefix, task_name)
+            publisher(writer, sample, prefix, task_name, key)
 
 
 class TensorboardConverter:
@@ -35,9 +35,13 @@ class TensorboardConverter:
         for key in X:
             publish_all(prefix, sample, key, writer, self.type_mapping, task_name)
 
-    def img(self, writer: SummaryWriter, sample: Tuple, prefix: str, task_name: str):
+    def img(self, writer: SummaryWriter, sample: Tuple, prefix: str, task_name: str, key: str):
         X, y = sample
-        writer.add_image(f'{prefix}_{task_name}_images', X['img'])
+        writer.add_image(f'{prefix}_{task_name}_images', X[key])
+
+    def text(self, writer: SummaryWriter, sample: Tuple, prefix: str, task_name: str, key: str):
+        X, y = sample
+        writer.add_text(f'{prefix}_{task_name}_images', X[key])
 
 
 @dataclass

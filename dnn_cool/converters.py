@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from typing import Tuple
+from dataclasses import dataclass, field
+from typing import Tuple, Dict
 
 import numpy as np
 
@@ -38,11 +38,50 @@ class TypeGuesser:
         if str(df[output_col].dtype).startswith('int'):
             return 'category'
 
+    def state_dict(self):
+        return self.type_mapping
+
+    def load_state_dict(self, state_dict):
+        self.type_mapping = state_dict
+
+
+def extract_state_when_possible(mapping):
+    out_mapping = {}
+    for key, value in mapping.items():
+        try:
+            out_mapping[key] = value.state_dict()
+        except:
+            pass
+    return out_mapping
+
+
+def load_state_when_possible(mapping, state_dict):
+    for key, value in mapping.items():
+        try:
+            mapping[key].load_state_dict(state_dict)
+        except:
+            pass
+    return mapping
+
 
 @dataclass()
-class ValuesConverter:
-    col_mapping = {}
-    type_mapping = {}
+class StatefulConverter:
+    col_mapping: Dict = field(default_factory=lambda : {})
+    type_mapping: Dict = field(default_factory=lambda : {})
+
+    def state_dict(self):
+        return {
+            'col': extract_state_when_possible(self.col_mapping),
+            'type': extract_state_when_possible(self.type_mapping)
+        }
+
+    def load_state_dict(self, state_dict):
+        load_state_when_possible(self.col_mapping, state_dict['col'])
+        load_state_when_possible(self.col_mapping, state_dict['type'])
+
+
+@dataclass()
+class ValuesConverter(StatefulConverter):
 
     def to_values(self, df, col, guessed_type):
         if col in self.col_mapping:
@@ -57,9 +96,7 @@ class ValuesConverter:
 
 
 @dataclass()
-class TaskConverter:
-    col_mapping = {}
-    type_mapping = {}
+class TaskConverter(StatefulConverter):
 
     def to_task(self, output_col, guessed_type, values):
         if output_col in self.col_mapping:
@@ -77,3 +114,14 @@ class Converters:
     tensorboard_converters = TensorboardConverter()
     train_test_val_indices: Tuple[np.ndarray, np.ndarray, np.ndarray] = None
 
+    def state_dict(self):
+        return {
+            'type': self.type.state_dict(),
+            'values': self.values.state_dict(),
+            'task': self.task.state_dict()
+        }
+
+    def load_state_dict(self, state_dict):
+        self.type.load_state_dict(state_dict['type'])
+        self.values.load_state_dict(state_dict['values'])
+        self.task.load_state_dict(state_dict['task'])
