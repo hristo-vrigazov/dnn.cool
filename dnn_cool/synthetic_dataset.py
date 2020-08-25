@@ -1,26 +1,23 @@
 from collections import OrderedDict
+from functools import partial
 from pathlib import Path
 
+import cv2
 import numpy as np
 import pandas as pd
-import cv2
 import torch
-
-from functools import partial
-
-from joblib import delayed
+from torch import nn
 from torch.utils.data import DataLoader
 
 from dnn_cool.converters import TypeGuesser, ValuesConverter, TaskConverter, Converters
-from dnn_cool.decoders import Decoder, BoundedRegressionDecoder
+from dnn_cool.decoders import BoundedRegressionDecoder
 from dnn_cool.project import Project
-from dnn_cool.task_converters import To, ToEfficient
-from dnn_cool.task_flow import BoundedRegressionTask, BinaryClassificationTask, TaskFlow, ClassificationTask, \
+from dnn_cool.task_converters import To
+from dnn_cool.task_flow import BoundedRegressionTask, BinaryClassificationTask, ClassificationTask, \
     MultilabelClassificationTask
 from dnn_cool.utils import torch_split_dataset
-from dnn_cool.value_converters import binary_value_converter, classification_converter, multilabel_converter, \
-    ImageCoordinatesValuesConverter
-from torch import nn
+from dnn_cool.value_converters import binary_value_converter, classification_converter, ImageCoordinatesValuesConverter, \
+    MultiLabelValuesConverter
 
 
 def generate_camera_blocked_image():
@@ -210,6 +207,8 @@ def synthenic_dataset_preparation(n=int(1e4)):
     values_converter.type_mapping['binary'] = binary_value_converter
     values_converter.type_mapping['continuous'] = ImageCoordinatesValuesConverter(dim=64)
     values_converter.type_mapping['category'] = classification_converter
+
+    multilabel_converter = MultiLabelValuesConverter()
     values_converter.type_mapping['multilabel'] = multilabel_converter
 
     task_converter = TaskConverter()

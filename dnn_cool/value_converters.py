@@ -17,17 +17,26 @@ def classification_converter(values):
     return torch.tensor(values).long()
 
 
-def multilabel_converter(values):
-    available_labels = values[~pd.isna(values)]
-    labels = []
-    for i in range(len(available_labels)):
-        split = available_labels.iloc[i].split(',')
-        labels.append(list(filter(lambda x: len(x) > 0, split)))
-    binarizer = MultiLabelBinarizer()
-    one_hot_labels = binarizer.fit_transform(labels)
-    res = np.ones((len(values), one_hot_labels.shape[1]), dtype=np.float32) * -1.
-    res[~pd.isna(values)] = one_hot_labels
-    return res
+class MultiLabelValuesConverter:
+
+    def __init__(self):
+        self.binarizer = MultiLabelBinarizer()
+        self.is_fit = False
+
+    def __call__(self, values):
+        available_labels = values[~pd.isna(values)]
+        labels = []
+        for i in range(len(available_labels)):
+            split = available_labels.iloc[i].split(',')
+            labels.append(list(filter(lambda x: len(x) > 0, split)))
+        if not self.is_fit:
+            one_hot_labels = self.binarizer.fit_transform(labels)
+            self.is_fit = True
+        else:
+            one_hot_labels = self.binarizer.transform(labels)
+        res = np.ones((len(values), one_hot_labels.shape[1]), dtype=np.float32) * -1.
+        res[~pd.isna(values)] = one_hot_labels
+        return res
 
 
 class ImageCoordinatesValuesConverter:

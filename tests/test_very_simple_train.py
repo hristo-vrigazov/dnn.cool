@@ -144,8 +144,9 @@ def test_evaluation_is_shown():
     model, nested_loaders, datasets, project = synthenic_dataset_preparation()
     runner = project.runner(model=model, runner_name='default_experiment')
     evaluation = runner.evaluate()
+    accuracy_df = evaluation[evaluation['metric_name'] == 'accuracy']
+    assert np.alltrue(accuracy_df['metric_res'] > 0.98)
     pd.set_option('display.max_columns', None)
-    print(evaluation)
 
 
 def test_composite_activation():
