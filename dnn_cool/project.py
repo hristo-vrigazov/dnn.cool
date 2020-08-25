@@ -83,7 +83,7 @@ class Project:
                  input_col: Union[str, Iterable[str]],
                  output_col: Union[str, Iterable[str]],
                  project_dir: Union[str, Path],
-                 converters: Converters = Converters()):
+                 converters: Converters = None):
         self.df = df
         assert_col_in_df(input_col, df)
         assert_col_in_df(output_col, df)
@@ -98,6 +98,8 @@ class Project:
         for leaf_task in self.leaf_tasks:
             self._name_to_task[leaf_task.get_name()] = leaf_task
 
+        if converters is None:
+            converters = Converters()
         self.converters = converters
 
     def add_task_flow(self, task_flow: TaskFlow):

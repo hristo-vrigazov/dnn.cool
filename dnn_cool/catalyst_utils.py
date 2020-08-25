@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Dict, Optional, Tuple
+from typing import Callable, Dict, Optional, Tuple, List
 
 import numpy as np
 from catalyst.contrib.tools.tensorboard import SummaryWriter
@@ -18,13 +18,20 @@ def publish_all(prefix, sample, key, writer, mapping, task_name):
             publisher(writer, sample, prefix, task_name, key)
 
 
-class TensorboardConverter:
-    task_mapping = {}
-    col_mapping = {}
-    type_mapping = {}
+def img(writer: SummaryWriter, sample: Tuple, prefix: str, task_name: str, key: str):
+    X, y = sample
+    writer.add_image(f'{prefix}_{task_name}_images', X[key])
 
-    def __init__(self):
-        self.type_mapping['img'] = [self.img]
+
+def text(writer: SummaryWriter, sample: Tuple, prefix: str, task_name: str, key: str):
+    X, y = sample
+    writer.add_text(f'{prefix}_{task_name}_text', X[key])
+
+
+@dataclass()
+class TensorboardConverter:
+    col_mapping: Dict[str, List[Callable]] = field(default_factory=lambda: {})
+    type_mapping: Dict[str, List[Callable]] = field(default_factory=lambda: {'img': [img], 'text': [text]})
 
     def __call__(self, writer: SummaryWriter, sample: Tuple, prefix: str, task_name: str):
         if task_name == 'gt':
@@ -35,20 +42,12 @@ class TensorboardConverter:
         for key in X:
             publish_all(prefix, sample, key, writer, self.type_mapping, task_name)
 
-    def img(self, writer: SummaryWriter, sample: Tuple, prefix: str, task_name: str, key: str):
-        X, y = sample
-        writer.add_image(f'{prefix}_{task_name}_images', X[key])
-
-    def text(self, writer: SummaryWriter, sample: Tuple, prefix: str, task_name: str, key: str):
-        X, y = sample
-        writer.add_text(f'{prefix}_{task_name}_images', X[key])
-
 
 @dataclass
 class TensorboardConverters:
     logdir: Path
     datasets: Dict[str, Dataset]
-    tensorboard_loggers: Callable = TensorboardConverter()
+    tensorboard_loggers: Callable = field(default_factory=TensorboardConverter)
     loggers: Dict[str, SummaryWriter] = field(default_factory=lambda: {})
     top_k: int = 10
 

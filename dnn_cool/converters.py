@@ -107,11 +107,11 @@ class TaskConverter(StatefulConverter):
 
 @dataclass
 class Converters:
-    type = TypeGuesser()
-    values = ValuesConverter()
-    task = TaskConverter()
+    type: TypeGuesser = field(default_factory=TypeGuesser)
+    values: ValuesConverter = field(default_factory=ValuesConverter)
+    task: TaskConverter = field(default_factory=TaskConverter)
 
-    tensorboard_converters = TensorboardConverter()
+    tensorboard_converters: TensorboardConverter = field(default_factory=TensorboardConverter)
     train_test_val_indices: Tuple[np.ndarray, np.ndarray, np.ndarray] = None
 
     def state_dict(self):
