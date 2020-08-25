@@ -5,7 +5,6 @@ from torch import nn
 
 from dnn_cool.decoders import Decoder
 from dnn_cool.metrics import TorchMetric
-from dnn_cool.task_flow import ClassificationTask
 
 
 class To:

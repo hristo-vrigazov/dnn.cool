@@ -12,7 +12,7 @@ pip install dnn_cool
 * [Customization](#customization): Learn how to add new tasks, modify them, etc.
 * [Inspiration](#inspiration): list of papers and videos which inspired this library
 
-To see the predefined tasks for this release, see [list of predefined tasks](list-of-predefined-tasks)
+To see the predefined tasks for this release, see [list of predefined tasks](#list-of-predefined-tasks)
 
 ### Introduction
 

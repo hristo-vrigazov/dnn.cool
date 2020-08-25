@@ -30,14 +30,14 @@ class InferDictCallback(InferCallback):
         self.targets[state.loader_name] = {}
 
     def on_batch_end(self, state: State):
-        dct = state.batch_out[self.out_key]
+        dct = state.output[self.out_key]
         dct = {key: value.detach().cpu().numpy() for key, value in dct.items()}
         for key, value in dct.items():
             if key not in self.predictions[state.loader_name]:
                 self.predictions[state.loader_name][key] = []
             self.predictions[state.loader_name][key].append(value)
 
-        targets = state.batch_in['targets']
+        targets = state.input['targets']
         for key, value in targets.items():
             if key not in self.targets[state.loader_name]:
                 self.targets[state.loader_name][key] = []
@@ -140,14 +140,17 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         interpretation_callback = InterpretationCallback(self.task_flow, tensorboard_converters)
         return interpretation_callback
 
-    def get_default_loaders(self, shuffle_train=True) -> Tuple[Dict[str, Dataset], Dict[str, DataLoader]]:
+    def get_default_loaders(self, shuffle_train=True, collator=None) -> Tuple[Dict[str, Dataset], Dict[str, DataLoader]]:
         datasets = self.get_default_datasets()
         train_dataset = datasets['train']
         val_dataset = datasets['valid']
         test_dataset = datasets['test']
-        train_loader = DataLoader(train_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=shuffle_train)
-        val_loader = DataLoader(val_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=False)
-        test_loader = DataLoader(test_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=False)
+        train_loader = DataLoader(train_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=shuffle_train,
+                                  collate_fn=collator)
+        val_loader = DataLoader(val_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=False,
+                                collate_fn=collator)
+        test_loader = DataLoader(test_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=False,
+                                 collate_fn=collator)
         loaders = OrderedDict({
             'train': train_loader,
             'valid': val_loader,
