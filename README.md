@@ -16,7 +16,7 @@ To see the predefined tasks for this release, see [list of predefined tasks](#li
 
 ### Introduction
 
-A framework for multi-task learning, where you may precondition tasks and compose them into bigger tasks.
+A framework for multi-task learning in Pytorch, where you may precondition tasks and compose them into bigger tasks.
 Many complex neural networks can be trivially implemented with `dnn_cool`.
 For example, creating a neural network that does classification and localization is as simple as:
 
