@@ -43,7 +43,7 @@ def full_flow(flow, x, out):
     return out
 ```
 
-Based on these "task flows" as we tell them, `dnn_cool` provides a bunch of [features](#features).
+Based on these "task flows" as we call them, `dnn_cool` provides a bunch of [features](#features).
 Currently, this is the list of the predefined tasks (they are all located in `dnn_cool.task_flow`):
 
 ##### List of predefined tasks
