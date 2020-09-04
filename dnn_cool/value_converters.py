@@ -1,8 +1,10 @@
+from pathlib import Path
 from typing import Union
 
 import numpy as np
 import pandas as pd
 import torch
+import matplotlib.image as mpimg
 
 from sklearn.preprocessing import MultiLabelBinarizer
 
@@ -58,3 +60,25 @@ class ImageCoordinatesValuesConverter:
         values = values.astype(float) / self.dim
         values[np.isnan(values)] = -1
         return torch.tensor(values).float().unsqueeze(dim=-1)
+
+
+class ImagesFromFileSystem:
+
+    def __init__(self, base_path, values):
+        self.base_path = base_path
+        self.values = values
+
+    def __getitem__(self, item):
+        return mpimg.imread(self.base_path / self.values[item])
+
+    def __len__(self):
+        return len(self.values)
+
+
+class ImagesFromFileSystemConverter:
+
+    def __init__(self, base_path):
+        self.base_path = Path(base_path)
+
+    def __call__(self, values):
+        return ImagesFromFileSystem(self.base_path, values)

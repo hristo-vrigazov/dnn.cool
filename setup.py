@@ -33,5 +33,6 @@ setup(
                       "numpy",
                       "tqdm",
                       "scikit_learn",
-                      "treelib"],
+                      "treelib",
+                      "matplotlib"],
 )

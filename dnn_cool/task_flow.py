@@ -194,7 +194,7 @@ class ClassificationTask(Task):
     per_sample_loss: nn.Module = ReducedPerSample(nn.CrossEntropyLoss(reduction='none'), torch.mean)
     available_func: Callable = positive_values
     inputs: Any = None
-    activation: Optional[nn.Module] = nn.Sigmoid()
+    activation: Optional[nn.Module] = nn.Softmax()
     decoder: Decoder = field(default_factory=ClassificationDecoder)
     module: nn.Module = Identity()
     metrics: Tuple[str, TorchMetric] = field(default_factory=get_default_classification_metrics)
