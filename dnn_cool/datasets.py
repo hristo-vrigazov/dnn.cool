@@ -3,6 +3,8 @@ import torch
 from dataclasses import dataclass
 from torch.utils.data.dataset import Dataset
 
+from dnn_cool.dsl import IFeaturesDict, IOut, ICondition, IFlowTask
+
 
 class LeafTaskDataset(Dataset):
 
@@ -47,7 +49,7 @@ class FlowDatasetDecorator:
         return FlowDatasetDict(self.prefix, data, available)
 
 
-class IndexHolder:
+class IndexHolder(IFeaturesDict):
 
     def __init__(self, item):
         self.item = item
@@ -57,7 +59,7 @@ class IndexHolder:
 
 
 @dataclass
-class FlowDatasetPrecondition:
+class FlowDatasetPrecondition(ICondition):
     prefix: str
     path: str
     precondition: torch.Tensor
@@ -65,8 +67,11 @@ class FlowDatasetPrecondition:
     def __invert__(self):
         return self
 
+    def __and__(self, other):
+        return self
 
-class FlowDatasetDict:
+
+class FlowDatasetDict(IOut):
 
     def __init__(self, prefix, data=None, available=None):
         self.prefix = prefix
@@ -100,7 +105,7 @@ class FlowDatasetDict:
         return X, y
 
 
-class FlowDataset(Dataset):
+class FlowDataset(Dataset, IFlowTask):
 
     def __init__(self, task_flow, prefix=''):
         self._task_flow = task_flow

@@ -1,10 +1,10 @@
-import torch
-
-from typing import Dict, Union, Optional
-
 from dataclasses import dataclass, field
+from typing import Dict
+
+import torch
 from torch import nn
 
+from dnn_cool.dsl import IFeaturesDict, IFlowTaskResult, ICondition
 from dnn_cool.utils import to_broadcastable_shape
 
 
@@ -28,6 +28,7 @@ class Identity(nn.Module):
         return x
 
 
+# noinspection PyBroadException
 def find_arg_with_gt(args, is_kwargs):
     new_args = {} if is_kwargs else []
     gt = None
@@ -85,7 +86,7 @@ class ModuleDecorator(nn.Module):
         return LeafModuleOutput(key, logits, activated_logits, decoded_logits, condition)
 
 
-class Condition:
+class Condition(ICondition):
 
     def get_precondition(self, data):
         raise NotImplementedError()
@@ -170,7 +171,7 @@ class AndCondition(Condition):
 
 
 @dataclass
-class LeafModuleOutput:
+class LeafModuleOutput(IFlowTaskResult):
     path: str
     logits: torch.Tensor
     activated: torch.Tensor
@@ -185,16 +186,22 @@ class LeafModuleOutput:
 
     def __or__(self, precondition: Condition):
         """
-        Note: this has the meaning of a a precondition, not boolean or. Use the method `or_else` instead.
-        :param other: precondition tensor
+        Note: this has the meaning of a a precondition, not boolean or.
+        :param precondition: precondition
         :return: self
         """
         self.precondition = precondition
         return self
 
 
+def _copy_to_self(self_arr, other_arr):
+    for key, value in self_arr.items():
+        assert key not in other_arr, f'The key {key} has been added twice in the same workflow!.'
+        other_arr[key] = value
+
+
 @dataclass
-class CompositeModuleOutput:
+class CompositeModuleOutput(IFlowTaskResult):
     training: bool
     gt: Dict[str, torch.Tensor]
     prefix: str
@@ -204,18 +211,10 @@ class CompositeModuleOutput:
     preconditions: Dict[str, Condition] = field(default_factory=lambda: {})
 
     def add_to_composite(self, other):
-        for key, value in self.logits.items():
-            assert key not in other.logits, f'The key {key} has been added twice in the same workflow!.'
-            other.logits[key] = value
-        for key, value in self.activated.items():
-            assert key not in other.activated, f'The key {key} has been added twice in the same workflow!.'
-            other.activated[key] = value
-        for key, value in self.decoded.items():
-            assert key not in other.decoded, f'The key {key} has been added twice in the same workflow!.'
-            other.decoded[key] = value
-        for key, value in self.preconditions.items():
-            assert key not in other.preconditions, f'The key {key} has been added twice in the same workflow!.'
-            other.preconditions[key] = value
+        _copy_to_self(self.logits, other.logits)
+        _copy_to_self(self.activated, other.activated)
+        _copy_to_self(self.decoded, other.decoded)
+        _copy_to_self(self.preconditions, other.preconditions)
 
     def __iadd__(self, other):
         other.add_to_composite(self)
@@ -231,7 +230,7 @@ class CompositeModuleOutput:
     def __or__(self, precondition: Condition):
         """
         Note: this has the meaning of a a precondition, not boolean or.
-        :param other: precondition tensor
+        :param precondition: precondition tensor
         :return: self
         """
         for key, value in self.preconditions.items():
@@ -261,7 +260,7 @@ class CompositeModuleOutput:
 
 
 @dataclass
-class FeaturesDict:
+class FeaturesDict(IFeaturesDict):
     data: Dict
 
     def __init__(self, data):
@@ -306,7 +305,8 @@ class TaskFlowModule(nn.Module):
         decoders = {}
         for task_name, task in self._task_flow.tasks.items():
             if task.has_children():
-                decoders.update(getattr(self, task_name)._get_all_decoders())
+                attr: TaskFlowModule = getattr(self, task_name)
+                decoders.update(attr._get_all_decoders())
             else:
                 decoders[self.prefix + task_name] = task.get_decoder()
         return decoders

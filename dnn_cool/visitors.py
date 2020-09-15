@@ -3,11 +3,12 @@ import torch
 from dataclasses import dataclass
 from typing import Dict
 
+from dnn_cool.dsl import ICondition, IOut, IFlowTaskResult, IFlowTask, IFeaturesDict
 from dnn_cool.losses import squeeze_if_needed
 
 
 @dataclass
-class VisitorData:
+class VisitorData(IFeaturesDict):
     predictions: Dict
     targets: Dict
 
@@ -15,7 +16,7 @@ class VisitorData:
         return self
 
 
-class VisitorOut:
+class VisitorOut(IOut, IFlowTaskResult, ICondition):
 
     def __iadd__(self, other):
         raise NotImplementedError()
@@ -32,6 +33,10 @@ class VisitorOut:
     def __or__(self, other):
         return self
 
+    # Pipeline compatibility
+    def __and__(self, other):
+        return self
+
     def reduce(self):
         raise NotImplementedError()
 
@@ -44,7 +49,7 @@ def get_visitor_data(*args, **kwargs):
             return arg
 
 
-class LeafVisitor:
+class LeafVisitor(IFlowTask):
 
     def __init__(self, task, prefix):
         self.activation = task.get_activation()
@@ -75,7 +80,7 @@ class LeafVisitor:
         raise NotImplementedError()
 
 
-class CompositeVisitor:
+class CompositeVisitor(IFlowTask):
 
     def __init__(self, task_flow, leaf_visitor_cls, visitor_out_cls, prefix=''):
         self.flow = task_flow.get_flow_func()
@@ -88,12 +93,12 @@ class CompositeVisitor:
                 instance = CompositeVisitor(task, leaf_visitor_cls, visitor_out_cls, prefix=f'{prefix}{task.get_name()}.')
             setattr(self, key, instance)
 
-    def __call__(self, data):
+    def __call__(self, data) -> VisitorOut:
         flow_result = self.flow(self, data, self.visitor_out_cls())
         return flow_result
 
 
-class RootCompositeVisitor:
+class RootCompositeVisitor(IFlowTask):
 
     def __init__(self, task_flow, leaf_visitor_cls, visitor_out_cls, prefix=''):
         self.prefix = prefix

@@ -220,10 +220,12 @@ def synthenic_dataset_preparation(n=int(1e4)):
                                                    decoder_supplier=partial(BoundedRegressionDecoder, scale=64))
     n_classes = classification_converter(df['shirt_type']).max().item() + 1
     task_converter.type_mapping['category'] = To(ClassificationTask,
-                                                 module_supplier=partial(nn.Linear, in_features=256, out_features=n_classes))
+                                                 module_supplier=partial(nn.Linear,
+                                                                         in_features=256, out_features=n_classes))
     n_classes = multilabel_converter(df['facial_characteristics']).shape[1]
     task_converter.type_mapping['multilabel'] = To(MultilabelClassificationTask,
-                                                   module_supplier=partial(nn.Linear, in_features=256, out_features=n_classes))
+                                                   module_supplier=partial(nn.Linear,
+                                                                           in_features=256, out_features=n_classes))
 
     converters = Converters()
     converters.task = task_converter

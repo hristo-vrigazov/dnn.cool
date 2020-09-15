@@ -1,8 +1,8 @@
-import numpy as np
 import torch
 from catalyst.core import MultiMetricCallback
 from torch import nn
 
+from dnn_cool.dsl import IFeaturesDict, IOut, ICondition, IFlowTaskResult
 from dnn_cool.utils import any_value
 
 
@@ -22,7 +22,7 @@ class ReducedPerSample(nn.Module):
         return loss_results
 
 
-class LossFlowData:
+class LossFlowData(IFeaturesDict):
 
     def __init__(self, outputs, targets):
         self.outputs = outputs
@@ -33,12 +33,12 @@ class LossFlowData:
         return self
 
 
-class LossItems:
+class LossItems(IOut, IFlowTaskResult, ICondition):
 
     def __init__(self, loss_items):
         self.loss_items = loss_items
 
-    def __add__(self, other):
+    def __iadd__(self, other):
         return LossItems(self.loss_items + other.loss_items)
 
     # None of the methods below modify the state. They are here
