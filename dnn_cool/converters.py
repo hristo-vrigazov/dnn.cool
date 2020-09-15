@@ -45,6 +45,7 @@ class TypeGuesser:
         self.type_mapping = state_dict
 
 
+# noinspection PyBroadException
 def extract_state_when_possible(mapping):
     out_mapping = {}
     for key, value in mapping.items():
@@ -55,6 +56,7 @@ def extract_state_when_possible(mapping):
     return out_mapping
 
 
+# noinspection PyBroadException
 def load_state_when_possible(mapping, state_dict):
     for key, value in mapping.items():
         try:
@@ -66,8 +68,8 @@ def load_state_when_possible(mapping, state_dict):
 
 @dataclass()
 class StatefulConverter:
-    col_mapping: Dict = field(default_factory=lambda : {})
-    type_mapping: Dict = field(default_factory=lambda : {})
+    col_mapping: Dict = field(default_factory=lambda: {})
+    type_mapping: Dict = field(default_factory=lambda: {})
 
     def state_dict(self):
         return {

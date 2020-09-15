@@ -1,9 +1,10 @@
 import pytest
 import torch
 from torch import nn
-from torch.utils.data import Dataset, TensorDataset
+from torch.utils.data import Dataset, TensorDataset, DataLoader
 
 from dnn_cool.decoders import BinaryDecoder
+from dnn_cool.synthetic_dataset import synthetic_dataset_preparation
 from dnn_cool.task_flow import BinaryClassificationTask, TaskFlow, ClassificationTask, Task
 
 
@@ -153,3 +154,21 @@ def simple_binary_data():
                      metrics=[],
                      module=None)
     return x, y, task_mock
+
+
+@pytest.fixture(scope='package')
+def treelib_explanation_on_first_batch():
+    model, nested_loaders, datasets, project = synthetic_dataset_preparation()
+    runner = project.runner(model=model, runner_name='default_experiment')
+    model = runner.best()
+    n = 4 * torch.cuda.device_count()
+    flow: TaskFlow = project.get_full_flow()
+    dataset = flow.get_dataset()
+    loader = DataLoader(dataset, batch_size=n, shuffle=False)
+    X, y = next(iter(loader))
+    del X['gt']
+    model = model.eval()
+    res = model(X)
+    treelib_explainer = flow.get_treelib_explainer()
+    tree = treelib_explainer(res)
+    return tree

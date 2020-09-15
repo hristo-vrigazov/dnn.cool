@@ -16,14 +16,11 @@ from dnn_cool.task_converters import To
 from dnn_cool.task_flow import BoundedRegressionTask, BinaryClassificationTask, ClassificationTask, \
     MultilabelClassificationTask
 from dnn_cool.utils import torch_split_dataset
-from dnn_cool.value_converters import binary_value_converter, classification_converter, ImageCoordinatesValuesConverter, \
-    MultiLabelValuesConverter
+from dnn_cool.value_converters import binary_value_converter, classification_converter, \
+    ImageCoordinatesValuesConverter, MultiLabelValuesConverter
 
 
-def generate_camera_blocked_image():
-    img = np.zeros((64, 64, 3), dtype=np.uint8)
-
-    # randomly add some noise
+def add_random_noise(img):
     n = 40
     i = np.random.randint(0, 64, size=n)
     j = np.random.randint(0, 64, size=n)
@@ -31,20 +28,18 @@ def generate_camera_blocked_image():
     values = np.random.randint(0, 255, size=n)
     img[i, j, c] = values
 
+
+def generate_camera_blocked_image():
+    img = np.zeros((64, 64, 3), dtype=np.uint8)
+    # randomly add some noise
+    add_random_noise(img)
     return img, {'camera_blocked': True}
 
 
 def generate_door_open_image():
     img = np.ones((64, 64, 3), dtype=np.uint8) * 255
-
     # randomly add some noise
-    n = 40
-    i = np.random.randint(0, 64, size=n)
-    j = np.random.randint(0, 64, size=n)
-    c = np.random.randint(0, 3, size=n)
-    values = np.random.randint(0, 255, size=n)
-    img[i, j, c] = values
-
+    add_random_noise(img)
     return img, {'camera_blocked': False, 'door_open': True, 'person_present': False}
 
 
@@ -179,7 +174,7 @@ def create_df_and_images_tensor(n=int(1e4), cache_file=Path('dnn_cool_synthetic_
     return res
 
 
-def synthenic_dataset_preparation(n=int(1e4)):
+def synthetic_dataset_preparation(n=int(1e4)):
     imgs, df = create_df_and_images_tensor(n)
     output_col = ['camera_blocked', 'door_open', 'person_present', 'door_locked',
                   'face_x1', 'face_y1', 'face_w', 'face_h',
@@ -220,17 +215,20 @@ def synthenic_dataset_preparation(n=int(1e4)):
                                                    decoder_supplier=partial(BoundedRegressionDecoder, scale=64))
     n_classes = classification_converter(df['shirt_type']).max().item() + 1
     task_converter.type_mapping['category'] = To(ClassificationTask,
-                                                 module_supplier=partial(nn.Linear, in_features=256, out_features=n_classes))
+                                                 module_supplier=partial(nn.Linear,
+                                                                         in_features=256, out_features=n_classes))
     n_classes = multilabel_converter(df['facial_characteristics']).shape[1]
     task_converter.type_mapping['multilabel'] = To(MultilabelClassificationTask,
-                                                   module_supplier=partial(nn.Linear, in_features=256, out_features=n_classes))
+                                                   module_supplier=partial(nn.Linear,
+                                                                           in_features=256, out_features=n_classes))
 
     converters = Converters()
     converters.task = task_converter
     converters.type = type_guesser
     converters.values = values_converter
 
-    project = Project(df, input_col='img', output_col=output_col, converters=converters, project_dir='./security_project')
+    project = Project(df, input_col='img', output_col=output_col, converters=converters,
+                      project_dir='./security_project')
 
     @project.add_flow
     def face_regression(flow, x, out):

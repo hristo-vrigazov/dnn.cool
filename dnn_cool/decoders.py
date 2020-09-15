@@ -159,7 +159,7 @@ class MultilabelClassificationDecoder(Decoder):
                 res[class_idx, j] = self.metric(preds, gt)
 
         best_threshold_indices = res.argmax(axis=1)
-        params = { 'thresholds': self._candidates[best_threshold_indices] }
+        params = {'thresholds': self._candidates[best_threshold_indices]}
         self.load_tuned(params)
         return params
 
