@@ -32,6 +32,7 @@ def text(writer: SummaryWriter, sample: Tuple, prefix: str, task_name: str, key:
 class TensorboardConverter:
     col_mapping: Dict[str, List[Callable]] = field(default_factory=lambda: {})
     type_mapping: Dict[str, List[Callable]] = field(default_factory=lambda: {'img': [img], 'text': [text]})
+    col_to_type_mapping: Dict[str, str] = field(default_factory=lambda: {})
 
     def __call__(self, writer: SummaryWriter, sample: Tuple, prefix: str, task_name: str):
         if task_name == 'gt':
@@ -40,7 +41,8 @@ class TensorboardConverter:
         for key in X:
             publish_all(prefix, sample, key, writer, self.col_mapping, task_name)
         for key in X:
-            publish_all(prefix, sample, key, writer, self.type_mapping, task_name)
+            if key in self.col_to_type_mapping:
+                publish_all(prefix, sample, self.col_to_type_mapping[key], writer, self.type_mapping, task_name)
 
 
 @dataclass

@@ -21,7 +21,7 @@ def example_numerical_flow():
         return out
 
     tensor = torch.arange(8).unsqueeze(dim=-1)
-    inputs = Values(keys=['inp'], values=[tensor])
+    inputs = Values(keys=['inp'], values=[tensor], types=['int'])
 
     is_even_task = BinaryHardcodedTask(name='is_even', labels=(tensor % 2) == 0)
     predict_positive = BinaryHardcodedTask(name='predict_positive', labels=(tensor > 0.))

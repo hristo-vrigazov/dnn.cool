@@ -8,10 +8,11 @@ from dnn_cool.catalyst_utils import TensorboardConverter
 
 class Values:
 
-    def __init__(self, keys, values):
+    def __init__(self, keys, values, types):
         assert len(keys) == len(values)
         self.keys = keys
         self.values = values
+        self.types = types
 
     def __getitem__(self, item):
         res = {}
@@ -88,10 +89,10 @@ class ValuesConverter(StatefulConverter):
     def to_values(self, df, col, guessed_type):
         if col in self.col_mapping:
             converter = self.col_mapping[col]
-            return Values([col], converter(df[col]))
+            return Values([col], converter(df[col]), [guessed_type])
         if guessed_type in self.type_mapping:
             converter = self.type_mapping[guessed_type]
-            return Values([col], [converter(df[col])])
+            return Values([col], [converter(df[col])], [guessed_type])
 
         raise KeyError(f'Cannot convert column "{col}" from dataframe, because there is no registered converter'
                        f' for its guessed type "{guessed_type}".')

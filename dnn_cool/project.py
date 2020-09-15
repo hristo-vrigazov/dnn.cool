@@ -21,12 +21,12 @@ def assert_col_in_df(col, df):
 def create_values(df, output_col, converters):
     values_type = converters.type.guess(df, output_col)
     values = converters.values.to_values(df, output_col, values_type)
-    return values, values_type
+    return values
 
 
 def create_leaf_task(df, col, converters):
-    values, values_type = create_values(df, col, converters)
-    task = converters.task.to_task(col, values_type, values.values[0])
+    values = create_values(df, col, converters)
+    task = converters.task.to_task(col, values.types[0], values.values[0])
     return task
 
 
@@ -42,17 +42,19 @@ def create_leaf_tasks(df, col, converters):
 
 def read_inputs(df, input_col, converters):
     if isinstance(input_col, str):
-        values, values_type = create_values(df, input_col, converters)
+        values = create_values(df, input_col, converters)
         return values
 
     keys = []
     values = []
+    types = []
     for col_s in input_col:
-        vals, _ = create_values(df, col_s, converters)
+        vals = create_values(df, col_s, converters)
         keys.extend(keys)
-        values.extend(values)
+        values.extend(vals.values)
+        types.extend(vals.types)
 
-    return Values(keys=keys, values=values)
+    return Values(keys=keys, values=values, types=types)
 
 
 class UsedTasksTracer:
@@ -101,6 +103,8 @@ class Project:
         if converters is None:
             converters = Converters()
         self.converters = converters
+        for i in range(len(self.inputs.keys)):
+            self.converters.tensorboard_converters.col_to_type_mapping[self.inputs.keys[i]] = self.inputs.types[i]
 
     def add_task_flow(self, task_flow: TaskFlow):
         self.flow_tasks.append(task_flow)
