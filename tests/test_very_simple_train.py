@@ -126,6 +126,8 @@ def test_evaluation_is_shown():
     evaluation = runner.evaluate()
     accuracy_df = evaluation[evaluation['metric_name'] == 'accuracy']
     assert np.alltrue(accuracy_df['metric_res'] > 0.98)
+    mae_df = evaluation[evaluation['metric_name'] == 'mean_absolute_error']
+    assert np.alltrue(mae_df['metric_res'] < 5e-2)
     pd.set_option('display.max_columns', None)
 
 
