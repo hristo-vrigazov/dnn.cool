@@ -8,7 +8,7 @@ from dnn_cool.catalyst_utils import InterpretationCallback, TensorboardConverter
 from dnn_cool.converters import Converters
 from dnn_cool.project import Project
 from dnn_cool.runner import InferDictCallback
-from dnn_cool.synthetic_dataset import synthenic_dataset_preparation
+from dnn_cool.synthetic_dataset import synthetic_dataset_preparation
 from dnn_cool.task_flow import TaskFlow, BinaryClassificationTask, ClassificationTask
 
 
@@ -64,7 +64,7 @@ def test_inference_synthetic_treelib(treelib_explanation_on_first_batch):
 
 
 def test_interpretation_synthetic():
-    model, nested_loaders, datasets, project = synthenic_dataset_preparation()
+    model, nested_loaders, datasets, project = synthetic_dataset_preparation()
     runner = project.runner(model=model, runner_name='default_experiment')
     flow = project.get_full_flow()
 
@@ -89,7 +89,7 @@ def test_interpretation_synthetic():
 
 
 def test_interpretation_default_runner():
-    model, nested_loaders, datasets, project = synthenic_dataset_preparation()
+    model, nested_loaders, datasets, project = synthetic_dataset_preparation()
     runner = project.runner(model=model, runner_name='default_experiment')
     model = runner.best()
     predictions, targets, interpretations = runner.infer(model=model)
@@ -99,21 +99,21 @@ def test_interpretation_default_runner():
 
 
 def test_tune_pipeline():
-    model, nested_loaders, datasets, project = synthenic_dataset_preparation()
+    model, nested_loaders, datasets, project = synthetic_dataset_preparation()
     runner = project.runner(model=model, runner_name='default_experiment')
     tuned_params = runner.tune()
     print(tuned_params)
 
 
 def test_load_tuned_pipeline():
-    model, nested_loaders, datasets, project = synthenic_dataset_preparation()
+    model, nested_loaders, datasets, project = synthetic_dataset_preparation()
     runner = project.runner(model=model, runner_name='default_experiment')
     tuned_params = runner.load_tuned()
     print(tuned_params)
 
 
 def test_load_tuned_pipeline_from_decoder():
-    model, nested_loaders, datasets, project = synthenic_dataset_preparation()
+    model, nested_loaders, datasets, project = synthetic_dataset_preparation()
     runner = project.runner(model=model, runner_name='default_experiment')
     tuned_params = torch.load(runner.project_dir / runner.default_logdir / 'tuned_params.pkl')
     flow = project.get_full_flow()
@@ -121,7 +121,7 @@ def test_load_tuned_pipeline_from_decoder():
 
 
 def test_evaluation_is_shown():
-    model, nested_loaders, datasets, project = synthenic_dataset_preparation()
+    model, nested_loaders, datasets, project = synthetic_dataset_preparation()
     runner = project.runner(model=model, runner_name='default_experiment')
     evaluation = runner.evaluate()
     accuracy_df = evaluation[evaluation['metric_name'] == 'accuracy']
@@ -132,7 +132,7 @@ def test_evaluation_is_shown():
 
 
 def test_composite_activation():
-    model, nested_loaders, datasets, project = synthenic_dataset_preparation()
+    model, nested_loaders, datasets, project = synthetic_dataset_preparation()
     runner = project.runner(model=model, runner_name='default_experiment')
     flow = project.get_full_flow()
     activation = flow.get_activation()
@@ -142,7 +142,7 @@ def test_composite_activation():
 
 
 def test_composite_decoding():
-    model, nested_loaders, datasets, project = synthenic_dataset_preparation()
+    model, nested_loaders, datasets, project = synthetic_dataset_preparation()
     runner = project.runner(model=model, runner_name='default_experiment')
     flow = project.get_full_flow()
     decoder = flow.get_decoder()
@@ -152,7 +152,7 @@ def test_composite_decoding():
 
 
 def test_composite_filtering():
-    model, nested_loaders, datasets, project = synthenic_dataset_preparation()
+    model, nested_loaders, datasets, project = synthetic_dataset_preparation()
     runner = project.runner(model=model, runner_name='default_experiment')
     flow = project.get_full_flow()
     filter_func = flow.get_filter()

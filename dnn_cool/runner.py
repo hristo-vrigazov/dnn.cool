@@ -127,20 +127,20 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         kwargs['criterion'] = kwargs.get('criterion', self.default_criterion)
         kwargs['model'] = kwargs.get('model', self.model)
 
-        if not 'optimizer' in kwargs:
+        if 'optimizer' not in kwargs:
             model = kwargs['model']
             optimizable_params = filter(lambda p: p.requires_grad, model.parameters())
             kwargs['optimizer'] = self.default_optimizer(params=optimizable_params)
 
-        if not 'scheduler' in kwargs:
+        if 'scheduler' not in kwargs:
             kwargs['scheduler'] = self.default_scheduler(kwargs['optimizer'])
 
-        if not 'logdir' in kwargs:
+        if 'logdir' not in kwargs:
             kwargs['logdir'] = self.default_logdir
         kwargs['logdir'] = self.project_dir / kwargs['logdir']
         kwargs['num_epochs'] = kwargs.get('num_epochs', 50)
 
-        if not 'loaders' in kwargs:
+        if 'loaders' not in kwargs:
             datasets, kwargs['loaders'] = self.get_default_loaders()
 
         default_callbacks = [self.create_interpretation_callback(**kwargs)] + self.default_callbacks
@@ -182,7 +182,8 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         interpretation_callback = InterpretationCallback(self.task_flow, tensorboard_converters)
         return interpretation_callback
 
-    def get_default_loaders(self, shuffle_train=True, collator=None) -> Tuple[Dict[str, Dataset], Dict[str, DataLoader]]:
+    def get_default_loaders(self, shuffle_train=True,
+                            collator=None) -> Tuple[Dict[str, Dataset], Dict[str, DataLoader]]:
         datasets = self.get_default_datasets()
         train_dataset = datasets['train']
         val_dataset = datasets['valid']
@@ -226,10 +227,10 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         datasets['infer'] = datasets[kwargs.get('target_loader', 'valid')]
         return datasets
 
-    def batch_to_device(self, batch, device) -> Dict[str, torch.Tensor]:
+    def batch_to_device(self, batch, device) -> Mapping[str, torch.Tensor]:
         return super()._batch2device(batch, device)
 
-    def batch_to_model_device(self, batch) -> Dict[str, torch.Tensor]:
+    def batch_to_model_device(self, batch) -> Mapping[str, torch.Tensor]:
         return super()._batch2device(batch, next(self.model.parameters()).device)
 
     def best(self) -> nn.Module:

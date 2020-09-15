@@ -3,7 +3,7 @@ import pytest
 
 from dnn_cool.datasets import FlowDataset
 from dnn_cool.converters import Values
-from dnn_cool.synthetic_dataset import synthenic_dataset_preparation
+from dnn_cool.synthetic_dataset import synthetic_dataset_preparation
 from dnn_cool.task_flow import TaskFlow, BinaryHardcodedTask
 
 
@@ -48,7 +48,7 @@ def test_includes_everything_needed_and_stores_gt(example_numerical_flow):
 
 
 def test_synthetic_dataset_missing_values():
-    model, nested_loaders, datasets, project = synthenic_dataset_preparation()
+    model, nested_loaders, datasets, project = synthetic_dataset_preparation()
     dataset = datasets['train']
 
     for i in range(32):

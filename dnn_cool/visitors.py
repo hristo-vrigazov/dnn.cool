@@ -90,7 +90,8 @@ class CompositeVisitor(IFlowTask):
             if not task.has_children():
                 instance = leaf_visitor_cls(task, prefix)
             else:
-                instance = CompositeVisitor(task, leaf_visitor_cls, visitor_out_cls, prefix=f'{prefix}{task.get_name()}.')
+                instance = CompositeVisitor(task, leaf_visitor_cls, visitor_out_cls,
+                                            prefix=f'{prefix}{task.get_name()}.')
             setattr(self, key, instance)
 
     def __call__(self, data) -> VisitorOut:

@@ -153,7 +153,8 @@ class BoundedRegressionTask(Task):
     name: str
     labels: Any
     loss: nn.Module = field(default_factory=lambda: SigmoidAndMSELoss(reduction='mean'))
-    per_sample_loss: nn.Module = field(default_factory=lambda: ReducedPerSample(SigmoidAndMSELoss(reduction='none'), reduction=torch.sum))
+    per_sample_loss: nn.Module = field(default_factory=lambda: ReducedPerSample(SigmoidAndMSELoss(reduction='none'),
+                                                                                reduction=torch.sum))
     available_func: Callable = field(default_factory=lambda: positive_values)
     module: nn.Module = field(default_factory=lambda: nn.Identity())
     activation: nn.Module = field(default_factory=lambda: nn.Sigmoid())
@@ -270,7 +271,7 @@ class TaskFlow(ITask):
     def get_decoder(self):
         return TaskFlowDecoder(self)
 
-    def get_activation(self) -> Optional[nn.Module]:
+    def get_activation(self) -> Callable:
         return CompositeActivation(self)
 
     def get_evaluator(self):
@@ -283,8 +284,8 @@ class TaskFlow(ITask):
         tasks = {}
         for task_name, task in self.tasks.items():
             if task.has_children():
+                assert isinstance(task, TaskFlow)
                 tasks.update(task.get_all_children(prefix=f'{prefix}{task.get_name()}.'))
             else:
                 tasks[prefix + task_name] = task
         return tasks
-

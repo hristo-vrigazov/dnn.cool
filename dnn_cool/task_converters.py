@@ -8,7 +8,7 @@ from dnn_cool.metrics import TorchMetric
 
 
 class To:
-    """Syntactic sugar for task converters. You can achieve the same through functools partial, but here you can
+    """Syntactic sugar for task converters. You can achieve the same through `functools.partial`, but here you can
     give a supplier for some fields, so that the creation of the respective field is delayed."""
 
     def __init__(self,
