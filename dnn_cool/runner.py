@@ -1,20 +1,57 @@
 from collections import OrderedDict
+from typing import OrderedDict as OrderedDictType, Iterator
+from collections.abc import Mapping
+from dataclasses import dataclass, field
 from functools import partial
 from pathlib import Path
 from time import time
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Callable, Optional, Any, Union, List
 from torch import nn
 
 import numpy as np
 import torch
-from catalyst.dl import SupervisedRunner, EarlyStoppingCallback, InferCallback, State
+from catalyst.dl import SupervisedRunner, EarlyStoppingCallback, InferCallback, State, Callback
 from catalyst.utils import load_checkpoint, unpack_checkpoint
 from torch import optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset
 
 from dnn_cool.catalyst_utils import InterpretationCallback, TensorboardConverters
 from dnn_cool.utils import TransformedSubset, train_test_val_split
+
+
+@dataclass
+class TrainingArguments(Mapping):
+    num_epochs: int
+    criterion: Optional[Callable] = None
+    model: Optional[Callable] = None
+    optimizer: Optional[Optimizer] = None
+    scheduler: Optional[Any] = None
+    logdir: Optional[Union[str, Path]] = None
+    loaders: Optional[OrderedDictType[str, DataLoader]] = None
+    callbacks: Optional[Union[List[Callback], OrderedDictType[str, Callback]]] = None
+    fp16: Union[Dict, bool] = None
+    catalyst_args: Dict = field(default_factory=lambda: {})
+
+    def __getitem__(self, k):
+        if hasattr(self, k):
+            return getattr(self, k)
+        return self.catalyst_args[k]
+
+    def __len__(self) -> int:
+        return len(self.__dataclass_fields__) + len(self.catalyst_args)
+
+    def __iter__(self) -> Iterator:
+        res = {}
+        for field_name in self.__dataclass_fields__:
+            if field_name != 'catalyst_args':
+                attr = getattr(self, field_name)
+                if attr is not None:
+                    res[field_name] = attr
+        for key, value in self.catalyst_args.items():
+            res[key] = value
+        return iter(res)
 
 
 class InferDictCallback(InferCallback):

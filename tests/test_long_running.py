@@ -5,6 +5,7 @@ from catalyst.dl import SupervisedRunner
 from torch import optim
 from torch.utils.data import DataLoader
 
+from dnn_cool.runner import TrainingArguments
 from dnn_cool.synthetic_dataset import synthenic_dataset_preparation
 from dnn_cool.task_flow import TaskFlow
 from dnn_cool.utils import torch_split_dataset
@@ -50,14 +51,14 @@ def test_synthetic_dataset():
     flow: TaskFlow = project.get_full_flow()
     criterion = flow.get_loss()
 
-    runner.train(
-        model=model,
-        criterion=criterion,
-        optimizer=optim.AdamW(model.parameters(), lr=1e-4),
-        loaders=nested_loaders,
-        callbacks=[],
+    args = TrainingArguments(
         num_epochs=2,
+        callbacks=[],
+        loaders=nested_loaders,
+        optimizer=optim.Adam(model.parameters(), lr=1e-4),
     )
+
+    runner.train(**args)
 
     print_any_prediction(criterion, model, nested_loaders, runner)
 
