@@ -1,10 +1,8 @@
 from collections import OrderedDict
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
-from torch.utils.data import DataLoader
 
 from dnn_cool.catalyst_utils import InterpretationCallback, TensorboardConverters, TensorboardConverter
 from dnn_cool.converters import Converters
@@ -61,26 +59,8 @@ def test_project_example():
     print(dataset[0])
 
 
-def test_inference_synthetic():
-    model, nested_loaders, datasets, project = synthenic_dataset_preparation()
-    runner = project.runner(model=model, runner_name='default_experiment')
-    model = runner.best()
-
-    n = 4 * torch.cuda.device_count()
-    flow: TaskFlow = project.get_full_flow()
-    dataset = flow.get_dataset()
-    loader = DataLoader(dataset, batch_size=n, shuffle=False)
-
-    X, y = next(iter(loader))
-    del X['gt']
-
-    model = model.eval()
-    res = model(X)
-
-    treelib_explainer = flow.get_treelib_explainer()
-
-    tree = treelib_explainer(res)
-    tree.show()
+def test_inference_synthetic_treelib(treelib_explanation_on_first_batch):
+    treelib_explanation_on_first_batch.show()
 
 
 def test_interpretation_synthetic():
