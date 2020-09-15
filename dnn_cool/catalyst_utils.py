@@ -28,10 +28,17 @@ def text(writer: SummaryWriter, sample: Tuple, prefix: str, task_name: str, key:
     writer.add_text(f'{prefix}_{task_name}_text', X[key])
 
 
+def default_tensorboard_type_mapping():
+    return {
+        'img': [img],
+        'text': [text]
+    }
+
+
 @dataclass()
 class TensorboardConverter:
     col_mapping: Dict[str, List[Callable]] = field(default_factory=lambda: {})
-    type_mapping: Dict[str, List[Callable]] = field(default_factory=lambda: {'img': [img], 'text': [text]})
+    type_mapping: Dict[str, List[Callable]] = field(default_factory=default_tensorboard_type_mapping)
     col_to_type_mapping: Dict[str, str] = field(default_factory=lambda: {})
 
     def __call__(self, writer: SummaryWriter, sample: Tuple, prefix: str, task_name: str):
