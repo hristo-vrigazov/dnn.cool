@@ -1,6 +1,5 @@
 from collections import OrderedDict
-from typing import OrderedDict as OrderedDictType, Iterator
-from collections.abc import Mapping
+from typing import OrderedDict as OrderedDictType, Iterator, Mapping
 from dataclasses import dataclass, field
 from functools import partial
 from pathlib import Path
