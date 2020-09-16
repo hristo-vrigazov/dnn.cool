@@ -1,3 +1,5 @@
+import torch
+
 from pathlib import Path
 from typing import Union, Iterable
 
@@ -105,6 +107,12 @@ class Project:
         self.converters = converters
         for i in range(len(self.inputs.keys)):
             self.converters.tensorboard_converters.col_to_type_mapping[self.inputs.keys[i]] = self.inputs.types[i]
+
+        converters_file = self.project_dir / 'converters.pkl'
+        if converters_file.exists():
+            self.converters.load_state_dict(torch.load(converters_file))
+        else:
+            torch.save(self.converters.state_dict(), converters_file)
 
     def add_task_flow(self, task_flow: TaskFlow):
         self.flow_tasks.append(task_flow)

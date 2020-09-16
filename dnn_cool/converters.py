@@ -80,7 +80,7 @@ class StatefulConverter:
 
     def load_state_dict(self, state_dict):
         load_state_when_possible(self.col_mapping, state_dict['col'])
-        load_state_when_possible(self.col_mapping, state_dict['type'])
+        load_state_when_possible(self.type_mapping, state_dict['type'])
 
 
 @dataclass()
