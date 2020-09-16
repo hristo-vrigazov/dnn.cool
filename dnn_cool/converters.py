@@ -61,7 +61,7 @@ def extract_state_when_possible(mapping):
 def load_state_when_possible(mapping, state_dict):
     for key, value in mapping.items():
         try:
-            mapping[key].load_state_dict(state_dict)
+            mapping[key].load_state_dict(state_dict[key])
         except:
             pass
     return mapping
