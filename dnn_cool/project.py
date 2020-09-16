@@ -101,11 +101,10 @@ class Project:
         self.converters = converters
         if converters_file.exists():
             self.converters.load_state_dict(torch.load(converters_file))
-        else:
-            torch.save(self.converters.state_dict(), converters_file)
 
         self.inputs = read_inputs(df, input_col, converters)
         self.leaf_tasks = create_leaf_tasks(df, output_col, converters)
+
         self.flow_tasks = []
 
         self._name_to_task = {}
@@ -114,6 +113,7 @@ class Project:
 
         for i in range(len(self.inputs.keys)):
             self.converters.tensorboard_converters.col_to_type_mapping[self.inputs.keys[i]] = self.inputs.types[i]
+        torch.save(self.converters.state_dict(), converters_file)
 
     def add_task_flow(self, task_flow: TaskFlow):
         self.flow_tasks.append(task_flow)
