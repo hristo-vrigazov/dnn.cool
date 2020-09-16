@@ -94,6 +94,16 @@ class Project:
 
         self.project_dir = Path(project_dir)
         self.project_dir.mkdir(exist_ok=True)
+
+        converters_file = self.project_dir / 'converters.pkl'
+        if converters is None:
+            converters = Converters()
+        self.converters = converters
+        if converters_file.exists():
+            self.converters.load_state_dict(torch.load(converters_file))
+        else:
+            torch.save(self.converters.state_dict(), converters_file)
+
         self.inputs = read_inputs(df, input_col, converters)
         self.leaf_tasks = create_leaf_tasks(df, output_col, converters)
         self.flow_tasks = []
@@ -102,17 +112,8 @@ class Project:
         for leaf_task in self.leaf_tasks:
             self._name_to_task[leaf_task.get_name()] = leaf_task
 
-        if converters is None:
-            converters = Converters()
-        self.converters = converters
         for i in range(len(self.inputs.keys)):
             self.converters.tensorboard_converters.col_to_type_mapping[self.inputs.keys[i]] = self.inputs.types[i]
-
-        converters_file = self.project_dir / 'converters.pkl'
-        if converters_file.exists():
-            self.converters.load_state_dict(torch.load(converters_file))
-        else:
-            torch.save(self.converters.state_dict(), converters_file)
 
     def add_task_flow(self, task_flow: TaskFlow):
         self.flow_tasks.append(task_flow)
