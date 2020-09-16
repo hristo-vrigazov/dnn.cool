@@ -153,7 +153,6 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
                                          ("inference", InferDictCallback())])
         kwargs['callbacks'] = kwargs.get('callbacks', default_callbacks)
         kwargs['model'] = kwargs.get('model', self.model)
-        kwargs.pop("logdir", None)
         del kwargs['datasets']
         super().infer(*args, **kwargs)
         results = kwargs['callbacks']['inference'].predictions

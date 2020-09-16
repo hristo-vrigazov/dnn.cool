@@ -11,9 +11,9 @@ from dnn_cool.task_flow import TaskFlow
 from dnn_cool.utils import any_value
 
 
-def publish_all(prefix, sample, key, writer, mapping, task_name):
-    if key in mapping:
-        publishers = mapping[key]
+def publish_all(prefix, sample, mapping_key, key, writer, mapping, task_name):
+    if mapping_key in mapping:
+        publishers = mapping[mapping_key]
         for publisher in publishers:
             publisher(writer, sample, prefix, task_name, key)
 
@@ -46,10 +46,10 @@ class TensorboardConverter:
             return
         X, y = sample
         for key in X:
-            publish_all(prefix, sample, key, writer, self.col_mapping, task_name)
+            publish_all(prefix, sample, key, key, writer, self.col_mapping, task_name)
         for key in X:
             if key in self.col_to_type_mapping:
-                publish_all(prefix, sample, self.col_to_type_mapping[key], writer, self.type_mapping, task_name)
+                publish_all(prefix, sample, self.col_to_type_mapping[key], key, writer, self.type_mapping, task_name)
 
 
 @dataclass

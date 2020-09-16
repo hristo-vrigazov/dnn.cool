@@ -167,7 +167,7 @@ def create_df_and_images_tensor(n=int(1e4), cache_file=Path('dnn_cool_synthetic_
         names.append(f'{i}.jpg')
 
     df = pd.DataFrame(rows)
-    df['img'] = names
+    df['syn_img'] = names
     df.loc[:5, 'camera_blocked'] = np.nan
     res = torch.stack(imgs, dim=0).float() / 255., df
     torch.save(res, cache_file)
@@ -193,7 +193,7 @@ def synthetic_dataset_preparation(n=int(1e4)):
     type_guesser.type_mapping['body_y1'] = 'continuous'
     type_guesser.type_mapping['body_w'] = 'continuous'
     type_guesser.type_mapping['body_h'] = 'continuous'
-    type_guesser.type_mapping['img'] = 'img'
+    type_guesser.type_mapping['syn_img'] = 'img'
     type_guesser.type_mapping['shirt_type'] = 'category'
     type_guesser.type_mapping['facial_characteristics'] = 'multilabel'
 
@@ -227,7 +227,7 @@ def synthetic_dataset_preparation(n=int(1e4)):
     converters.type = type_guesser
     converters.values = values_converter
 
-    project = Project(df, input_col='img', output_col=output_col, converters=converters,
+    project = Project(df, input_col='syn_img', output_col=output_col, converters=converters,
                       project_dir='./security_project')
 
     @project.add_flow
@@ -320,7 +320,7 @@ def synthetic_dataset_preparation(n=int(1e4)):
 
         def forward(self, x):
             res = {}
-            common = self.seq(x['img'])
+            common = self.seq(x['syn_img'])
             res['features'] = self.features_seq(common)
             res['face_localization'] = self.face_localization_seq(common)
             res['body_localization'] = self.body_localization_seq(common)
