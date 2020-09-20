@@ -54,8 +54,8 @@ def generate_door_closed_image(door_locked):
 
     if door_locked:
         lock_start = x1, int((y1 + y2) / 2)
-        lock_end = lock_start[0] + 30, lock_start[1] + 30
-        img = cv2.rectangle(img, lock_start, lock_end, color=(255, 255, 255), thickness=-1)
+        lock_end = lock_start[0] + 10, lock_start[1] + 10
+        img = cv2.rectangle(img, lock_start, lock_end, color=(0, 0, 255), thickness=-1)
 
     res['door_locked'] = door_locked
     res['camera_blocked'] = False
