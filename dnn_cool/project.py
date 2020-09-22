@@ -52,7 +52,7 @@ def read_inputs(df, input_col, converters):
     types = []
     for col_s in input_col:
         vals = create_values(df, col_s, converters)
-        keys.extend(keys)
+        keys.extend(vals.keys)
         values.extend(vals.values)
         types.extend(vals.types)
 
