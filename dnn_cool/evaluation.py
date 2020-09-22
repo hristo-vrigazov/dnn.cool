@@ -27,10 +27,9 @@ class EvaluationVisitor(LeafVisitor):
         for metric_name, metric in self.metrics:
             # No activation, since preds is already activated
             metric_res = metric(preds, targets, activate=False)
-            if metric.is_multi_metric():
-                args = metric.list_args()
-                for i in range(len(metric_res)):
-                    res.append(self.create_evaluation_record(f'{metric_name}_{args[i]}', metric_res[i], targets))
+            if isinstance(metric_res, dict):
+                for key, value in metric_res.items():
+                    res.append(self.create_evaluation_record(f'{metric_name}_{key}', value, targets))
             else:
                 res.append(self.create_evaluation_record(metric_name, metric_res, targets))
         return EvaluationResults(res)

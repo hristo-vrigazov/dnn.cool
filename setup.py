@@ -28,7 +28,7 @@ setup(
     packages=find_packages(exclude=("tests",)),
     include_package_data=True,
     install_requires=["torch",
-                      "catalyst <= 20.07",
+                      "catalyst == 20.09",
                       "pandas",
                       "numpy",
                       "tqdm",

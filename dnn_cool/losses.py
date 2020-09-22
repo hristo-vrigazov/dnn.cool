@@ -1,5 +1,4 @@
 import torch
-from catalyst.core import MultiMetricCallback
 from torch import nn
 
 from dnn_cool.dsl import IFeaturesDict, IOut, ICondition, IFlowTaskResult
@@ -193,12 +192,8 @@ class TaskFlowLoss(nn.Module):
                                                    loss.metric)
             callbacks.append(MetricCallback(f'loss_{path}', metric_decorator))
         for metric_name, metric_decorator in self.get_metrics():
-            metric = metric_decorator.metric
             full_name = f'{metric_name}_{metric_decorator.prefix}{metric_decorator.task_name}'
-            if metric.is_multi_metric():
-                callback = MultiMetricCallback(full_name, metric_decorator, metric.list_args())
-            else:
-                callback = MetricCallback(full_name, metric_decorator)
+            callback = MetricCallback(full_name, metric_decorator)
             callbacks.append(callback)
         return callbacks
 

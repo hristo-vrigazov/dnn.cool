@@ -2,19 +2,17 @@ from functools import partial
 
 import torch
 
-from catalyst.utils.metrics import accuracy
+from catalyst.utils.metrics import accuracy, multi_label_accuracy
 from sklearn.metrics import f1_score, precision_score, recall_score
 from torch import nn
 
 
 class TorchMetric:
 
-    def __init__(self, metric_fn, decode=True, is_multimetric=False, list_args=None):
+    def __init__(self, metric_fn, decode=True):
         self.activation = None
         self.decoder = None
         self.metric_fn = metric_fn
-        self._is_multimetric = is_multimetric
-        self._list_args = list_args
         self._decode = decode
 
     def bind_to_task(self, task):
@@ -36,17 +34,11 @@ class TorchMetric:
     def _invoke_metric(self, outputs, targets):
         return self.metric_fn(outputs, targets)
 
-    def is_multi_metric(self):
-        return self._is_multimetric
-
-    def list_args(self):
-        return self._list_args
-
 
 class BinaryAccuracy(TorchMetric):
 
     def __init__(self):
-        super().__init__(accuracy, decode=True, is_multimetric=False)
+        super().__init__(accuracy, decode=True)
 
     def _invoke_metric(self, outputs, targets):
         if len(outputs.shape) <= 1:
@@ -57,7 +49,7 @@ class BinaryAccuracy(TorchMetric):
 class ClassificationAccuracy(TorchMetric):
 
     def __init__(self):
-        super().__init__(accuracy, decode=False, is_multimetric=True, list_args=(1, 3, 5))
+        super().__init__(accuracy, decode=False)
 
     def _invoke_metric(self, outputs, targets):
         n_classes = outputs.shape[-1]
@@ -66,13 +58,15 @@ class ClassificationAccuracy(TorchMetric):
             topk.append(3)
         if n_classes > 5:
             topk.append(5)
-        return self.metric_fn(outputs, targets, topk=topk)
+        results = self.metric_fn(outputs, targets, topk=topk)
+        dict_metrics = dict(zip(topk, results))
+        return dict_metrics
 
 
 class NumpyMetric(TorchMetric):
 
-    def __init__(self, metric_fn, decode=True, is_multimetric=False, list_args=None):
-        super().__init__(metric_fn, decode, is_multimetric, list_args)
+    def __init__(self, metric_fn, decode=True):
+        super().__init__(metric_fn, decode)
 
     def _invoke_metric(self, outputs, targets):
         if isinstance(outputs, torch.Tensor):
@@ -102,8 +96,8 @@ class BinaryRecall(NumpyMetric):
 
 class ClassificationNumpyMetric(NumpyMetric):
 
-    def __init__(self, metric_fn, decode=True, is_multimetric=False, list_args=None):
-        super().__init__(metric_fn, decode=decode, is_multimetric=is_multimetric, list_args=list_args)
+    def __init__(self, metric_fn, decode=True):
+        super().__init__(metric_fn, decode=decode)
 
     def _invoke_metric(self, outputs, targets):
         if isinstance(outputs, torch.Tensor):
@@ -134,17 +128,18 @@ class ClassificationRecall(ClassificationNumpyMetric):
 
 class MeanAbsoluteError(TorchMetric):
 
-    def __init__(self, decode=False, is_multimetric=False, list_args=None):
-        super().__init__(nn.L1Loss(), decode, is_multimetric, list_args)
+    def __init__(self, decode=False):
+        super().__init__(nn.L1Loss(), decode)
 
 
 class MultiLabelClassificationAccuracy(TorchMetric):
 
     def __init__(self):
-        super().__init__(accuracy, decode=True, is_multimetric=False)
+        super().__init__(multi_label_accuracy, decode=True)
 
     def _invoke_metric(self, outputs, targets):
-        return self.metric_fn(outputs, targets)[0]
+        # the threshold does not actually matter, since the outputs are already decoded, i.e they are already 1 and 0
+        return self.metric_fn(outputs, targets, threshold=0.5)
 
 
 def get_default_binary_metrics():
