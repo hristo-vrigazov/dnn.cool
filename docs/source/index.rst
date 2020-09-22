@@ -11,7 +11,9 @@ Welcome to dnn.cool's documentation!
    :caption: Contents:
 
    intro
+
    dnn_cool
+
 
 Indices and tables
 ==================
