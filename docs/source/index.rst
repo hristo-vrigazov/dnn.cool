@@ -10,8 +10,8 @@ Welcome to dnn.cool's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-intro
-dnn_cool
+   intro
+   dnn_cool
 
 Indices and tables
 ==================
