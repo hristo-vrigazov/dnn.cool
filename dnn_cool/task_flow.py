@@ -1,6 +1,6 @@
 import os
 from dataclasses import dataclass, field
-from typing import Iterable, Optional, Callable, Tuple, Any
+from typing import Iterable, Optional, Callable, Tuple, Any, Sequence
 
 import torch
 from torch import nn
@@ -29,22 +29,22 @@ class ITask:
         self.available_func = available_func
         self.metrics = metrics
 
-    def get_name(self):
+    def get_name(self) -> str:
         return self.name
 
     def get_activation(self) -> Optional[nn.Module]:
         return None
 
-    def get_decoder(self):
+    def get_decoder(self) -> Optional[Decoder]:
         return None
 
-    def get_filter(self):
+    def get_filter(self) -> FilterVisitor:
         return FilterVisitor(self, prefix='')
 
-    def get_evaluator(self):
+    def get_evaluator(self) -> EvaluationVisitor:
         return EvaluationVisitor(self, prefix='')
 
-    def has_children(self):
+    def has_children(self) -> bool:
         return False
 
     def get_available_func(self):
@@ -93,11 +93,11 @@ class ITask:
 @dataclass
 class Task(ITask):
     name: str
-    labels: Any
+    labels: Sequence
     loss: nn.Module
     per_sample_loss: nn.Module
     available_func: Callable
-    inputs: Any
+    inputs: Sequence
     activation: Optional[nn.Module]
     decoder: Decoder
     module: nn.Module
@@ -131,11 +131,11 @@ class Task(ITask):
 @dataclass()
 class BinaryHardcodedTask(Task):
     name: str
-    labels: Any
+    labels: Sequence
     loss: nn.Module = None
     per_sample_loss: nn.Module = None
     available_func: Callable = positive_values
-    inputs: Any = None
+    inputs: Sequence = None
     activation: Optional[nn.Module] = None
     decoder: Decoder = None
     module: nn.Module = Identity()
@@ -151,7 +151,7 @@ class BoundedRegressionTask(Task):
     * loss - `SigmoidAndMSELoss` - sigmoid on the logits, then standard mean squared error loss.
     """
     name: str
-    labels: Any
+    labels: Sequence
     loss: nn.Module = field(default_factory=lambda: SigmoidAndMSELoss(reduction='mean'))
     per_sample_loss: nn.Module = field(default_factory=lambda: ReducedPerSample(SigmoidAndMSELoss(reduction='none'),
                                                                                 reduction=torch.sum))
@@ -159,7 +159,7 @@ class BoundedRegressionTask(Task):
     module: nn.Module = field(default_factory=lambda: nn.Identity())
     activation: nn.Module = field(default_factory=lambda: nn.Sigmoid())
     decoder: Decoder = None
-    inputs: Any = None
+    inputs: Sequence = None
     metrics: Tuple = field(default_factory=get_default_bounded_regression_metrics)
 
 
@@ -171,11 +171,11 @@ class BinaryClassificationTask(Task):
     * loss - ``nn.BCEWithLogitsLoss()`
     """
     name: str
-    labels: Any
+    labels: Sequence
     loss: nn.Module = nn.BCEWithLogitsLoss(reduction='mean')
     per_sample_loss: nn.Module = ReducedPerSample(nn.BCEWithLogitsLoss(reduction='none'), reduction=torch.mean)
     available_func: Callable = positive_values
-    inputs: Any = None
+    inputs: Sequence = None
     activation: Optional[nn.Module] = nn.Sigmoid()
     decoder: Decoder = field(default_factory=BinaryDecoder)
     module: nn.Module = Identity()
@@ -190,11 +190,11 @@ class ClassificationTask(Task):
     * loss - `nn.CrossEntropyLoss()`
     """
     name: str
-    labels: Any
+    labels: Sequence
     loss: nn.Module = nn.CrossEntropyLoss(reduction='mean')
     per_sample_loss: nn.Module = ReducedPerSample(nn.CrossEntropyLoss(reduction='none'), torch.mean)
     available_func: Callable = positive_values
-    inputs: Any = None
+    inputs: Sequence = None
     activation: Optional[nn.Module] = nn.Softmax()
     decoder: Decoder = field(default_factory=ClassificationDecoder)
     module: nn.Module = Identity()
@@ -209,11 +209,11 @@ class MultilabelClassificationTask(Task):
     * loss - `nn.CrossEntropyLoss()`
     """
     name: str
-    labels: Any
+    labels: Sequence
     loss: nn.Module = nn.BCEWithLogitsLoss(reduction='mean')
     per_sample_loss: nn.Module = ReducedPerSample(nn.BCEWithLogitsLoss(reduction='none'), torch.mean)
     available_func: Callable = positive_values
-    inputs: Any = None
+    inputs: Sequence = None
     activation: Optional[nn.Module] = nn.Sigmoid()
     decoder: Decoder = field(default_factory=MultilabelClassificationDecoder)
     module: nn.Module = Identity()
