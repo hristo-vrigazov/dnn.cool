@@ -1,7 +1,15 @@
 
 class IFeaturesDict:
+    """ This class represents the interface that a class has to implement to be an intermediary for the results
+    in :class:`dnn_cool.task_flow.TaskFlow`.
+
+    """
 
     def __getattr__(self, item):
+        """ This will have different meaning depending on the implementation. For example, inside a `nn.Module`, this
+        class would be wrapping a dictionary and this method select this as a key in the wrapped dictionary.
+        :param item: attribute name
+        """
         raise NotImplementedError()
 
 
