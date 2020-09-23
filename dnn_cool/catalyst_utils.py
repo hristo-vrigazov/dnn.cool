@@ -93,9 +93,12 @@ class TensorboardConverters:
 
 
 class InterpretationCallback(Callback):
-    def __init__(self, flow: TaskFlow, tensorboard_converters: Optional[TensorboardConverters] = None):
+    def __init__(self, flow: TaskFlow,
+                 tensorboard_converters: Optional[TensorboardConverters] = None,
+                 loaders_to_skip=()):
         super().__init__(CallbackOrder.Metric)
         self.flow = flow
+        self.loaders_to_skip = loaders_to_skip
 
         self.overall_loss = flow.get_per_sample_loss()
         self.leaf_losses = self.overall_loss.get_leaf_losses_per_sample()
@@ -117,6 +120,8 @@ class InterpretationCallback(Callback):
     def on_loader_start(self, state: State):
         if not isinstance(state.loaders[state.loader_name].sampler, SequentialSampler):
             return
+        if state.loader_name in self.loaders_to_skip:
+            return
         self.interpretations[state.loader_name] = self._initialize_interpretations()
         self.loader_counts[state.loader_name] = 0
 
@@ -125,6 +130,8 @@ class InterpretationCallback(Callback):
 
     def on_batch_end(self, state: State):
         if not isinstance(state.loaders[state.loader_name].sampler, SequentialSampler):
+            return
+        if state.loader_name in self.loaders_to_skip:
             return
         outputs = state.output['logits']
         targets = state.input['targets']
@@ -144,6 +151,8 @@ class InterpretationCallback(Callback):
     def on_loader_end(self, state: State):
         if not isinstance(state.loaders[state.loader_name].sampler, SequentialSampler):
             return
+        if state.loader_name in self.loaders_to_skip:
+            return
         self.interpretations[state.loader_name] = {
             key: np.concatenate(value, axis=0)
             for key, value in self.interpretations[state.loader_name].items()
@@ -154,6 +163,8 @@ class InterpretationCallback(Callback):
 
     def on_stage_end(self, state: State):
         if not isinstance(state.loaders[state.loader_name].sampler, SequentialSampler):
+            return
+        if state.loader_name in self.loaders_to_skip:
             return
         if self.tensorboard_converters is not None:
             self.tensorboard_converters.close(state)

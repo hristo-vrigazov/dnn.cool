@@ -176,7 +176,8 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
             tensorboard_loggers=self.tensor_loggers,
             datasets=kwargs.get('datasets', self.get_default_datasets(**kwargs))
         )
-        interpretation_callback = InterpretationCallback(self.task_flow, tensorboard_converters)
+        loaders_to_skip = kwargs.get('loader_names_to_skip_in_interpretation', ())
+        interpretation_callback = InterpretationCallback(self.task_flow, tensorboard_converters, loaders_to_skip)
         return interpretation_callback
 
     def get_default_loaders(self, shuffle_train=True,
