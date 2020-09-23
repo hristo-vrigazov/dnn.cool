@@ -108,8 +108,8 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         if early_stop:
             self.default_callbacks.append(EarlyStoppingCallback(patience=5))
 
+        (self.project_dir / self.default_logdir).mkdir(exist_ok=True)
         if train_test_val_indices is None:
-            (self.project_dir / self.default_logdir).mkdir(exist_ok=True)
             train_test_val_indices = project_split(project.df, self.project_dir / self.default_logdir)
         else:
             save_split(self.project_dir / self.default_logdir, train_test_val_indices)
@@ -185,7 +185,8 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         train_dataset = datasets['train']
         val_dataset = datasets['valid']
         test_dataset = datasets['test']
-        train_loader = DataLoader(train_dataset, batch_size=batch_size_per_gpu * torch.cuda.device_count(), shuffle=shuffle_train,
+        train_loader = DataLoader(train_dataset, batch_size=batch_size_per_gpu * torch.cuda.device_count(),
+                                  shuffle=shuffle_train,
                                   collate_fn=collator)
         val_loader = DataLoader(val_dataset, batch_size=batch_size_per_gpu * torch.cuda.device_count(), shuffle=False,
                                 collate_fn=collator)
@@ -243,12 +244,13 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         self.task_flow.get_decoder().load_tuned(tuned_params)
         return model
 
-    def tune(self) -> Dict:
+    def tune(self, store=True) -> Dict:
         predictions, targets, interpretations = self.load_inference_results()
         decoder = self.task_flow.get_decoder()
         tuned_params = decoder.tune(predictions['valid'], targets['valid'])
-        out_path = self.project_dir / self.default_logdir / 'tuned_params.pkl'
-        torch.save(tuned_params, out_path)
+        if store:
+            out_path = self.project_dir / self.default_logdir / 'tuned_params.pkl'
+            torch.save(tuned_params, out_path)
         return tuned_params
 
     def load_inference_results(self) -> Tuple[Dict[str, np.ndarray], Dict[str, np.ndarray], Dict[str, np.ndarray]]:
