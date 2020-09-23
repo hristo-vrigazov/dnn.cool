@@ -156,17 +156,19 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         store = kwargs.pop('store', True)
         del kwargs['datasets']
         super().infer(*args, **kwargs)
-        results = kwargs['callbacks']['inference'].predictions
-        targets = kwargs['callbacks']['inference'].targets
-        interpretation = kwargs['callbacks']['interpretation'].interpretations
+        res = {}
+        if 'inference' in kwargs['callbacks']:
+            res['logits'] = kwargs['callbacks']['inference'].predictions
+            res['targets'] = kwargs['callbacks']['inference'].targets
+        if 'interpretation' in kwargs['callbacks']:
+            res['interpretations'] = kwargs['callbacks']['interpretation'].interpretations
 
         if store:
             out_dir = logdir / 'infer'
             out_dir.mkdir(exist_ok=True)
-            torch.save(results, out_dir / 'logits.pkl')
-            torch.save(targets, out_dir / 'targets.pkl')
-            torch.save(interpretation, out_dir / 'interpretations.pkl')
-        return results, targets, interpretation
+            for key in res:
+                torch.save(res[key], out_dir / f'{key}.pkl')
+        return res
 
     def create_interpretation_callback(self, **kwargs) -> InterpretationCallback:
         tensorboard_converters = TensorboardConverters(
@@ -244,22 +246,24 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         return model
 
     def tune(self, store=True) -> Dict:
-        predictions, targets, interpretations = self.load_inference_results()
+        res = self.load_inference_results()
         decoder = self.task_flow.get_decoder()
-        tuned_params = decoder.tune(predictions['valid'], targets['valid'])
+        tuned_params = decoder.tune(res['logits']['valid'], res['targets']['valid'])
         if store:
             out_path = self.project_dir / self.default_logdir / 'tuned_params.pkl'
             torch.save(tuned_params, out_path)
         return tuned_params
 
-    def load_inference_results(self) -> Tuple[Dict[str, np.ndarray], Dict[str, np.ndarray], Dict[str, np.ndarray]]:
+    def load_inference_results(self) -> Dict:
         logdir = self.project_dir / self.default_logdir
         out_dir = logdir / 'infer'
         out_dir.mkdir(exist_ok=True)
-        results = torch.load(out_dir / 'logits.pkl')
-        targets = torch.load(out_dir / 'targets.pkl')
-        interpretation = torch.load(out_dir / 'interpretations.pkl')
-        return results, targets, interpretation
+        res = {}
+        for key in ['logits', 'targets', 'interpretations']:
+            file_path = out_dir / f'{key}.pkl'
+            if file_path.exists():
+                res[key] = torch.load(out_dir / f'{key}.pkl')
+        return res
 
     def load_tuned(self) -> Dict:
         tuned_params = torch.load(self.project_dir / self.default_logdir / 'tuned_params.pkl')
@@ -267,10 +271,10 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         return tuned_params
 
     def evaluate(self):
-        predictions, targets, interpretations = self.load_inference_results()
+        res = self.load_inference_results()
         self.load_tuned()
         evaluator = self.task_flow.get_evaluator()
-        df = evaluator(predictions['test'], targets['test'])
+        df = evaluator(res['logits']['test'], res['targets']['test'])
         df.to_csv(self.project_dir / self.default_logdir / 'evaluation.csv', index=False)
         return df
 

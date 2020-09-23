@@ -92,10 +92,7 @@ def test_interpretation_default_runner():
     model, nested_loaders, datasets, project = synthetic_dataset_preparation()
     runner = project.runner(model=model, runner_name='default_experiment')
     model = runner.best()
-    predictions, targets, interpretations = runner.infer(model=model)
-
-    print(interpretations)
-    print(predictions)
+    r = runner.infer(model=model)
 
 
 def test_tune_pipeline():
@@ -136,8 +133,8 @@ def test_composite_activation():
     runner = project.runner(model=model, runner_name='default_experiment')
     flow = project.get_full_flow()
     activation = flow.get_activation()
-    predictions, targets, interpretations = runner.load_inference_results()
-    activated_predictions = activation(predictions['test'], targets['test'])
+    res = runner.load_inference_results()
+    activated_predictions = activation(res['logits']['test'], res['targets']['test'])
     print(activated_predictions)
 
 
@@ -146,8 +143,8 @@ def test_composite_decoding():
     runner = project.runner(model=model, runner_name='default_experiment')
     flow = project.get_full_flow()
     decoder = flow.get_decoder()
-    predictions, targets, interpretations = runner.load_inference_results()
-    activated_predictions = decoder(predictions['test'], targets['test'])
+    res = runner.load_inference_results()
+    activated_predictions = decoder(res['logits']['test'], res['targets']['test'])
     print(activated_predictions)
 
 
@@ -156,7 +153,7 @@ def test_composite_filtering():
     runner = project.runner(model=model, runner_name='default_experiment')
     flow = project.get_full_flow()
     filter_func = flow.get_filter()
-    predictions, targets, interpretations = runner.load_inference_results()
-    filtered_results = filter_func(predictions['test'], targets['test'])
+    res = runner.load_inference_results()
+    filtered_results = filter_func(res['logits']['test'], res['targets']['test'])
     print(filtered_results)
 
