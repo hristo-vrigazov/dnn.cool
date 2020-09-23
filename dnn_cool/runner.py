@@ -153,13 +153,15 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
                                          ("inference", InferDictCallback())])
         kwargs['callbacks'] = kwargs.get('callbacks', default_callbacks)
         kwargs['model'] = kwargs.get('model', self.model)
+        store = kwargs.get('store', True)
         del kwargs['datasets']
+        del kwargs['store']
         super().infer(*args, **kwargs)
         results = kwargs['callbacks']['inference'].predictions
         targets = kwargs['callbacks']['inference'].targets
         interpretation = kwargs['callbacks']['interpretation'].interpretations
 
-        if kwargs.get('store', True):
+        if store:
             out_dir = logdir / 'infer'
             out_dir.mkdir(exist_ok=True)
             torch.save(results, out_dir / 'logits.pkl')
