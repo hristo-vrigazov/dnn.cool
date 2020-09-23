@@ -144,7 +144,7 @@ def test_composite_decoding():
     flow = project.get_full_flow()
     decoder = flow.get_decoder()
     res = runner.load_inference_results()
-    activated_predictions = decoder(res['logits']['test'], res['targets']['test'])
+    activated_predictions = decoder(res['logits']['test'])
     print(activated_predictions)
 
 

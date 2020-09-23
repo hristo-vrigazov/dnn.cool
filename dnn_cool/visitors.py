@@ -62,13 +62,14 @@ class LeafVisitor(IFlowTask):
         preds = visitor_data.predictions[self.path]
         if self.activation is not None:
             preds = self.activation(torch.tensor(preds).float()).detach().cpu().numpy()
-        targets = visitor_data.targets[self.path]
+        targets = visitor_data.targets[self.path] if visitor_data.targets is not None else None
 
         precondition = visitor_data.predictions[f'precondition|{self.path}']
         if precondition.sum() == 0:
             return self.empty_result()
         precondition = squeeze_if_needed(precondition)
-        return self.preconditioned_result(preds[precondition], targets[precondition])
+        preconditioned_targets = targets[precondition] if targets is not None else None
+        return self.preconditioned_result(preds[precondition], preconditioned_targets)
 
     def full_result(self, preds, targets):
         raise NotImplementedError()
@@ -106,6 +107,6 @@ class RootCompositeVisitor(IFlowTask):
         self.task_flow = task_flow
         self.composite_visitor = CompositeVisitor(task_flow, leaf_visitor_cls, visitor_out_cls, prefix)
 
-    def __call__(self, predictions, targets):
+    def __call__(self, predictions, targets=None):
         flow_result = self.composite_visitor(VisitorData(predictions, targets))
         return flow_result.reduce()
