@@ -153,9 +153,8 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
                                          ("inference", InferDictCallback())])
         kwargs['callbacks'] = kwargs.get('callbacks', default_callbacks)
         kwargs['model'] = kwargs.get('model', self.model)
-        store = kwargs.get('store', True)
+        store = kwargs.pop('store', True)
         del kwargs['datasets']
-        del kwargs['store']
         super().infer(*args, **kwargs)
         results = kwargs['callbacks']['inference'].predictions
         targets = kwargs['callbacks']['inference'].targets
