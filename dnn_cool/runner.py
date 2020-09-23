@@ -154,6 +154,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         kwargs['callbacks'] = kwargs.get('callbacks', default_callbacks)
         kwargs['model'] = kwargs.get('model', self.model)
         store = kwargs.pop('store', True)
+        kwargs.pop('loader_names_to_skip_in_interpretation', ())
         del kwargs['datasets']
         super().infer(*args, **kwargs)
         res = {}
