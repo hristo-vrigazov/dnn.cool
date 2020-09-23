@@ -159,11 +159,12 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         targets = kwargs['callbacks']['inference'].targets
         interpretation = kwargs['callbacks']['interpretation'].interpretations
 
-        out_dir = logdir / 'infer'
-        out_dir.mkdir(exist_ok=True)
-        torch.save(results, out_dir / 'logits.pkl')
-        torch.save(targets, out_dir / 'targets.pkl')
-        torch.save(interpretation, out_dir / 'interpretations.pkl')
+        if kwargs.get('store', True):
+            out_dir = logdir / 'infer'
+            out_dir.mkdir(exist_ok=True)
+            torch.save(results, out_dir / 'logits.pkl')
+            torch.save(targets, out_dir / 'targets.pkl')
+            torch.save(interpretation, out_dir / 'interpretations.pkl')
         return results, targets, interpretation
 
     def create_interpretation_callback(self, **kwargs) -> InterpretationCallback:
