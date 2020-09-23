@@ -35,3 +35,6 @@ class CompositeActivation(RootCompositeVisitor):
 
     def __init__(self, task_flow):
         super().__init__(task_flow, ActivationVisitor, ActivationsFiltered)
+
+    def __call__(self, predictions, targets=None):
+        return super().__call__(predictions, predictions)

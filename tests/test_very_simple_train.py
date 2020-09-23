@@ -134,7 +134,7 @@ def test_composite_activation():
     flow = project.get_full_flow()
     activation = flow.get_activation()
     res = runner.load_inference_results()
-    activated_predictions = activation(res['logits']['test'], res['targets']['test'])
+    activated_predictions = activation(res['logits']['test'])
     print(activated_predictions)
 
 
