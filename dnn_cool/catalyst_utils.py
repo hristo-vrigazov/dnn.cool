@@ -11,19 +11,19 @@ from dnn_cool.task_flow import TaskFlow
 from dnn_cool.utils import any_value
 
 
-def publish_all(prefix, sample, mapping_key, key, writer, mapping, task_name):
+def publish_all(prefix, idx, sample, mapping_key, key, writer, mapping, task_name):
     if mapping_key in mapping:
         publishers = mapping[mapping_key]
         for publisher in publishers:
-            publisher(writer, sample, prefix, task_name, key)
+            publisher(writer, idx, sample, prefix, task_name, key)
 
 
-def img(writer: SummaryWriter, sample: Tuple, prefix: str, task_name: str, key: str):
+def img(writer: SummaryWriter, idx: int, sample: Tuple, prefix: str, task_name: str, key: str):
     X, y = sample
     writer.add_image(f'{prefix}_{task_name}_images', X[key])
 
 
-def text(writer: SummaryWriter, sample: Tuple, prefix: str, task_name: str, key: str):
+def text(writer: SummaryWriter, idx: int, sample: Tuple, prefix: str, task_name: str, key: str):
     X, y = sample
     writer.add_text(f'{prefix}_{task_name}_text', X[key])
 
@@ -41,15 +41,15 @@ class TensorboardConverter:
     type_mapping: Dict[str, List[Callable]] = field(default_factory=default_tensorboard_type_mapping)
     col_to_type_mapping: Dict[str, str] = field(default_factory=lambda: {})
 
-    def __call__(self, writer: SummaryWriter, sample: Tuple, prefix: str, task_name: str):
+    def __call__(self, writer: SummaryWriter, idx, sample: Tuple, prefix: str, task_name: str):
         if task_name == 'gt':
             return
         X, y = sample
         for key in X:
-            publish_all(prefix, sample, key, key, writer, self.col_mapping, task_name)
+            publish_all(prefix, idx, sample, key, key, writer, self.col_mapping, task_name)
         for key in X:
             if key in self.col_to_type_mapping:
-                publish_all(prefix, sample, self.col_to_type_mapping[key], key, writer, self.type_mapping, task_name)
+                publish_all(prefix, idx, sample, self.col_to_type_mapping[key], key, writer, self.type_mapping, task_name)
 
 
 @dataclass
@@ -81,7 +81,7 @@ class TensorboardConverters:
     def _publish_inputs(self, best_indices, writer, dataset, prefix, key):
         for idx in best_indices:
             if self.tensorboard_loggers is not None:
-                self.tensorboard_loggers(writer, dataset[idx], prefix, key)
+                self.tensorboard_loggers(writer, idx, dataset[idx], prefix, key)
 
     def close(self, state):
         """Close opened tensorboard writers"""
