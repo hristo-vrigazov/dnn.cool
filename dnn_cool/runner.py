@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import OrderedDict as OrderedDictType, Iterator, Mapping
+from typing import Iterator, Mapping
 from dataclasses import dataclass, field
 from functools import partial
 from pathlib import Path
@@ -28,8 +28,8 @@ class TrainingArguments(Mapping):
     optimizer: Optional[Optimizer] = None
     scheduler: Optional[Any] = None
     logdir: Optional[Union[str, Path]] = None
-    loaders: Optional[OrderedDictType[str, DataLoader]] = None
-    callbacks: Optional[Union[List[Callback], OrderedDictType[str, Callback]]] = None
+    loaders: Optional[Dict[str, DataLoader]] = None
+    callbacks: Optional[Union[List[Callback], Dict[str, Callback]]] = None
     fp16: Union[Dict, bool] = None
     catalyst_args: Dict = field(default_factory=lambda: {})
 
