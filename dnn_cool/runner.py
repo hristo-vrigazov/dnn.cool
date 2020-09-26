@@ -188,11 +188,9 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         train_dataset = datasets['train']
         val_dataset = datasets['valid']
         test_dataset = datasets['test']
-        train_loader = DataLoader(train_dataset, batch_size=batch_size_per_gpu * torch.cuda.device_count(),
-                                  shuffle=shuffle_train,
-                                  collate_fn=collator)
-        val_loader = DataLoader(val_dataset, batch_size=batch_size_per_gpu * torch.cuda.device_count(), shuffle=False,
-                                collate_fn=collator)
+        bs = max(batch_size_per_gpu, batch_size_per_gpu * torch.cuda.device_count())
+        train_loader = DataLoader(train_dataset, batch_size=bs, shuffle=shuffle_train, collate_fn=collator)
+        val_loader = DataLoader(val_dataset, batch_size=bs, shuffle=False, collate_fn=collator)
         test_loader = DataLoader(test_dataset, batch_size=batch_size_per_gpu * torch.cuda.device_count(), shuffle=False,
                                  collate_fn=collator)
         loaders = OrderedDict({

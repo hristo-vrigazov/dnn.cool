@@ -48,7 +48,7 @@ Currently, this is the list of the predefined tasks (they are all located in `dn
 
 ##### List of predefined tasks
 
-In the current release (0.1.0), the following tasks are availble out of the box:
+In the current release, the following tasks are available out of the box:
 
 * `BinaryClassificationTask` - sigmoid activation, thresholding decoder, binary cross entropy loss function. In the 
 examples above, `camera_blocked` and `obj_exists` are `BinaryClassificationTask`s.
