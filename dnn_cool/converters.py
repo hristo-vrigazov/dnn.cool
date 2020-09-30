@@ -46,23 +46,23 @@ class TypeGuesser:
         self.type_mapping = state_dict
 
 
-# noinspection PyBroadException
 def extract_state_when_possible(mapping):
     out_mapping = {}
     for key, value in mapping.items():
         try:
             out_mapping[key] = value.state_dict()
-        except:
+        except AttributeError:
+            # It is ok for a converter not to have a state at all.
             pass
     return out_mapping
 
 
-# noinspection PyBroadException
 def load_state_when_possible(mapping, state_dict):
     for key, value in mapping.items():
         try:
             mapping[key].load_state_dict(state_dict[key])
-        except:
+        except AttributeError:
+            # It is ok for a converter not to have a state at all.
             pass
     return mapping
 
