@@ -12,14 +12,33 @@ from dnn_cool.visitors import RootCompositeVisitor, VisitorOut, LeafVisitor
 
 
 class Decoder:
+    """
+    A decoder is a :class:`Callable` which when invoked, returns processed task predictions so that they can be used
+    as a precondition to other tasks.
+    """
 
     def __call__(self, *args, **kwargs):
         raise NotImplementedError()
 
     def tune(self, predictions, targets):
+        """
+        Tunes any thresholds or other parameters needed for decoding.
+
+        :param predictions: The activated model predictions
+
+        :param targets: The ground truth
+
+        :return: A dictionary of tuned parameters.
+        """
         raise NotImplementedError()
 
     def load_tuned(self, params):
+        """
+        Loads a dictionary of tuned parameters.
+
+        :param params: a dictionary of tuned parameters.
+
+        """
         raise NotImplementedError()
 
 
@@ -38,6 +57,15 @@ class BinaryDecoder(Decoder):
         return x > self.threshold
 
     def tune(self, predictions, targets):
+        """
+        Performs a simple grid search that optimizes the metric in the field :code:`metric`.
+
+        :param predictions: The activated model predictions
+
+        :param targets: The ground truth
+
+        :return: A dictionary of tuned parameters.
+        """
         res = np.zeros_like(self._candidates)
         for i, candidate in enumerate(tqdm(self._candidates)):
             preds = (predictions > candidate)
