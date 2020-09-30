@@ -1,8 +1,9 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Dict, Optional, Tuple, List
+from typing import Callable, Dict, Optional, Tuple, List, Mapping
 
 import numpy as np
+import torch
 from catalyst.contrib.tools.tensorboard import SummaryWriter
 from catalyst.core import Callback, CallbackOrder, State
 from torch.utils.data import Dataset, SequentialSampler
@@ -11,19 +12,74 @@ from dnn_cool.task_flow import TaskFlow
 from dnn_cool.utils import any_value
 
 
-def publish_all(prefix, idx, sample, mapping_key, key, writer, mapping, task_name):
+def publish_all(prefix: str,
+                idx: int,
+                sample: Tuple[Dict, Dict],
+                mapping_key: str,
+                key: str,
+                writer: SummaryWriter,
+                mapping: Mapping,
+                task_name: str):
+    """
+    Publishes a given key given all publishers supplied via the mapping
+    :param prefix: The prefix, this is typically either "best" or "worst".
+
+    :param idx: The index of the sample in the dataset.
+
+    :param sample: A tuple X, y where X and y and dictionaries.
+
+    :param mapping_key: The key which when applied to the mapping gives a list of publishers.
+
+    :param key: The key in X that is being published.
+
+    :param writer: A :class:`SummaryWriter` that logs to the tensorboard.
+
+    :param mapping: A mapping `[str, List[Callable]]` where the key are either input columns, or input types and the values are a list of publisher functions.
+
+    :param task_name: The name of the task, to be included in the name
+    """
     if mapping_key in mapping:
         publishers = mapping[mapping_key]
         for publisher in publishers:
             publisher(writer, idx, sample, prefix, task_name, key)
 
 
-def img(writer: SummaryWriter, idx: int, sample: Tuple, prefix: str, task_name: str, key: str):
+def img(writer: SummaryWriter, idx: int, sample: Tuple[Dict, Dict], prefix: str, task_name: str, key: str):
+    """
+    Publishes image interpretation data.
+
+    :param writer: A :class:`SummaryWriter` that logs to the tensorboard.
+
+    :param idx: The index of the dataset sample.
+
+    :param sample: A tuple of X, y dictionaries.
+
+    :param prefix: The prefix, this is typically either "best" or "worst".
+
+    :param task_name: The name of the task, to be included in the name.
+
+    :param key: The key in X that is being published.
+    """
     X, y = sample
     writer.add_image(f'{prefix}_{task_name}_images', X[key])
 
 
 def text(writer: SummaryWriter, idx: int, sample: Tuple, prefix: str, task_name: str, key: str):
+    """
+    Publishes text interpretation data.
+
+     :param writer: A :class:`SummaryWriter` that logs to the tensorboard.
+
+    :param idx: The index of the dataset sample.
+
+    :param sample: A tuple of X, y dictionaries.
+
+    :param prefix: The prefix, this is typically either "best" or "worst".
+
+    :param task_name: The name of the task, to be included in the name.
+
+    :param key: The key in X that is being published.
+    """
     X, y = sample
     writer.add_text(f'{prefix}_{task_name}_text', X[key])
 
@@ -37,11 +93,45 @@ def default_tensorboard_type_mapping():
 
 @dataclass()
 class TensorboardConverter:
+    """
+    A dataclass which holds mappings from column names to Tensorboard publishers and from column types to Tensorboard
+    publishers. Also, it stores which column is of what type, to be able to log any column name to the Tensorboard.
+    """
     col_mapping: Dict[str, List[Callable]] = field(default_factory=lambda: {})
-    type_mapping: Dict[str, List[Callable]] = field(default_factory=default_tensorboard_type_mapping)
+    """
+    Stores a `dict` from column names to a list of publishers. A publisher is just a callable which will be called 
+    with this signature: 
+    :code:`publisher(writer: SummaryWriter, idx: int, sample: Tuple, prefix: str, task_name: str, key: str)`. Example 
+    publisher functions are :meth:`dnn_cool.catalyst_utils.img` and :meth:`dnn_cool.catalyst_utils.text`.
+    """
+    type_mapping: Dict[str, List[Callable]] = field(default_factory=lambda: {})
+    """
+    Stores a `dict` from column types to a list of publishers. A publisher is just a callable which will be called 
+    with this signature: 
+    :code:`publisher(writer: SummaryWriter, idx: int, sample: Tuple, prefix: str, task_name: str, key: str)`. Example 
+    publisher functions are :meth:`dnn_cool.catalyst_utils.img` and :meth:`dnn_cool.catalyst_utils.text`.
+    """
     col_to_type_mapping: Dict[str, str] = field(default_factory=lambda: {})
+    """
+    Stores a `dict` from column names to type names.
+    """
 
-    def __call__(self, writer: SummaryWriter, idx, sample: Tuple, prefix: str, task_name: str):
+    def __call__(self, writer: SummaryWriter, idx: int, sample: Tuple[Dict, Dict], prefix: str, task_name: str):
+        """
+        Publishes a given sample to the tensorboard, using the mappings defined in the dataclass.
+
+        :param writer: A :class:`SummaryWriter` that logs to the tensorboard.
+
+        :param idx: The index of the sample that is being published
+
+        :param sample: A tuple of dictionaries X, y.
+
+        :param prefix: The prefix, this is typically either "best" or "worst".
+
+        :param task_name: The name of the task
+
+        :return:
+        """
         if task_name == 'gt':
             return
         X, y = sample
@@ -54,19 +144,37 @@ class TensorboardConverter:
 
 @dataclass
 class TensorboardConverters:
+    """
+    This class handles the logging to the Tensorboard of an interpretation for a task
+    """
     logdir: Path
     datasets: Dict[str, Dataset]
     tensorboard_loggers: Callable = field(default_factory=TensorboardConverter)
     loggers: Dict[str, SummaryWriter] = field(default_factory=lambda: {})
     top_k: int = 10
 
-    def initialize(self, state):
+    def initialize(self, state: State):
+        """
+        Initializes the tensorboard loggers.
+
+        :param state: The state with which the callback is called.
+        """
         if (self.logdir is not None) and (state.loader_name not in self.loggers):
             path = str(self.logdir / f"{state.loader_name}_log")
             writer = SummaryWriter(path)
             self.loggers[state.loader_name] = writer
 
-    def publish(self, state, interpretations):
+    def publish(self, state: State, interpretations: Dict[str, torch.Tensor]):
+        """
+        Publishes all interpretations
+
+        :param state: The state with which the callback is called.
+
+        :param interpretations: A dict object from task name to loss values. Also additional keys are those prefixed \
+        with "indices|{task_name}", which hold the corresponding indices in the original dataset for which the loss \
+        items are computed.
+
+        """
         for key, value in interpretations.items():
             if key.startswith('indices'):
                 continue
@@ -83,7 +191,7 @@ class TensorboardConverters:
             if self.tensorboard_loggers is not None:
                 self.tensorboard_loggers(writer, idx, dataset[idx], prefix, key)
 
-    def close(self, state):
+    def close(self, state: State):
         """Close opened tensorboard writers"""
         if state.logdir is None:
             return
@@ -93,9 +201,20 @@ class TensorboardConverters:
 
 
 class InterpretationCallback(Callback):
+    """
+    This callback publishes best and worst images per task, according to the configuration supplied via the constructor.
+    """
     def __init__(self, flow: TaskFlow,
                  tensorboard_converters: Optional[TensorboardConverters] = None,
                  loaders_to_skip=()):
+        """
+        :param flow: The task flow, which holds the per sample loss functions for every task.
+
+        :param tensorboard_converters: A :class:`TensorboardConverters` object which is responsible for the Tensorboard
+        logging settings.
+
+        :param loaders_to_skip: Optional loaders to be skipped, for example because labels aren't available for them.
+        """
         super().__init__(CallbackOrder.Metric)
         self.flow = flow
         self.loaders_to_skip = loaders_to_skip
