@@ -14,7 +14,17 @@ class IFeaturesDict:
 
 
 class ICondition:
+    """
+    This class represents the inferface that a class has to implement to be able to act asa a precondition to a
+    :class:`IFlowTaskResult`.
+    """
     def __invert__(self):
+        """
+        Condition inversion.
+
+        :return: the inverted mask
+
+        """
         raise NotImplementedError()
 
     def __and__(self, other):
@@ -22,17 +32,37 @@ class ICondition:
 
 
 class IOut:
+    """
+    Ths interface is used to accumulate the result in a TaskFlow.
+    """
 
     def __iadd__(self, other):
         raise NotImplementedError()
 
     def __getattr__(self, item) -> ICondition:
+        """
+        Accesses the result for a given task name.
+
+        :param item: the full name of the task
+
+        :return:
+        """
         raise NotImplementedError()
 
 
 class IFlowTaskResult:
+    """
+    This interface represents the result of a task flow.
+    """
 
     def __or__(self, precondition: ICondition):
+        """
+        Make the supplied :class:`ICondition` a precondition for the result of this task.
+
+        :param precondition: the precondition.
+
+        :return: self with precondition added.
+        """
         raise NotImplementedError()
 
 

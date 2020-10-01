@@ -245,10 +245,10 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         self.task_flow.get_decoder().load_tuned(tuned_params)
         return model
 
-    def tune(self, store=True) -> Dict:
+    def tune(self, loader_name='valid', store=True) -> Dict:
         res = self.load_inference_results()
         decoder = self.task_flow.get_decoder()
-        tuned_params = decoder.tune(res['logits']['valid'], res['targets']['valid'])
+        tuned_params = decoder.tune(res['logits'][loader_name], res['targets'][loader_name])
         if store:
             out_path = self.project_dir / self.default_logdir / 'tuned_params.pkl'
             torch.save(tuned_params, out_path)
@@ -270,11 +270,11 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         self.task_flow.get_decoder().load_tuned(tuned_params)
         return tuned_params
 
-    def evaluate(self):
+    def evaluate(self, loader_name='test'):
         res = self.load_inference_results()
         self.load_tuned()
         evaluator = self.task_flow.get_evaluator()
-        df = evaluator(res['logits']['test'], res['targets']['test'])
+        df = evaluator(res['logits'][loader_name], res['targets'][loader_name])
         df.to_csv(self.project_dir / self.default_logdir / 'evaluation.csv', index=False)
         return df
 

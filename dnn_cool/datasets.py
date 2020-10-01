@@ -1,3 +1,5 @@
+from typing import Dict, Tuple
+
 import torch
 
 from dataclasses import dataclass
@@ -108,6 +110,14 @@ class FlowDatasetDict(IOut):
 class FlowDataset(Dataset, IFlowTask):
 
     def __init__(self, task_flow, prefix=''):
+        """
+        Creates a dataset object for a given task flow.
+
+        :param task_flow: The task flow object.
+
+        :param prefix: The prefix path (will be appended before the task flow name)
+
+        """
         self._task_flow = task_flow
         # Save a reference to the flow function of the original class
         # We will then call it by replacing the self, this way effectively running
@@ -125,12 +135,14 @@ class FlowDataset(Dataset, IFlowTask):
                 setattr(self, key, instance)
         self.prefix = prefix
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: int) -> Tuple[Dict, Dict]:
         """
         This method is going to execute the flow given in the constructor, passing around the index variable `item` in
-        the class `IndexHolder`
-        :param item:
-        :return:
+        the class :class:`IndexHolder`.
+
+        :param item: The index in the dataset.
+
+        :return: A tuple X, y of two dictionaries
         """
         flow_dataset_dict = self.flow(self, IndexHolder(item), FlowDatasetDict(self.prefix, {}))
         inputs = self._task_flow.get_inputs()
