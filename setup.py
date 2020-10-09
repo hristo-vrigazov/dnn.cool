@@ -35,4 +35,7 @@ setup(
                       "scikit_learn",
                       "treelib",
                       "matplotlib"],
+    extras_require={
+        'nlp': ['transformers']
+    }
 )

@@ -5,6 +5,7 @@ from typing import Iterable, Optional, Callable, Tuple, Any, Sequence
 import torch
 from torch import nn
 from torch.utils.data import Dataset
+from transformers.modeling_bert import BertOnlyMLMHead
 
 from dnn_cool.activations import CompositeActivation
 from dnn_cool.datasets import FlowDataset, LeafTaskDataset
@@ -101,7 +102,7 @@ class Task(ITask):
     activation: Optional[nn.Module]
     decoder: Decoder
     module: nn.Module
-    metrics: Tuple[str, TorchMetric]
+    metrics: Sequence[Tuple[str, TorchMetric]]
 
     def get_activation(self) -> Optional[nn.Module]:
         return self.activation
@@ -139,7 +140,7 @@ class BinaryHardcodedTask(Task):
     activation: Optional[nn.Module] = None
     decoder: Decoder = None
     module: nn.Module = Identity()
-    metrics: Tuple[str, TorchMetric] = ()
+    metrics: Sequence[Tuple[str, TorchMetric]] = ()
 
 
 @dataclass()
@@ -160,7 +161,7 @@ class BoundedRegressionTask(Task):
     activation: nn.Module = field(default_factory=lambda: nn.Sigmoid())
     decoder: Decoder = None
     inputs: Sequence = None
-    metrics: Tuple = field(default_factory=get_default_bounded_regression_metrics)
+    metrics: Sequence[Tuple[str, TorchMetric]] = field(default_factory=get_default_bounded_regression_metrics)
 
 
 @dataclass()
@@ -179,7 +180,7 @@ class BinaryClassificationTask(Task):
     activation: Optional[nn.Module] = nn.Sigmoid()
     decoder: Decoder = field(default_factory=BinaryDecoder)
     module: nn.Module = Identity()
-    metrics: Tuple[str, TorchMetric] = field(default_factory=get_default_binary_metrics)
+    metrics: Sequence[Tuple[str, TorchMetric]] = field(default_factory=get_default_binary_metrics)
 
 
 @dataclass
@@ -198,7 +199,7 @@ class ClassificationTask(Task):
     activation: Optional[nn.Module] = nn.Softmax()
     decoder: Decoder = field(default_factory=ClassificationDecoder)
     module: nn.Module = Identity()
-    metrics: Tuple[str, TorchMetric] = field(default_factory=get_default_classification_metrics)
+    metrics: Sequence[Tuple[str, TorchMetric]] = field(default_factory=get_default_classification_metrics)
 
 
 @dataclass()
@@ -217,7 +218,25 @@ class MultilabelClassificationTask(Task):
     activation: Optional[nn.Module] = nn.Sigmoid()
     decoder: Decoder = field(default_factory=MultilabelClassificationDecoder)
     module: nn.Module = Identity()
-    metrics: Tuple[str, TorchMetric] = field(default_factory=get_default_multilabel_classification_metrics)
+    metrics: Sequence[Tuple[str, TorchMetric]] = field(default_factory=get_default_multilabel_classification_metrics)
+
+
+@dataclass()
+class BertMLMTask(Task):
+
+    def __init__(self, name: str, labels, config, inputs=None):
+        kwargs = {
+            'name': name,
+            'labels': labels,
+            'loss': nn.CrossEntropyLoss(),
+            'per_sample_loss': ReducedPerSample(nn.CrossEntropyLoss(reduction='none'), reduction=torch.mean),
+            'available_func': positive_values,
+            'inputs': inputs,
+            'decoder': ClassificationDecoder(),
+            'module': BertOnlyMLMHead(config),
+            'metrics': ()
+        }
+        super().__init__(**kwargs)
 
 
 class TaskFlow(ITask):
