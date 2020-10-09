@@ -13,7 +13,7 @@ from dnn_cool.decoders import BinaryDecoder, TaskFlowDecoder, Decoder, Classific
     MultilabelClassificationDecoder
 from dnn_cool.evaluation import EvaluationCompositeVisitor, EvaluationVisitor
 from dnn_cool.filter import FilterCompositeVisitor, FilterVisitor
-from dnn_cool.losses import TaskFlowLoss, ReducedPerSample, TaskFlowLossPerSample
+from dnn_cool.losses import TaskFlowLoss, ReducedPerSample, TaskFlowLossPerSample, LanguageModelCrossEntropyLoss
 from dnn_cool.metrics import TorchMetric, get_default_binary_metrics, \
     get_default_bounded_regression_metrics, get_default_classification_metrics, \
     get_default_multilabel_classification_metrics
@@ -222,14 +222,14 @@ class MultilabelClassificationTask(Task):
 
 
 @dataclass()
-class BertMLMTask(Task):
+class MaskedLanguageModelingTask(Task):
 
     def __init__(self, name: str, labels, config, inputs=None):
         kwargs = {
             'name': name,
             'labels': labels,
-            'loss': nn.CrossEntropyLoss(),
-            'per_sample_loss': ReducedPerSample(nn.CrossEntropyLoss(reduction='none'), reduction=torch.mean),
+            'loss': LanguageModelCrossEntropyLoss(),
+            'per_sample_loss': ReducedPerSample(LanguageModelCrossEntropyLoss(reduction='none'), reduction=torch.mean),
             'available_func': positive_values,
             'inputs': inputs,
             'decoder': ClassificationDecoder(),

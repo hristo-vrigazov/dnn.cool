@@ -240,3 +240,15 @@ class TaskFlowLossPerSample(nn.Module):
                                                  prefix,
                                                  task.get_per_sample_loss())
         return all_losses
+
+
+class LanguageModelCrossEntropyLoss(nn.Module):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+        self.ce = nn.CrossEntropyLoss(*args, **kwargs)
+
+    def forward(self, outputs, targets):
+        # outputs is of shape (N, W, V) where N is batch size, W is number of tokens, V is number of tokens in vocab
+        return self.ce(outputs.permute(0, 2, 1), targets)
+
