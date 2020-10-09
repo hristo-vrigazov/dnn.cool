@@ -1,11 +1,10 @@
 import os
 from dataclasses import dataclass, field
-from typing import Iterable, Optional, Callable, Tuple, Any, Sequence
+from typing import Iterable, Optional, Callable, Tuple, Sequence
 
 import torch
 from torch import nn
 from torch.utils.data import Dataset
-from transformers.modeling_bert import BertOnlyMLMHead
 
 from dnn_cool.activations import CompositeActivation
 from dnn_cool.datasets import FlowDataset, LeafTaskDataset
@@ -13,7 +12,7 @@ from dnn_cool.decoders import BinaryDecoder, TaskFlowDecoder, Decoder, Classific
     MultilabelClassificationDecoder
 from dnn_cool.evaluation import EvaluationCompositeVisitor, EvaluationVisitor
 from dnn_cool.filter import FilterCompositeVisitor, FilterVisitor
-from dnn_cool.losses import TaskFlowLoss, ReducedPerSample, TaskFlowLossPerSample, LanguageModelCrossEntropyLoss
+from dnn_cool.losses import TaskFlowLoss, ReducedPerSample, TaskFlowLossPerSample
 from dnn_cool.metrics import TorchMetric, get_default_binary_metrics, \
     get_default_bounded_regression_metrics, get_default_classification_metrics, \
     get_default_multilabel_classification_metrics
@@ -219,24 +218,6 @@ class MultilabelClassificationTask(Task):
     decoder: Decoder = field(default_factory=MultilabelClassificationDecoder)
     module: nn.Module = Identity()
     metrics: Sequence[Tuple[str, TorchMetric]] = field(default_factory=get_default_multilabel_classification_metrics)
-
-
-@dataclass()
-class MaskedLanguageModelingTask(Task):
-
-    def __init__(self, name: str, labels, config, inputs=None):
-        kwargs = {
-            'name': name,
-            'labels': labels,
-            'loss': LanguageModelCrossEntropyLoss(),
-            'per_sample_loss': ReducedPerSample(LanguageModelCrossEntropyLoss(reduction='none'), reduction=torch.mean),
-            'available_func': positive_values,
-            'inputs': inputs,
-            'decoder': ClassificationDecoder(),
-            'module': BertOnlyMLMHead(config),
-            'metrics': ()
-        }
-        super().__init__(**kwargs)
 
 
 class TaskFlow(ITask):
