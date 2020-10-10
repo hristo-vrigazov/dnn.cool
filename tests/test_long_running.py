@@ -5,6 +5,7 @@ from catalyst.dl import SupervisedRunner
 from torch import optim
 from torch.utils.data import DataLoader
 
+from dnn_cool.catalyst_utils import img, text
 from dnn_cool.runner import TrainingArguments
 from dnn_cool.synthetic_dataset import synthetic_dataset_preparation
 from dnn_cool.task_flow import TaskFlow
@@ -70,6 +71,8 @@ def test_synthetic_dataset_default_runner():
     criterion = flow.get_loss()
     assert len(criterion.get_metrics()) < 100, 'Callbacks are too many!'
 
+    project.converters.tensorboard_converters.type_mapping['img'] = [img]
+    project.converters.tensorboard_converters.type_mapping['text'] = [text]
     runner.train(num_epochs=10)
 
     early_stop_callback = runner.default_callbacks[-1]
