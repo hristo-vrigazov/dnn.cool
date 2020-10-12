@@ -57,6 +57,7 @@ above, `obj_class` is a `ClassificationTask`
 * `MultilabelClassificationTask` - sigmoid activation, thresholding decoder, binary cross entropy loss function.
 * `BoundedRegressionTask` - sigmoid activation, rescaling decoder, mean squared error loss function. In the examples 
 above, `obj_x`, `obj_y`, `obj_w`, `obj_h` are bounded regression tasks.
+* `MaskedLanguageModelingTask` - softmax activation, sorting decoder, cross entropy per token loss.
 * `TaskFlow` - a composite task, that contains a list of children tasks. We saw 2 task flows above. 
 
 ### Examples
