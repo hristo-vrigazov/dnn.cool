@@ -91,6 +91,10 @@ class BaseMetricDecorator(nn.Module):
 
     def compute_with_precondition(self, loss_flow_data, metric):
         key = self.prefix + self.task_name
+        reduced_key = f'_reduced|{key}'
+        if reduced_key in loss_flow_data.outputs:
+            # This means that the loss function has already been computed inside the model.
+            return loss_flow_data.outputs[reduced_key].mean()
         outputs = loss_flow_data.outputs[key]
         precondition = loss_flow_data.outputs[f'precondition|{key}']
         targets = loss_flow_data.targets[key]
