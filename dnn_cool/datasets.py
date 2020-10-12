@@ -73,6 +73,15 @@ class FlowDatasetPrecondition(ICondition):
         return self
 
 
+class TensorDict(dict):
+
+    def __len__(self):
+        for key, value in self.items():
+            if key != 'gt':
+                return len(value)
+        return super().__len__()
+
+
 class FlowDatasetDict(IOut):
 
     def __init__(self, prefix, data=None, available=None):
@@ -104,7 +113,7 @@ class FlowDatasetDict(IOut):
             y[key] = targets
         X['gt'] = self.gt
         X['gt']['_availability'] = self.available
-        return X, y
+        return TensorDict(X), y
 
 
 class FlowDataset(Dataset, IFlowTask):
