@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 import torch
+from torch import nn
 from transformers.modeling_bert import BertOnlyMLMHead
 
 from dnn_cool.decoders import ClassificationDecoder
@@ -20,6 +21,7 @@ class MaskedLanguageModelingTask(Task):
             'per_sample_loss': ReducedPerSample(LanguageModelCrossEntropyLoss(reduction='none'), reduction=torch.mean),
             'available_func': positive_values,
             'inputs': inputs,
+            'activation': nn.Softmax(dim=-1),
             'decoder': ClassificationDecoder(),
             'module': BertOnlyMLMHead(config),
             'metrics': ()
