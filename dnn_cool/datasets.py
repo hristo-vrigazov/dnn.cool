@@ -113,6 +113,7 @@ class FlowDatasetDict(IOut):
             y[key] = targets
         X['gt'] = self.gt
         X['gt']['_availability'] = self.available
+        X['gt']['_labels'] = y
         return TensorDict(X), y
 
 
