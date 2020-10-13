@@ -5,7 +5,7 @@ import torch
 from torch import nn
 
 from dnn_cool.dsl import IFeaturesDict, IFlowTaskResult, ICondition
-from dnn_cool.utils import to_broadcastable_shape
+from dnn_cool.utils import to_broadcastable_shape, any_value
 
 
 class SigmoidAndMSELoss(nn.Module):
@@ -288,13 +288,51 @@ class TaskFlowModule(nn.Module):
                 instance = TaskFlowModule(task, prefix=f'{prefix}{task.get_name()}.')
             setattr(self, key, instance)
 
+        self._loss = task_flow.get_loss()
+        self._per_sample_loss = task_flow.get_per_sample_loss()
+        self._metrics = self._loss.get_metrics()
+
     def forward(self, x):
         if isinstance(x, FeaturesDict):
             x = x.data
 
         out = CompositeModuleOutput(training=self.training, gt=x.get('gt'), prefix=self.prefix)
         composite_module_output = self.flow(self, FeaturesDict(x), out)
-        return composite_module_output.reduce()
+        outputs = composite_module_output.reduce()
+        if not isinstance(outputs, dict):
+            return outputs
+        if 'gt' not in x:
+            return outputs
+        if '_targets' not in x['gt']:
+            return outputs
+        if not hasattr(self, '_is_replica') or (not self._is_replica):
+            return outputs
+        targets = x['gt']['_targets']
+        loss = self._loss(outputs, targets)
+        any_tensor = any_value(targets)
+        n = len(any_tensor)
+        reduced = {
+            '_device|overall|loss': loss,
+            '_device|overall|_n': torch.tensor(n, dtype=any_tensor.dtype, device=any_tensor.device)
+        }
+        for metric_name, metric in self._metrics:
+            path = f'{metric.prefix}{metric.task_name}'
+            full_name = f'{path}|{metric_name}'
+            metric_res = metric(outputs, targets)
+            if isinstance(metric_res, dict):
+                for key, value in metric_res.items():
+                    reduced[f'_device|{full_name}_{key}'] = torch.as_tensor(value,
+                                                                            dtype=any_tensor.dtype,
+                                                                            device=any_tensor.device)
+            else:
+                reduced[f'_device|{full_name}'] = torch.as_tensor(metric_res,
+                                                                  dtype=any_tensor.dtype,
+                                                                  device=any_tensor.device)
+            reduced[f'_device|{path}|_n'] = outputs[f'precondition|{metric.prefix}{metric.task_name}'].sum()
+        per_sample_losses = self._per_sample_loss(outputs, targets)
+        for key, value in per_sample_losses.items():
+            reduced[f'_device|{key}|loss_per_sample'] = value
+        return reduced
 
     def load_tuned(self, tuned_params):
         decoders = self._get_all_decoders()
