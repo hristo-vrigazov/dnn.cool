@@ -78,27 +78,27 @@ def squeeze_if_needed(tensor):
 
 class BaseMetricDecorator(nn.Module):
 
-    def __init__(self, task_name, available_func, prefix, metric, metric_name):
+    def __init__(self, task_name, prefix, metric, metric_name):
         super().__init__()
         self.task_name = task_name
-        self.available = available_func
         self.prefix = prefix
         self.metric = metric
         self.metric_name = metric_name
 
     def forward(self, *args, **kwargs):
         loss_flow_data = get_flow_data(*args, **kwargs)
-        return self.compute_with_precondition(loss_flow_data, self.metric)
+        return self.postprocess_results(self.compute_with_precondition(loss_flow_data))
 
-    def compute_with_precondition(self, loss_flow_data, metric):
+    def compute_with_precondition(self, loss_flow_data):
         key = self.prefix + self.task_name
-        for _key in loss_flow_data.outputs.keys():
-            if _key.startswith('_device'):
-                raise NotImplementedError()
-        device_key = f'_device|{key}'
-        if device_key in loss_flow_data.outputs:
-            # This means that the loss function has already been computed inside the model.
-            raise NotImplementedError()
+        device_metric_key = f'_device|{key}|{self.metric_name}'
+        if device_metric_key in loss_flow_data.outputs:
+            # This means that the loss function has already been computed inside the nn.DataParallel model.
+            return self.aggregate_device_result(loss_flow_data, device_metric_key)
+        # Checks the same for multi-metrics
+        device_metric_keys = [o_key for o_key in loss_flow_data.outputs.keys() if o_key.startswith(device_metric_key)]
+        if len(device_metric_keys) > 0:
+            return self.aggregate_device_results(loss_flow_data, device_metric_keys)
         outputs = loss_flow_data.outputs[key]
         precondition = loss_flow_data.outputs[f'precondition|{key}']
         targets = loss_flow_data.targets[key]
@@ -106,19 +106,31 @@ class BaseMetricDecorator(nn.Module):
         if precondition.sum() == 0:
             return loss_items
         precondition = squeeze_if_needed(precondition)
-        metric_res = metric(outputs[precondition], targets[precondition])
-        return self.postprocess_results(loss_items, metric_res, precondition)
-
-    def postprocess_results(self, loss_items, metric_res, precondition):
+        metric_res = self.metric(outputs[precondition], targets[precondition])
         return metric_res
+
+    def postprocess_results(self, metric_res):
+        return metric_res
+
+    def aggregate_device_result(self, loss_flow_data, out_key):
+        metric_per_gpu_results = loss_flow_data.outputs[out_key]
+        metric_per_gpu_counts = loss_flow_data.outputs[f'_device|{self.prefix}{self.task_name}|_n']
+        return metric_per_gpu_results.sum() / metric_per_gpu_counts.sum()
+
+    def aggregate_device_results(self, loss_flow_data, out_keys):
+        res = {}
+        for out_key in out_keys:
+            metric_name, metric_arg = out_key.split('|')[-1].split('_')
+            res[metric_arg] = self.aggregate_device_result(loss_flow_data, out_key)
+        return res
 
 
 class TaskLossDecorator(BaseMetricDecorator):
 
     def __init__(self, task_name, available_func, prefix, loss, metric_name):
-        super().__init__(task_name, available_func, prefix, loss, metric_name)
+        super().__init__(task_name, prefix, loss, metric_name)
 
-    def postprocess_results(self, loss_items, metric_res, precondition):
+    def postprocess_results(self, metric_res):
         return LossItems(metric_res)
 
 
@@ -183,11 +195,7 @@ class TaskFlowLoss(nn.Module):
                 all_metrics += child_loss.get_metrics()
             else:
                 for metric_name, metric in task.get_metrics():
-                    metric_decorator = BaseMetricDecorator(task.get_name(),
-                                                           task.get_available_func(),
-                                                           child_loss.prefix,
-                                                           metric,
-                                                           metric_name)
+                    metric_decorator = BaseMetricDecorator(task.get_name(), child_loss.prefix, metric, metric_name)
                     all_metrics.append((metric_name, metric_decorator))
         return all_metrics
 
@@ -195,11 +203,7 @@ class TaskFlowLoss(nn.Module):
         from catalyst.core import MetricCallback
         callbacks = []
         for path, loss in self.get_leaf_losses().items():
-            metric_decorator = BaseMetricDecorator(loss.task_name,
-                                                   loss.available,
-                                                   loss.prefix,
-                                                   loss.metric,
-                                                   'loss')
+            metric_decorator = BaseMetricDecorator(loss.task_name, loss.prefix, loss.metric, 'loss')
             callbacks.append(MetricCallback(f'loss_{path}', metric_decorator))
         for metric_name, metric_decorator in self.get_metrics():
             full_name = f'{metric_name}_{metric_decorator.prefix}{metric_decorator.task_name}'

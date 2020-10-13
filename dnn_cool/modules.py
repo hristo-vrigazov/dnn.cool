@@ -289,6 +289,7 @@ class TaskFlowModule(nn.Module):
             setattr(self, key, instance)
 
         self._loss = task_flow.get_loss()
+        self._leaf_losses = self._loss.get_leaf_losses()
         self._per_sample_loss = task_flow.get_per_sample_loss()
         self._metrics = self._loss.get_metrics()
 
@@ -331,7 +332,13 @@ class TaskFlowModule(nn.Module):
             reduced[f'_device|{path}|_n'] = outputs[f'precondition|{metric.prefix}{metric.task_name}'].sum()
         per_sample_losses = self._per_sample_loss(outputs, targets)
         for key, value in per_sample_losses.items():
+            if key.startswith('indices'):
+                value += (n * value.device.index)
             reduced[f'_device|{key}|loss_per_sample'] = value
+
+        for path, leaf_loss in self._leaf_losses.items():
+            reduced[f'_device|{path}|loss'] = leaf_loss(outputs, targets).loss_items
+
         return reduced
 
     def load_tuned(self, tuned_params):
