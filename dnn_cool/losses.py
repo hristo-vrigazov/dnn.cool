@@ -117,6 +117,9 @@ class BaseMetricDecorator(nn.Module):
         return metric_res
 
     def aggregate_device_result(self, loss_flow_data, out_key):
+        if self.metric_name == 'loss_per_sample':
+            metric_per_gpu_results = loss_flow_data.outputs[out_key]
+            return metric_per_gpu_results
         metric_per_gpu_results = loss_flow_data.outputs[out_key]
         metric_per_gpu_counts = loss_flow_data.outputs[f'_device|{self.prefix}{self.task_name}|_n']
         return (metric_per_gpu_results * metric_per_gpu_counts).sum() / metric_per_gpu_counts.sum()
@@ -131,7 +134,7 @@ class BaseMetricDecorator(nn.Module):
 
 class TaskLossDecorator(BaseMetricDecorator):
 
-    def __init__(self, task_name, available_func, prefix, loss, metric_name):
+    def __init__(self, task_name, prefix, loss, metric_name):
         super().__init__(task_name, prefix, loss, metric_name)
 
     def postprocess_results(self, metric_res):
@@ -150,7 +153,7 @@ class TaskFlowLoss(nn.Module):
 
         for key, task in task_flow.tasks.items():
             if not task.has_children():
-                instance = TaskLossDecorator(task.get_name(), task.get_available_func(), prefix, task.get_loss(), 'loss')
+                instance = TaskLossDecorator(task.get_name(), prefix, task.get_loss(), 'loss')
             else:
                 instance = TaskFlowLoss(task, prefix=f'{prefix}{task.get_name()}.')
 
@@ -254,7 +257,6 @@ class TaskFlowLossPerSample(nn.Module):
             else:
                 prefix = path.rsplit('.', 1)[0] + '.'
             all_losses[path] = TaskLossDecorator(task.get_name(),
-                                                 task.get_available_func(),
                                                  prefix,
                                                  task.get_per_sample_loss(),
                                                  'loss_per_sample')
