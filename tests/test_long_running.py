@@ -5,7 +5,7 @@ from catalyst.dl import SupervisedRunner
 from torch import optim
 from torch.utils.data import DataLoader
 
-from dnn_cool.catalyst_utils import img, text
+from dnn_cool.catalyst_utils import img, text, ReplaceGatherCallback
 from dnn_cool.runner import TrainingArguments
 from dnn_cool.synthetic_dataset import synthetic_dataset_preparation
 from dnn_cool.task_flow import TaskFlow
@@ -54,7 +54,7 @@ def test_synthetic_dataset():
 
     args = TrainingArguments(
         num_epochs=2,
-        callbacks=[],
+        callbacks=[ReplaceGatherCallback(flow)],
         loaders=nested_loaders,
         optimizer=optim.Adam(model.parameters(), lr=1e-4),
     )

@@ -1,11 +1,14 @@
 from dataclasses import dataclass, field
+from functools import partial
 from pathlib import Path
 from typing import Callable, Dict, Optional, Tuple, List, Mapping
+from torch import nn
 
 import numpy as np
 import torch
 from catalyst.contrib.tools.tensorboard import SummaryWriter
-from catalyst.core import Callback, CallbackOrder, State
+from catalyst.core import Callback, CallbackOrder, State, IRunner
+from torch.nn import DataParallel
 from torch.utils.data import Dataset, SequentialSampler
 
 from dnn_cool.task_flow import TaskFlow
@@ -287,3 +290,74 @@ class InterpretationCallback(Callback):
             return
         if self.tensorboard_converters is not None:
             self.tensorboard_converters.close(state)
+
+
+class DeviceReducingDataParallel(DataParallel):
+
+    def __init__(self, module: nn.Module, task_flow):
+        super().__init__(module)
+        self._reducing_func = partial(reduce_on_device,
+                                      criterion=task_flow.get_loss(),
+                                      per_sample_criterion=task_flow.get_per_sample_loss(),
+                                      leaf_criterions=task_flow.get_loss().get_leaf_losses(),
+                                      metrics=task_flow.get_loss().get_metrics())
+
+    def gather(self, outputs, output_device):
+        device_reduced_results = []
+        for i in range(len(outputs)):
+            r = self._reducing_func(outputs=outputs[i], targets=outputs[i]['gt']['_targets'])
+            device_reduced_results.append(r)
+        gathered = super().gather(device_reduced_results, output_device)
+        return gathered
+
+
+class ReplaceGatherCallback(Callback):
+
+    def __init__(self, task_flow):
+        super().__init__(CallbackOrder.External)
+        self.task_flow = task_flow
+
+    def on_stage_start(self, runner: "IRunner"):
+        if isinstance(runner.model, DataParallel):
+            runner.model = DeviceReducingDataParallel(runner.model.module, self.task_flow)
+
+
+def reduce_on_device(criterion,
+                     per_sample_criterion,
+                     leaf_criterions,
+                     metrics,
+                     outputs,
+                     targets):
+    loss = criterion(outputs, targets)
+    any_tensor = any_value(targets)
+    n = len(any_tensor)
+    reduced = {
+        '_device|overall|loss': loss,
+        '_device|overall|_n': torch.tensor(n, dtype=any_tensor.dtype, device=any_tensor.device)
+    }
+    for metric_name, metric in metrics:
+        path = f'{metric.prefix}{metric.task_name}'
+        full_name = f'{path}|{metric_name}'
+        metric_res = metric(outputs, targets)
+        if isinstance(metric_res, dict):
+            for key, value in metric_res.items():
+                value = torch.as_tensor(value, dtype=any_tensor.dtype, device=any_tensor.device)
+                if len(value.shape) == 0:
+                    value = value.unsqueeze(0)
+                reduced[f'_device|{full_name}_{key}'] = value
+        else:
+            value = torch.as_tensor(metric_res, dtype=any_tensor.dtype, device=any_tensor.device)
+            if len(value.shape) == 0:
+                value = value.unsqueeze(0)
+            reduced[f'_device|{full_name}'] = value
+        reduced[f'_device|{path}|_n'] = outputs[f'precondition|{metric.prefix}{metric.task_name}'].sum()
+    per_sample_losses = per_sample_criterion(outputs, targets)
+    for key, value in per_sample_losses.items():
+        if key.startswith('indices'):
+            value += (n * value.device.index)
+        if len(value.shape) == 0:
+            value = value.unsqueeze(0)
+        reduced[f'_device|{key}|loss_per_sample'] = value
+    for path, leaf_loss in leaf_criterions.items():
+        reduced[f'_device|{path}|loss'] = leaf_loss(outputs, targets).loss_items
+    return reduced

@@ -16,7 +16,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset
 
-from dnn_cool.catalyst_utils import InterpretationCallback, TensorboardConverters
+from dnn_cool.catalyst_utils import InterpretationCallback, TensorboardConverters, ReplaceGatherCallback
 from dnn_cool.utils import TransformedSubset, train_test_val_split
 
 
@@ -97,7 +97,8 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         self.task_flow = project.get_full_flow()
 
         self.default_criterion = self.task_flow.get_loss()
-        self.default_callbacks = self.default_criterion.catalyst_callbacks()
+        self.default_callbacks = [ReplaceGatherCallback(self.task_flow)]
+        self.default_callbacks.extend(self.default_criterion.catalyst_callbacks())
         self.default_optimizer = partial(optim.AdamW, lr=1e-4)
         self.default_scheduler = ReduceLROnPlateau
         self.project_dir: Path = project.project_dir
