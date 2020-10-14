@@ -151,7 +151,8 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         kwargs['logdir'] = logdir
         interpretation_callback = self.create_interpretation_callback(**kwargs)
         default_callbacks = OrderedDict([("interpretation", interpretation_callback),
-                                         ("inference", InferDictCallback())])
+                                         ("inference", InferDictCallback()),
+                                         ("dataparallel_reducer", self.default_callbacks[0])])
         kwargs['callbacks'] = kwargs.get('callbacks', default_callbacks)
         kwargs['model'] = kwargs.get('model', self.model)
         store = kwargs.pop('store', True)

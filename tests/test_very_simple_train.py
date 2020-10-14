@@ -4,7 +4,8 @@ import numpy as np
 import pandas as pd
 import torch
 
-from dnn_cool.catalyst_utils import InterpretationCallback, TensorboardConverters, TensorboardConverter
+from dnn_cool.catalyst_utils import InterpretationCallback, TensorboardConverters, TensorboardConverter, \
+    ReplaceGatherCallback
 from dnn_cool.converters import Converters
 from dnn_cool.project import Project
 from dnn_cool.runner import InferDictCallback
@@ -80,7 +81,8 @@ def test_interpretation_synthetic():
 
     callbacks = OrderedDict([
         ("interpretation", InterpretationCallback(flow, tensorboard_converters)),
-        ("inference", InferDictCallback())
+        ("inference", InferDictCallback()),
+        ("reducer", ReplaceGatherCallback(flow))
     ])
     r = runner.infer(loaders=loaders, callbacks=callbacks)
 

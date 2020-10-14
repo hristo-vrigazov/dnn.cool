@@ -308,6 +308,7 @@ class DeviceReducingDataParallel(DataParallel):
             r = self._reducing_func(outputs=outputs[i], targets=outputs[i]['gt']['_targets'])
             device_reduced_results.append(r)
         gathered = super().gather(device_reduced_results, output_device)
+        # TODO: handle this correctly!
         return gathered
 
 
