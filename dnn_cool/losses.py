@@ -91,14 +91,15 @@ class BaseMetricDecorator(nn.Module):
 
     def compute_with_precondition(self, loss_flow_data):
         key = self.prefix + self.task_name
-        device_metric_key = f'_device|{key}|{self.metric_name}'
-        if device_metric_key in loss_flow_data.outputs:
-            # This means that the loss function has already been computed inside the nn.DataParallel model.
-            return self.aggregate_device_result(loss_flow_data, device_metric_key)
-        # Checks the same for multi-metrics
-        device_metric_keys = self.discover_metric_keys(device_metric_key, loss_flow_data)
-        if len(device_metric_keys) > 0:
-            return self.aggregate_device_results(loss_flow_data, device_metric_keys)
+        if '_device|overall|_n' in loss_flow_data.outputs:
+            device_metric_key = f'_device|{key}|{self.metric_name}'
+            if device_metric_key in loss_flow_data.outputs:
+                # This means that the loss function has already been computed inside the nn.DataParallel model.
+                return self.aggregate_device_result(loss_flow_data, device_metric_key)
+            # Checks the same for multi-metrics
+            device_metric_keys = self.discover_metric_keys(device_metric_key)
+            if len(device_metric_keys) > 0:
+                return self.aggregate_device_results(loss_flow_data, device_metric_keys)
         outputs = loss_flow_data.outputs[key]
         precondition = loss_flow_data.outputs[f'precondition|{key}']
         targets = loss_flow_data.targets[key]
@@ -108,10 +109,11 @@ class BaseMetricDecorator(nn.Module):
         metric_res = self.metric(outputs[precondition], targets[precondition])
         return metric_res
 
-    def discover_metric_keys(self, device_metric_key, loss_flow_data):
-        if hasattr(self.metric, 'empty_precondition_result'):
-            raise NotImplementedError()
-        return [o_key for o_key in loss_flow_data.outputs.keys() if o_key.startswith(device_metric_key)]
+    def discover_metric_keys(self, device_metric_key):
+        if not hasattr(self.metric, 'empty_precondition_result'):
+            return []
+        metric_args = self.metric.empty_precondition_result().keys()
+        return [f'{device_metric_key}_{metric_arg}' for metric_arg in metric_args]
 
     def handle_empty_precondition(self, outputs):
         if not hasattr(self.metric, 'empty_precondition_result'):
