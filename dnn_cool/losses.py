@@ -110,7 +110,7 @@ class BaseMetricDecorator(nn.Module):
 
     def handle_empty_precondition(self, outputs):
         if not hasattr(self.metric, 'empty_precondition_result'):
-            return torch.zeros(1, dtype=outputs.dtype, device=outputs.device)
+            return torch.tensor(0., dtype=outputs.dtype, device=outputs.device)
         return self.metric.empty_precondition_result()
 
     def postprocess_results(self, metric_res):
