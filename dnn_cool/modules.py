@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from functools import partial
 from typing import Dict
 
 import torch
@@ -270,6 +271,47 @@ class FeaturesDict(IFeaturesDict):
         return self.data[item]
 
 
+def reduce_on_device(criterion,
+                     per_sample_criterion,
+                     leaf_criterions,
+                     metrics,
+                     outputs,
+                     targets):
+    loss = criterion(outputs, targets)
+    any_tensor = any_value(targets)
+    n = len(any_tensor)
+    reduced = {
+        '_device|overall|loss': loss,
+        '_device|overall|_n': torch.tensor(n, dtype=any_tensor.dtype, device=any_tensor.device)
+    }
+    for metric_name, metric in metrics:
+        path = f'{metric.prefix}{metric.task_name}'
+        full_name = f'{path}|{metric_name}'
+        metric_res = metric(outputs, targets)
+        if isinstance(metric_res, dict):
+            for key, value in metric_res.items():
+                value = torch.as_tensor(value, dtype=any_tensor.dtype, device=any_tensor.device)
+                if len(value.shape) == 0:
+                    value = value.unsqueeze(0)
+                reduced[f'_device|{full_name}_{key}'] = value
+        else:
+            value = torch.as_tensor(metric_res, dtype=any_tensor.dtype, device=any_tensor.device)
+            if len(value.shape) == 0:
+                value = value.unsqueeze(0)
+            reduced[f'_device|{full_name}'] = value
+        reduced[f'_device|{path}|_n'] = outputs[f'precondition|{metric.prefix}{metric.task_name}'].sum()
+    per_sample_losses = per_sample_criterion(outputs, targets)
+    for key, value in per_sample_losses.items():
+        if key.startswith('indices'):
+            value += (n * value.device.index)
+        if len(value.shape) == 0:
+            value = value.unsqueeze(0)
+        reduced[f'_device|{key}|loss_per_sample'] = value
+    for path, leaf_loss in leaf_criterions.items():
+        reduced[f'_device|{path}|loss'] = leaf_loss(outputs, targets).loss_items
+    return reduced
+
+
 class TaskFlowModule(nn.Module):
 
     def __init__(self, task_flow, prefix=''):
@@ -288,10 +330,11 @@ class TaskFlowModule(nn.Module):
                 instance = TaskFlowModule(task, prefix=f'{prefix}{task.get_name()}.')
             setattr(self, key, instance)
 
-        self._loss = task_flow.get_loss()
-        self._leaf_losses = self._loss.get_leaf_losses()
-        self._per_sample_loss = task_flow.get_per_sample_loss()
-        self._metrics = self._loss.get_metrics()
+        self._reducing_func = partial(reduce_on_device,
+                                      criterion=task_flow.get_loss(),
+                                      per_sample_criterion=task_flow.get_per_sample_loss(),
+                                      leaf_criterions=task_flow.get_loss().get_leaf_losses(),
+                                      metrics=task_flow.get_loss().get_metrics())
 
     def forward(self, x):
         if isinstance(x, FeaturesDict):
@@ -309,40 +352,7 @@ class TaskFlowModule(nn.Module):
         if not hasattr(self, '_is_replica') or (not self._is_replica):
             return outputs
         targets = x['gt']['_targets']
-        loss = self._loss(outputs, targets)
-        any_tensor = any_value(targets)
-        n = len(any_tensor)
-        reduced = {
-            '_device|overall|loss': loss,
-            '_device|overall|_n': torch.tensor(n, dtype=any_tensor.dtype, device=any_tensor.device)
-        }
-        for metric_name, metric in self._metrics:
-            path = f'{metric.prefix}{metric.task_name}'
-            full_name = f'{path}|{metric_name}'
-            metric_res = metric(outputs, targets)
-            if isinstance(metric_res, dict):
-                for key, value in metric_res.items():
-                    value = torch.as_tensor(value, dtype=any_tensor.dtype, device=any_tensor.device)
-                    if len(value.shape) == 0:
-                        value = value.unsqueeze(0)
-                    reduced[f'_device|{full_name}_{key}'] = value
-            else:
-                value = torch.as_tensor(metric_res, dtype=any_tensor.dtype, device=any_tensor.device)
-                if len(value.shape) == 0:
-                    value = value.unsqueeze(0)
-                reduced[f'_device|{full_name}'] = value
-            reduced[f'_device|{path}|_n'] = outputs[f'precondition|{metric.prefix}{metric.task_name}'].sum()
-        per_sample_losses = self._per_sample_loss(outputs, targets)
-        for key, value in per_sample_losses.items():
-            if key.startswith('indices'):
-                value += (n * value.device.index)
-            if len(value.shape) == 0:
-                value = value.unsqueeze(0)
-            reduced[f'_device|{key}|loss_per_sample'] = value
-
-        for path, leaf_loss in self._leaf_losses.items():
-            reduced[f'_device|{path}|loss'] = leaf_loss(outputs, targets).loss_items
-
+        reduced = self._reducing_func(outputs=outputs, targets=targets)
         return reduced
 
     def load_tuned(self, tuned_params):
