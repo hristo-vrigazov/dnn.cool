@@ -96,7 +96,7 @@ class BaseMetricDecorator(nn.Module):
             # This means that the loss function has already been computed inside the nn.DataParallel model.
             return self.aggregate_device_result(loss_flow_data, device_metric_key)
         # Checks the same for multi-metrics
-        device_metric_keys = [o_key for o_key in loss_flow_data.outputs.keys() if o_key.startswith(device_metric_key)]
+        device_metric_keys = self.discover_metric_keys(device_metric_key, loss_flow_data)
         if len(device_metric_keys) > 0:
             return self.aggregate_device_results(loss_flow_data, device_metric_keys)
         outputs = loss_flow_data.outputs[key]
@@ -107,6 +107,11 @@ class BaseMetricDecorator(nn.Module):
         precondition = squeeze_if_needed(precondition)
         metric_res = self.metric(outputs[precondition], targets[precondition])
         return metric_res
+
+    def discover_metric_keys(self, device_metric_key, loss_flow_data):
+        if hasattr(self.metric, 'empty_precondition_result'):
+            raise NotImplementedError()
+        return [o_key for o_key in loss_flow_data.outputs.keys() if o_key.startswith(device_metric_key)]
 
     def handle_empty_precondition(self, outputs):
         if not hasattr(self.metric, 'empty_precondition_result'):
@@ -242,7 +247,9 @@ class TaskFlowLossPerSample(nn.Module):
             device_key = f'_device|indices|{path}|loss_per_sample'
             if device_key in outputs:
                 indices = outputs[device_key].detach().cpu()
-                res[f'indices|{path}'] = indices
+                valid_indices_mask = indices >= 0
+                res[f'indices|{path}'] = indices[valid_indices_mask]
+                res[path] = res[path][valid_indices_mask]
                 overall_loss_items[indices] += res[path]
             else:
                 indices = torch.arange(bs, device=value.device)
@@ -250,8 +257,13 @@ class TaskFlowLossPerSample(nn.Module):
                 axes = tuple(range(1, len(precondition.shape)))
                 if len(axes) > 0:
                     precondition = precondition.sum(axis=axes) > 0
-                res[f'indices|{path}'] = indices[precondition]
-                overall_loss_items[precondition] += res[path]
+                if precondition.sum() == 0:
+                    # Since the metric decorator will add a 0 term to the loss, we have
+                    # to mark the indices as well. This is later checked in the if above.
+                    res[f'indices|{path}'] = torch.ones(1, dtype=indices.dtype, device=indices.device) * -1
+                else:
+                    res[f'indices|{path}'] = indices[precondition]
+                    overall_loss_items[precondition] += res[path]
         res['overall'] = overall_loss_items
         res['indices|overall'] = torch.arange(bs, device=value.device)
         return res
