@@ -103,10 +103,15 @@ class BaseMetricDecorator(nn.Module):
         precondition = loss_flow_data.outputs[f'precondition|{key}']
         targets = loss_flow_data.targets[key]
         if precondition.sum() == 0:
-            return torch.zeros(1, dtype=outputs.dtype, device=outputs.device)
+            return self.handle_empty_precondition(outputs)
         precondition = squeeze_if_needed(precondition)
         metric_res = self.metric(outputs[precondition], targets[precondition])
         return metric_res
+
+    def handle_empty_precondition(self, outputs):
+        if not hasattr(self.metric, 'empty_precondition_result'):
+            return torch.zeros(1, dtype=outputs.dtype, device=outputs.device)
+        return self.metric.empty_precondition_result()
 
     def postprocess_results(self, metric_res):
         return metric_res

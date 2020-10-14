@@ -62,6 +62,12 @@ class ClassificationAccuracy(TorchMetric):
         dict_metrics = dict(zip(topk, results))
         return dict_metrics
 
+    def empty_precondition_result(self):
+        res = {}
+        for metric_arg in self.metric_args['topk']:
+            res[metric_arg] = torch.tensor(0.)
+        return res
+
 
 class NumpyMetric(TorchMetric):
 
