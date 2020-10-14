@@ -230,18 +230,28 @@ class TaskFlowLossPerSample(nn.Module):
     def forward(self, outputs, targets):
         res = {}
         value = any_value(outputs)
-        bs = len(value)
+        device_n_key = f'_device|overall|_n'
+        if device_n_key in outputs:
+            bs = int(outputs[device_n_key].sum().item())
+        else:
+            bs = len(value)
         overall_loss_items = torch.zeros(bs, device=value.device, dtype=value.dtype)
         for path, loss in self._all_losses.items():
             loss_items = loss(outputs, targets).loss_items
             res[path] = loss_items.squeeze(dim=-1)
-            indices = torch.arange(bs, device=value.device)
-            precondition = outputs[f'precondition|{path}']
-            axes = tuple(range(1, len(precondition.shape)))
-            if len(axes) > 0:
-                precondition = precondition.sum(axis=axes) > 0
-            res[f'indices|{path}'] = indices[precondition]
-            overall_loss_items[precondition] += res[path]
+            device_key = f'_device|indices|{path}|loss_per_sample'
+            if device_key in outputs:
+                indices = outputs[device_key].detach().cpu()
+                res[f'indices|{path}'] = indices
+                overall_loss_items[indices] += res[path]
+            else:
+                indices = torch.arange(bs, device=value.device)
+                precondition = outputs[f'precondition|{path}']
+                axes = tuple(range(1, len(precondition.shape)))
+                if len(axes) > 0:
+                    precondition = precondition.sum(axis=axes) > 0
+                res[f'indices|{path}'] = indices[precondition]
+                overall_loss_items[precondition] += res[path]
         res['overall'] = overall_loss_items
         res['indices|overall'] = torch.arange(bs, device=value.device)
         return res
