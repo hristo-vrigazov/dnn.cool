@@ -322,18 +322,22 @@ class TaskFlowModule(nn.Module):
             metric_res = metric(outputs, targets)
             if isinstance(metric_res, dict):
                 for key, value in metric_res.items():
-                    reduced[f'_device|{full_name}_{key}'] = torch.as_tensor(value,
-                                                                            dtype=any_tensor.dtype,
-                                                                            device=any_tensor.device)
+                    value = torch.as_tensor(value, dtype=any_tensor.dtype, device=any_tensor.device)
+                    if len(value.shape) == 0:
+                        value = value.unsqueeze(0)
+                    reduced[f'_device|{full_name}_{key}'] = value
             else:
-                reduced[f'_device|{full_name}'] = torch.as_tensor(metric_res,
-                                                                  dtype=any_tensor.dtype,
-                                                                  device=any_tensor.device)
+                value = torch.as_tensor(metric_res, dtype=any_tensor.dtype, device=any_tensor.device)
+                if len(value.shape) == 0:
+                    value = value.unsqueeze(0)
+                reduced[f'_device|{full_name}'] = value
             reduced[f'_device|{path}|_n'] = outputs[f'precondition|{metric.prefix}{metric.task_name}'].sum()
         per_sample_losses = self._per_sample_loss(outputs, targets)
         for key, value in per_sample_losses.items():
             if key.startswith('indices'):
                 value += (n * value.device.index)
+            if len(value.shape) == 0:
+                value = value.unsqueeze(0)
             reduced[f'_device|{key}|loss_per_sample'] = value
 
         for path, leaf_loss in self._leaf_losses.items():

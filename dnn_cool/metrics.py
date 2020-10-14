@@ -9,10 +9,13 @@ from torch import nn
 
 class TorchMetric:
 
-    def __init__(self, metric_fn, decode=True):
+    def __init__(self, metric_fn, decode=True, metric_args=None):
+        if metric_args is None:
+            metric_args = {}
         self.activation = None
         self.decoder = None
         self.metric_fn = metric_fn
+        self.metric_args = metric_args
         self._decode = decode
 
     def bind_to_task(self, task):
@@ -29,10 +32,10 @@ class TorchMetric:
             outputs = self.activation(outputs)
         if self._decode:
             outputs = self.decoder(outputs)
-        return self._invoke_metric(outputs, targets)
+        return self._invoke_metric(outputs, targets, self.metric_args)
 
-    def _invoke_metric(self, outputs, targets):
-        return self.metric_fn(outputs, targets)
+    def _invoke_metric(self, outputs, targets, metric_args_dict):
+        return self.metric_fn(outputs, targets, **metric_args_dict)
 
 
 class BinaryAccuracy(TorchMetric):
@@ -40,25 +43,22 @@ class BinaryAccuracy(TorchMetric):
     def __init__(self):
         super().__init__(accuracy, decode=True)
 
-    def _invoke_metric(self, outputs, targets):
+    def _invoke_metric(self, outputs, targets, metric_args_dict):
         if len(outputs.shape) <= 1:
             outputs = outputs.unsqueeze(dim=-1)
-        return self.metric_fn(outputs, targets)[0]
+        return self.metric_fn(outputs, targets, **metric_args_dict)[0]
 
 
 class ClassificationAccuracy(TorchMetric):
 
-    def __init__(self):
-        super().__init__(accuracy, decode=False)
+    def __init__(self, metric_args=None):
+        if metric_args is None:
+            metric_args = {'topk': [1]}
+        super().__init__(accuracy, decode=False, metric_args=metric_args)
 
-    def _invoke_metric(self, outputs, targets):
-        n_classes = outputs.shape[-1]
-        topk = [1]
-        if n_classes > 3:
-            topk.append(3)
-        if n_classes > 5:
-            topk.append(5)
-        results = self.metric_fn(outputs, targets, topk=topk)
+    def _invoke_metric(self, outputs, targets, metric_args_dict):
+        topk = metric_args_dict['topk']
+        results = self.metric_fn(outputs, targets, **metric_args_dict)
         dict_metrics = dict(zip(topk, results))
         return dict_metrics
 
@@ -68,12 +68,12 @@ class NumpyMetric(TorchMetric):
     def __init__(self, metric_fn, decode=True):
         super().__init__(metric_fn, decode)
 
-    def _invoke_metric(self, outputs, targets):
+    def _invoke_metric(self, outputs, targets, metric_args_dict):
         if isinstance(outputs, torch.Tensor):
             outputs = outputs.detach().cpu().numpy()
         if isinstance(targets, torch.Tensor):
             targets = targets.cpu().numpy()
-        return self.metric_fn(outputs, targets)
+        return self.metric_fn(outputs, targets, **metric_args_dict)
 
 
 class BinaryF1Score(NumpyMetric):
@@ -99,13 +99,13 @@ class ClassificationNumpyMetric(NumpyMetric):
     def __init__(self, metric_fn, decode=True):
         super().__init__(metric_fn, decode=decode)
 
-    def _invoke_metric(self, outputs, targets):
+    def _invoke_metric(self, outputs, targets, metric_args_dict):
         if isinstance(outputs, torch.Tensor):
             outputs = outputs.detach().cpu().numpy()
         if isinstance(targets, torch.Tensor):
             targets = targets.cpu().numpy()
         outputs = outputs[..., 0]
-        return self.metric_fn(outputs, targets)
+        return self.metric_fn(outputs, targets, **metric_args_dict)
 
 
 class ClassificationF1Score(ClassificationNumpyMetric):
@@ -134,12 +134,14 @@ class MeanAbsoluteError(TorchMetric):
 
 class MultiLabelClassificationAccuracy(TorchMetric):
 
-    def __init__(self):
-        super().__init__(multi_label_accuracy, decode=True)
+    def __init__(self, metric_args=None):
+        if metric_args is None:
+            metric_args = {'threshold': 0.5}
+        super().__init__(multi_label_accuracy, decode=True, metric_args=metric_args)
 
-    def _invoke_metric(self, outputs, targets):
+    def _invoke_metric(self, outputs, targets, metric_args_dict):
         # the threshold does not actually matter, since the outputs are already decoded, i.e they are already 1 and 0
-        return self.metric_fn(outputs, targets, threshold=0.5)
+        return self.metric_fn(outputs, targets, **metric_args_dict)
 
 
 def get_default_binary_metrics():

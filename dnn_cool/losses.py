@@ -102,9 +102,8 @@ class BaseMetricDecorator(nn.Module):
         outputs = loss_flow_data.outputs[key]
         precondition = loss_flow_data.outputs[f'precondition|{key}']
         targets = loss_flow_data.targets[key]
-        loss_items = torch.zeros(1, dtype=outputs.dtype, device=outputs.device)
         if precondition.sum() == 0:
-            return loss_items
+            return torch.zeros(1, dtype=outputs.dtype, device=outputs.device)
         precondition = squeeze_if_needed(precondition)
         metric_res = self.metric(outputs[precondition], targets[precondition])
         return metric_res
@@ -115,7 +114,7 @@ class BaseMetricDecorator(nn.Module):
     def aggregate_device_result(self, loss_flow_data, out_key):
         metric_per_gpu_results = loss_flow_data.outputs[out_key]
         metric_per_gpu_counts = loss_flow_data.outputs[f'_device|{self.prefix}{self.task_name}|_n']
-        return metric_per_gpu_results.sum() / metric_per_gpu_counts.sum()
+        return (metric_per_gpu_results * metric_per_gpu_counts).sum() / metric_per_gpu_counts.sum()
 
     def aggregate_device_results(self, loss_flow_data, out_keys):
         res = {}
