@@ -79,10 +79,11 @@ def test_interpretation_synthetic():
         datasets=datasets
     )
 
+    infer_dict_callback = InferDictCallback()
     callbacks = OrderedDict([
         ("interpretation", InterpretationCallback(flow, tensorboard_converters)),
-        ("inference", InferDictCallback()),
-        ("reducer", ReplaceGatherCallback(flow))
+        ("inference", infer_dict_callback),
+        ("reducer", ReplaceGatherCallback(flow, [infer_dict_callback]))
     ])
     r = runner.infer(loaders=loaders, callbacks=callbacks)
 

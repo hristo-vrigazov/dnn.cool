@@ -60,6 +60,7 @@ class InferDictCallback(InferCallback):
         self.out_key = out_key
         self.predictions = {}
         self.targets = {}
+        self.__current_store = None
 
     def on_loader_start(self, state: State):
         self.predictions[state.loader_name] = {}
@@ -67,17 +68,37 @@ class InferDictCallback(InferCallback):
 
     def on_batch_end(self, state: State):
         dct = state.output[self.out_key]
+        if '_device|overall|_n' in dct:
+            if self.__current_store is not None:
+                self.__current_store(loader_name=state.loader_name)
+            return
         dct = {key: value.detach().cpu().numpy() for key, value in dct.items()}
-        for key, value in dct.items():
-            if key not in self.predictions[state.loader_name]:
-                self.predictions[state.loader_name][key] = []
-            self.predictions[state.loader_name][key].append(value)
-
+        loader_name = state.loader_name
         targets = state.input['targets']
+        self.update_storage(loader_name, dct, targets)
+
+    def on_dataparallel_gather(self, dct):
+        self.__current_store = partial(self.update_storage, dct=dct, targets=dct['gt']['_targets'])
+
+    def update_storage(self, loader_name, dct, targets):
+        for key, value in dct.items():
+            if key == 'gt':
+                continue
+            if key not in self.predictions[loader_name]:
+                self.predictions[loader_name][key] = []
+            if isinstance(value, list):
+                self.predictions[loader_name][key].extend(value)
+            else:
+                self.predictions[loader_name][key].append(value)
         for key, value in targets.items():
-            if key not in self.targets[state.loader_name]:
-                self.targets[state.loader_name][key] = []
-            self.targets[state.loader_name][key].append(value.detach().cpu().numpy())
+            if key == 'gt':
+                continue
+            if key not in self.targets[loader_name]:
+                self.targets[loader_name][key] = []
+            if isinstance(value, list):
+                self.targets[loader_name][key].extend(value)
+            else:
+                self.targets[loader_name][key].append(value.detach().cpu().numpy())
 
     def on_loader_end(self, state: State):
         self.predictions[state.loader_name] = {
@@ -158,9 +179,11 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         logdir = self.project_dir / Path(kwargs.get('logdir', self.default_logdir))
         kwargs['logdir'] = logdir
         interpretation_callback = self.create_interpretation_callback(**kwargs)
+        infer_dict_callback = InferDictCallback()
+        replace_gather_callback = ReplaceGatherCallback(self.task_flow, [infer_dict_callback])
         default_callbacks = OrderedDict([("interpretation", interpretation_callback),
-                                         ("inference", InferDictCallback()),
-                                         ("dataparallel_reducer", self.default_callbacks[0])])
+                                         ("inference", infer_dict_callback),
+                                         ("dataparallel_reducer", replace_gather_callback)])
         kwargs['callbacks'] = kwargs.get('callbacks', default_callbacks)
         kwargs['model'] = kwargs.get('model', self.model)
         store = kwargs.pop('store', True)

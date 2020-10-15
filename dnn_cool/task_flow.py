@@ -47,6 +47,9 @@ class ITask:
     def has_children(self) -> bool:
         return False
 
+    def is_train_only(self) -> bool:
+        return False
+
     def get_available_func(self):
         return self.available_func
 

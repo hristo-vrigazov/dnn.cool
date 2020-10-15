@@ -27,3 +27,6 @@ class MaskedLanguageModelingTask(Task):
             'metrics': ()
         }
         super().__init__(**kwargs)
+
+    def is_train_only(self) -> bool:
+        return True

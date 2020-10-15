@@ -2,12 +2,12 @@ from dataclasses import dataclass, field
 from functools import partial
 from pathlib import Path
 from typing import Callable, Dict, Optional, Tuple, List, Mapping
-from torch import nn
 
 import numpy as np
 import torch
 from catalyst.contrib.tools.tensorboard import SummaryWriter
 from catalyst.core import Callback, CallbackOrder, State, IRunner
+from torch import nn
 from torch.nn import DataParallel
 from torch.utils.data import Dataset, SequentialSampler
 
@@ -294,33 +294,60 @@ class InterpretationCallback(Callback):
 
 class DeviceReducingDataParallel(DataParallel):
 
-    def __init__(self, module: nn.Module, task_flow):
+    def __init__(self, module: nn.Module, task_flow, callbacks):
         super().__init__(module)
+        tasks_dict = task_flow.get_all_children()
+        self.full_paths = []
+        for full_path, task in tasks_dict.items():
+            if task.is_train_only():
+                continue
+            self.full_paths.append(full_path)
         self._reducing_func = partial(reduce_on_device,
                                       criterion=task_flow.get_loss(),
                                       per_sample_criterion=task_flow.get_per_sample_loss(),
                                       leaf_criterions=task_flow.get_loss().get_leaf_losses(),
                                       metrics=task_flow.get_loss().get_metrics())
+        self.callbacks = callbacks
 
     def gather(self, outputs, output_device):
         device_reduced_results = []
+        dct = {
+            'gt': {'_targets': {}}
+        }
+        for full_path in self.full_paths:
+            dct[full_path] = []
+            dct[f'precondition|{full_path}'] = []
+
         for i in range(len(outputs)):
             r = self._reducing_func(outputs=outputs[i], targets=outputs[i]['gt']['_targets'])
             device_reduced_results.append(r)
+            for full_path in self.full_paths:
+                dct[full_path].append(outputs[i][full_path].detach().cpu().numpy())
+                precondition_path = f'precondition|{full_path}'
+                dct[precondition_path].append(outputs[i][precondition_path].detach().cpu().numpy())
+                np_targets = outputs[i]['gt']['_targets'][full_path].detach().cpu().numpy()
+                if full_path not in dct['gt']['_targets']:
+                    dct['gt']['_targets'][full_path] = []
+                dct['gt']['_targets'][full_path].append(np_targets)
+
+        for callback in self.callbacks:
+            callback.on_dataparallel_gather(dct)
         gathered = super().gather(device_reduced_results, output_device)
-        # TODO: handle this correctly!
         return gathered
 
 
 class ReplaceGatherCallback(Callback):
 
-    def __init__(self, task_flow):
+    def __init__(self, task_flow, on_gather_callbacks=None):
         super().__init__(CallbackOrder.External)
+        if on_gather_callbacks is None:
+            on_gather_callbacks = []
         self.task_flow = task_flow
+        self.on_gather_callbacks = on_gather_callbacks
 
     def on_stage_start(self, runner: "IRunner"):
         if isinstance(runner.model, DataParallel):
-            runner.model = DeviceReducingDataParallel(runner.model.module, self.task_flow)
+            runner.model = DeviceReducingDataParallel(runner.model.module, self.task_flow, self.on_gather_callbacks)
 
 
 def reduce_on_device(criterion,
