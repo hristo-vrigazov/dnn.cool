@@ -145,5 +145,13 @@ class Project:
     def get_task(self, task_name):
         return self._name_to_task[task_name]
 
-    def runner(self, model, early_stop=True, runner_name=None, train_test_val_indices=None):
-        return DnnCoolSupervisedRunner(self, model, early_stop, runner_name, train_test_val_indices)
+    def runner(self, model,
+               early_stop=True,
+               balance_dataparallel_memory=False,
+               runner_name=None,
+               train_test_val_indices=None):
+        return DnnCoolSupervisedRunner(self, model,
+                                       early_stop=early_stop,
+                                       balance_dataparallel_memory=balance_dataparallel_memory,
+                                       runner_name=runner_name,
+                                       train_test_val_indices=train_test_val_indices)

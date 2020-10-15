@@ -93,11 +93,19 @@ class InferDictCallback(InferCallback):
 
 class DnnCoolSupervisedRunner(SupervisedRunner):
 
-    def __init__(self, project, model, early_stop: bool = True, runner_name=None, train_test_val_indices=None):
+    def __init__(self, project, model,
+                 early_stop: bool = True,
+                 balance_dataparallel_memory: bool = False,
+                 runner_name=None,
+                 train_test_val_indices=None):
         self.task_flow = project.get_full_flow()
 
         self.default_criterion = self.task_flow.get_loss()
-        self.default_callbacks = [ReplaceGatherCallback(self.task_flow)]
+        self.balance_dataparallel_memory = balance_dataparallel_memory
+
+        self.default_callbacks = []
+        if self.balance_dataparallel_memory:
+            self.default_callbacks.append(ReplaceGatherCallback(self.task_flow))
         self.default_callbacks.extend(self.default_criterion.catalyst_callbacks())
         self.default_optimizer = partial(optim.AdamW, lr=1e-4)
         self.default_scheduler = ReduceLROnPlateau

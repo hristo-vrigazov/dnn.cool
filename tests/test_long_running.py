@@ -54,7 +54,7 @@ def test_synthetic_dataset():
 
     args = TrainingArguments(
         num_epochs=2,
-        callbacks=[ReplaceGatherCallback(flow)],
+        callbacks=[],
         loaders=nested_loaders,
         optimizer=optim.Adam(model.parameters(), lr=1e-4),
     )
@@ -66,7 +66,7 @@ def test_synthetic_dataset():
 
 def test_synthetic_dataset_default_runner():
     model, nested_loaders, datasets, project = synthetic_dataset_preparation()
-    runner = project.runner(model=model, runner_name='default_experiment')
+    runner = project.runner(model=model, runner_name='default_experiment', balance_dataparallel_memory=True)
     flow: TaskFlow = project.get_full_flow()
     criterion = flow.get_loss()
     assert len(criterion.get_metrics()) < 100, 'Callbacks are too many!'
