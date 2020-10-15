@@ -386,6 +386,9 @@ def reduce_on_device(criterion,
         if len(value.shape) == 0:
             value = value.unsqueeze(0)
         reduced[f'_device|{key}|loss_per_sample'] = value
+        if not key.startswith('indices') and key != 'overall':
+            reduced[f'_device|{key}|_n'] = outputs[f'precondition|{key}'].sum()
     for path, leaf_loss in leaf_criterions.items():
         reduced[f'_device|{path}|loss'] = leaf_loss(outputs, targets).loss_items
+        reduced[f'_device|{path}|_n'] = outputs[f'precondition|{path}'].sum()
     return reduced
