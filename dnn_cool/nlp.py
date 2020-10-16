@@ -21,8 +21,8 @@ class MaskedLanguageModelingTask(Task):
             'per_sample_loss': ReducedPerSample(LanguageModelCrossEntropyLoss(reduction='none'), reduction=torch.mean),
             'available_func': positive_values,
             'inputs': inputs,
-            'activation': nn.Softmax(dim=-1),
-            'decoder': ClassificationDecoder(),
+            'activation': None,
+            'decoder': None,
             'module': BertOnlyMLMHead(config),
             'metrics': ()
         }

@@ -91,7 +91,8 @@ class BaseMetricDecorator(nn.Module):
 
     def compute_with_precondition(self, loss_flow_data):
         key = self.prefix + self.task_name
-        if '_device|overall|_n' in loss_flow_data.outputs:
+        already_reduced_per_device = '_device|overall|_n' in loss_flow_data.outputs
+        if already_reduced_per_device:
             device_metric_key = f'_device|{key}|{self.metric_name}'
             if device_metric_key in loss_flow_data.outputs:
                 # This means that the loss function has already been computed inside the nn.DataParallel model.

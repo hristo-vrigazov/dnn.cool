@@ -318,9 +318,18 @@ class DeviceReducingDataParallel(DataParallel):
             dct[full_path] = []
             dct[f'precondition|{full_path}'] = []
 
+        non_grad_reductions = {}
         for i in range(len(outputs)):
-            r = self._reducing_func(outputs=outputs[i], targets=outputs[i]['gt']['_targets'])
-            device_reduced_results.append(r)
+            reduced_with_grad, reduced = self._reducing_func(outputs=outputs[i], targets=outputs[i]['gt']['_targets'])
+            device_reduced_results.append(reduced_with_grad)
+            for key, value in reduced.items():
+                if key not in non_grad_reductions:
+                    non_grad_reductions[key] = []
+                value = value.detach().cpu()
+                if len(value.shape) == 0:
+                    value = value.unsqueeze(0)
+                non_grad_reductions[key].append(value)
+
             for full_path in self.full_paths:
                 dct[full_path].append(outputs[i][full_path].detach().cpu().numpy())
                 precondition_path = f'precondition|{full_path}'
@@ -333,6 +342,7 @@ class DeviceReducingDataParallel(DataParallel):
         for callback in self.callbacks:
             callback.on_dataparallel_gather(dct)
         gathered = super().gather(device_reduced_results, output_device)
+        additional_metrics = {key: torch.cat(value, dim=0) for key, value in non_grad_reductions.items()}
         return gathered
 
 
@@ -359,36 +369,39 @@ def reduce_on_device(criterion,
     loss = criterion(outputs, targets)
     any_tensor = any_value(targets)
     n = len(any_tensor)
-    reduced = {
+    reduced_with_grad = {
         '_device|overall|loss': loss,
         '_device|overall|_n': torch.tensor(n, dtype=any_tensor.dtype, device=any_tensor.device)
     }
-    for metric_name, metric in metrics:
-        path = f'{metric.prefix}{metric.task_name}'
-        full_name = f'{path}|{metric_name}'
-        metric_res = metric(outputs, targets)
-        if isinstance(metric_res, dict):
-            for key, value in metric_res.items():
-                value = torch.as_tensor(value, dtype=any_tensor.dtype, device=any_tensor.device)
+
+    reduced = {}
+    with torch.no_grad():
+        for metric_name, metric in metrics:
+            path = f'{metric.prefix}{metric.task_name}'
+            full_name = f'{path}|{metric_name}'
+            metric_res = metric(outputs, targets)
+            if isinstance(metric_res, dict):
+                for key, value in metric_res.items():
+                    value = torch.as_tensor(value, dtype=any_tensor.dtype, device=any_tensor.device)
+                    if len(value.shape) == 0:
+                        value = value.unsqueeze(0)
+                    reduced[f'_device|{full_name}_{key}'] = value
+            else:
+                value = torch.as_tensor(metric_res, dtype=any_tensor.dtype, device=any_tensor.device)
                 if len(value.shape) == 0:
                     value = value.unsqueeze(0)
-                reduced[f'_device|{full_name}_{key}'] = value
-        else:
-            value = torch.as_tensor(metric_res, dtype=any_tensor.dtype, device=any_tensor.device)
+                reduced[f'_device|{full_name}'] = value
+            reduced[f'_device|{path}|_n'] = outputs[f'precondition|{metric.prefix}{metric.task_name}'].sum()
+        per_sample_losses = per_sample_criterion(outputs, targets)
+        for key, value in per_sample_losses.items():
+            if key.startswith('indices'):
+                value += (n * value.device.index)
             if len(value.shape) == 0:
                 value = value.unsqueeze(0)
-            reduced[f'_device|{full_name}'] = value
-        reduced[f'_device|{path}|_n'] = outputs[f'precondition|{metric.prefix}{metric.task_name}'].sum()
-    per_sample_losses = per_sample_criterion(outputs, targets)
-    for key, value in per_sample_losses.items():
-        if key.startswith('indices'):
-            value += (n * value.device.index)
-        if len(value.shape) == 0:
-            value = value.unsqueeze(0)
-        reduced[f'_device|{key}|loss_per_sample'] = value
-        if not key.startswith('indices') and key != 'overall':
-            reduced[f'_device|{key}|_n'] = outputs[f'precondition|{key}'].sum()
-    for path, leaf_loss in leaf_criterions.items():
-        reduced[f'_device|{path}|loss'] = leaf_loss(outputs, targets).loss_items
-        reduced[f'_device|{path}|_n'] = outputs[f'precondition|{path}'].sum()
-    return reduced
+            reduced[f'_device|{key}|loss_per_sample'] = value
+            if not key.startswith('indices') and key != 'overall':
+                reduced[f'_device|{key}|_n'] = outputs[f'precondition|{key}'].sum()
+        for path, leaf_loss in leaf_criterions.items():
+            reduced[f'_device|{path}|loss'] = leaf_loss(outputs, targets).loss_items
+            reduced[f'_device|{path}|_n'] = outputs[f'precondition|{path}'].sum()
+    return reduced_with_grad, reduced

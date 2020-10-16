@@ -6,3 +6,5 @@ def positive_values(tensor):
     if len(axes) > 0:
         mask = mask.sum(axis=axes) > 0
     return mask
+
+
