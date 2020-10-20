@@ -78,12 +78,13 @@ def squeeze_if_needed(tensor):
 
 class BaseMetricDecorator(nn.Module):
 
-    def __init__(self, task_name, prefix, metric, metric_name):
+    def __init__(self, task_name, prefix, metric, metric_name, ctx):
         super().__init__()
         self.task_name = task_name
         self.prefix = prefix
         self.metric = metric
         self.metric_name = metric_name
+        self.ctx = ctx
 
     def forward(self, *args, **kwargs):
         loss_flow_data = get_flow_data(*args, **kwargs)
@@ -142,8 +143,8 @@ class BaseMetricDecorator(nn.Module):
 
 class TaskLossDecorator(BaseMetricDecorator):
 
-    def __init__(self, task_name, prefix, loss, metric_name):
-        super().__init__(task_name, prefix, loss, metric_name)
+    def __init__(self, task_name, prefix, loss, metric_name, ctx):
+        super().__init__(task_name, prefix, loss, metric_name, ctx)
 
     def postprocess_results(self, metric_res):
         return LossItems(metric_res)
@@ -151,8 +152,11 @@ class TaskLossDecorator(BaseMetricDecorator):
 
 class TaskFlowLoss(nn.Module):
 
-    def __init__(self, task_flow, prefix=''):
+    def __init__(self, task_flow, prefix='', ctx=None):
         super().__init__()
+        if ctx is None:
+            ctx = {}
+        self.ctx = ctx
         self._task_flow = task_flow
         # Save a reference to the flow function of the original class
         # We will then call it by replacing the self, this way effectively running
@@ -161,9 +165,15 @@ class TaskFlowLoss(nn.Module):
 
         for key, task in task_flow.tasks.items():
             if not task.has_children():
-                instance = TaskLossDecorator(task.get_name(), prefix, task.get_loss(), 'loss')
+                instance = TaskLossDecorator(task.get_name(),
+                                             prefix,
+                                             task.get_loss(),
+                                             'loss',
+                                             self.ctx)
             else:
-                instance = TaskFlowLoss(task, prefix=f'{prefix}{task.get_name()}.')
+                instance = TaskFlowLoss(task,
+                                        prefix=f'{prefix}{task.get_name()}.',
+                                        ctx=self.ctx)
 
             setattr(self, key, instance)
 
@@ -210,7 +220,11 @@ class TaskFlowLoss(nn.Module):
                 all_metrics += child_loss.get_metrics()
             else:
                 for metric_name, metric in task.get_metrics():
-                    metric_decorator = BaseMetricDecorator(task.get_name(), child_loss.prefix, metric, metric_name)
+                    metric_decorator = BaseMetricDecorator(task.get_name(),
+                                                           child_loss.prefix,
+                                                           metric,
+                                                           metric_name,
+                                                           self.ctx)
                     all_metrics.append((metric_name, metric_decorator))
         return all_metrics
 
@@ -218,7 +232,11 @@ class TaskFlowLoss(nn.Module):
         from catalyst.core import MetricCallback
         callbacks = []
         for path, loss in self.get_leaf_losses().items():
-            metric_decorator = BaseMetricDecorator(loss.task_name, loss.prefix, loss.metric, 'loss')
+            metric_decorator = BaseMetricDecorator(loss.task_name,
+                                                   loss.prefix,
+                                                   loss.metric,
+                                                   'loss',
+                                                   self.ctx)
             callbacks.append(MetricCallback(f'loss_{path}', metric_decorator))
         for metric_name, metric_decorator in self.get_metrics():
             full_name = f'{metric_name}_{metric_decorator.prefix}{metric_decorator.task_name}'
@@ -226,12 +244,17 @@ class TaskFlowLoss(nn.Module):
             callbacks.append(callback)
         return callbacks
 
+    def get_device_reduced_ctx(self):
+        return self.ctx
+
 
 class TaskFlowLossPerSample(nn.Module):
 
-    def __init__(self, task_flow, prefix=''):
+    def __init__(self, task_flow, prefix='', ctx=None):
         super().__init__()
-
+        if ctx is None:
+            ctx = {}
+        self.ctx = ctx
         self._all_children = task_flow.get_all_children(prefix=prefix)
         self._all_losses = self._collect_leaf_losses_per_sample()
 
@@ -283,8 +306,9 @@ class TaskFlowLossPerSample(nn.Module):
                 prefix = path.rsplit('.', 1)[0] + '.'
             all_losses[path] = TaskLossDecorator(task.get_name(),
                                                  prefix,
-                                                 task.get_per_sample_loss(),
-                                                 'loss_per_sample')
+                                                 task.get_per_sample_loss(ctx=self.ctx),
+                                                 'loss_per_sample',
+                                                 self.ctx)
         return all_losses
 
 

@@ -302,12 +302,15 @@ class DeviceReducingDataParallel(DataParallel):
             if task.is_train_only():
                 continue
             self.full_paths.append(full_path)
+        criterion = task_flow.get_loss()
+        per_sample_criterion = task_flow.get_per_sample_loss(ctx=criterion.get_device_reduced_ctx())
         self._reducing_func = partial(reduce_on_device,
-                                      criterion=task_flow.get_loss(),
-                                      per_sample_criterion=task_flow.get_per_sample_loss(),
-                                      leaf_criterions=task_flow.get_loss().get_leaf_losses(),
-                                      metrics=task_flow.get_loss().get_metrics())
+                                      criterion=criterion,
+                                      per_sample_criterion=per_sample_criterion,
+                                      leaf_criterions=criterion.get_leaf_losses(),
+                                      metrics=criterion.get_metrics())
         self.callbacks = callbacks
+        self.ctx = criterion.ctx
 
     def gather(self, outputs, output_device):
         device_reduced_results = []
@@ -343,6 +346,11 @@ class DeviceReducingDataParallel(DataParallel):
             callback.on_dataparallel_gather(dct)
         gathered = super().gather(device_reduced_results, output_device)
         additional_metrics = {key: torch.cat(value, dim=0) for key, value in non_grad_reductions.items()}
+
+        for key, value in gathered.items():
+            self.ctx[key] = value.detach().cpu()
+        for key, value in additional_metrics.items():
+            self.ctx[key] = value
         return gathered
 
 
@@ -404,4 +412,5 @@ def reduce_on_device(criterion,
         for path, leaf_loss in leaf_criterions.items():
             reduced[f'_device|{path}|loss'] = leaf_loss(outputs, targets).loss_items
             reduced[f'_device|{path}|_n'] = outputs[f'precondition|{path}'].sum()
+
     return reduced_with_grad, reduced

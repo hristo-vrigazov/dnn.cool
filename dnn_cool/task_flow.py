@@ -56,7 +56,7 @@ class ITask:
     def get_loss(self):
         raise NotImplementedError()
 
-    def get_per_sample_loss(self):
+    def get_per_sample_loss(self, prefix='', ctx=None):
         raise NotImplementedError()
 
     def torch(self):
@@ -115,7 +115,7 @@ class Task(ITask):
     def get_loss(self):
         return self.loss
 
-    def get_per_sample_loss(self):
+    def get_per_sample_loss(self, prefix='', ctx=None):
         return self.per_sample_loss
 
     def torch(self):
@@ -236,8 +236,10 @@ class TaskFlow(ITask):
     def get_loss(self):
         return TaskFlowLoss(self)
 
-    def get_per_sample_loss(self):
-        return TaskFlowLossPerSample(self)
+    def get_per_sample_loss(self, prefix='', ctx=None):
+        if ctx is None:
+            ctx = {}
+        return TaskFlowLossPerSample(self, prefix=prefix, ctx=ctx)
 
     def torch(self):
         return TaskFlowModule(self)
