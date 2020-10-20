@@ -315,6 +315,7 @@ class DeviceReducingDataParallel(DataParallel):
         self.ctx = criterion.ctx
 
     def gather(self, outputs, output_device):
+        self.ctx.clear()
         device_reduced_results = []
         dct = {
             'gt': {'_targets': {}}

@@ -317,13 +317,13 @@ class TaskFlowLossPerSample(nn.Module):
             bs = int(outputs[device_n_key].sum().item())
         else:
             bs = len(value)
-        overall_loss_items = torch.zeros(bs, device=value.device, dtype=value.dtype)
+        overall_loss_items = torch.zeros(bs, dtype=value.dtype)
         for path, loss in self._all_losses.items():
             loss_items = loss(outputs, targets).loss_items
             res[path] = loss_items.squeeze(dim=-1)
             device_key = f'_device|indices|{path}|loss_per_sample'
-            if device_key in outputs:
-                indices = outputs[device_key].detach().cpu()
+            if device_key in self.ctx:
+                indices = self.ctx[device_key].detach().cpu()
                 valid_indices_mask = indices >= 0
                 res[f'indices|{path}'] = indices[valid_indices_mask]
                 res[path] = res[path][valid_indices_mask]
@@ -340,7 +340,7 @@ class TaskFlowLossPerSample(nn.Module):
                     res[f'indices|{path}'] = torch.ones(1, dtype=indices.dtype, device=indices.device) * -1
                 else:
                     res[f'indices|{path}'] = indices[precondition]
-                    overall_loss_items[precondition] += res[path]
+                    overall_loss_items[precondition] += res[path].cpu()
         res['overall'] = overall_loss_items
         res['indices|overall'] = torch.arange(bs, device=value.device)
         return res
