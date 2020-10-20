@@ -73,6 +73,7 @@ def test_synthetic_dataset_default_runner():
 
     project.converters.tensorboard_converters.type_mapping['img'] = [img]
     project.converters.tensorboard_converters.type_mapping['text'] = [text]
+    # runner.train(num_epochs=10, callbacks=runner.default_callbacks[:1])
     runner.train(num_epochs=10)
 
     early_stop_callback = runner.default_callbacks[-1]

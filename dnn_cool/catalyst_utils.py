@@ -313,6 +313,9 @@ class DeviceReducingDataParallel(DataParallel):
                                       metrics=metrics)
         self.callbacks = callbacks
         self.ctx = criterion.ctx
+        self.r_device_metrics = False
+        self.r_leaf_losses = False
+        self.r_per_sample_losses = False
 
     def gather(self, outputs, output_device):
         self.ctx.clear()
@@ -326,7 +329,11 @@ class DeviceReducingDataParallel(DataParallel):
 
         ctx_reductions = {}
         for i in range(len(outputs)):
-            reduced_with_grad, reduced = self._reducing_func(outputs=outputs[i], targets=outputs[i]['gt']['_targets'])
+            reduced_with_grad, reduced = self._reducing_func(outputs=outputs[i],
+                                                             targets=outputs[i]['gt']['_targets'],
+                                                             r_device_metrics=self.r_device_metrics,
+                                                             r_leaf_losses=self.r_leaf_losses,
+                                                             r_per_sample_losses=self.r_per_sample_losses)
             device_reduced_results.append(reduced_with_grad)
             for key, value in reduced.items():
                 if key not in ctx_reductions:
@@ -374,7 +381,10 @@ def reduce_on_device(criterion,
                      leaf_criterions,
                      metrics,
                      outputs,
-                     targets):
+                     targets,
+                     r_device_metrics,
+                     r_leaf_losses,
+                     r_per_sample_losses):
     loss = criterion(outputs, targets)
     any_tensor = any_value(targets)
     n = len(any_tensor)
@@ -388,9 +398,12 @@ def reduce_on_device(criterion,
     reduced = {}
 
     with torch.no_grad():
-        compute_device_metrics(reduced, any_tensor, metrics, outputs, targets)
-        compute_leaf_losses(leaf_criterions, outputs, reduced, targets)
-        compute_per_sample_losses(reduced, per_sample_criterion, outputs, targets, n)
+        if r_device_metrics:
+            compute_device_metrics(reduced, any_tensor, metrics, outputs, targets)
+        if r_leaf_losses:
+            compute_leaf_losses(leaf_criterions, outputs, reduced, targets)
+        if r_per_sample_losses:
+            compute_per_sample_losses(reduced, per_sample_criterion, outputs, targets, n)
 
     return reduced_with_grad, reduced
 
