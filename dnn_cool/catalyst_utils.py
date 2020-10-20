@@ -316,6 +316,7 @@ class DeviceReducingDataParallel(DataParallel):
         self.r_device_metrics = False
         self.r_leaf_losses = False
         self.r_per_sample_losses = False
+        self.store_inference_results = len(self.callbacks) > 0
 
     def gather(self, outputs, output_device):
         self.ctx.clear()
@@ -343,14 +344,15 @@ class DeviceReducingDataParallel(DataParallel):
                     value = value.unsqueeze(0)
                 ctx_reductions[key].append(value)
 
-            for full_path in self.full_paths:
-                dct[full_path].append(outputs[i][full_path].detach().cpu().numpy())
-                precondition_path = f'precondition|{full_path}'
-                dct[precondition_path].append(outputs[i][precondition_path].detach().cpu().numpy())
-                np_targets = outputs[i]['gt']['_targets'][full_path].detach().cpu().numpy()
-                if full_path not in dct['gt']['_targets']:
-                    dct['gt']['_targets'][full_path] = []
-                dct['gt']['_targets'][full_path].append(np_targets)
+            if self.store_inference_results:
+                for full_path in self.full_paths:
+                    dct[full_path].append(outputs[i][full_path].detach().cpu().numpy())
+                    precondition_path = f'precondition|{full_path}'
+                    dct[precondition_path].append(outputs[i][precondition_path].detach().cpu().numpy())
+                    np_targets = outputs[i]['gt']['_targets'][full_path].detach().cpu().numpy()
+                    if full_path not in dct['gt']['_targets']:
+                        dct['gt']['_targets'][full_path] = []
+                    dct['gt']['_targets'][full_path].append(np_targets)
 
         for callback in self.callbacks:
             callback.on_dataparallel_gather(dct)
