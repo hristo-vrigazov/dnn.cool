@@ -6,7 +6,7 @@ from typing import Callable, Dict, Optional, Tuple, List, Mapping
 import numpy as np
 import torch
 from catalyst.contrib.tools.tensorboard import SummaryWriter
-from catalyst.core import Callback, CallbackOrder, State, IRunner
+from catalyst.core import Callback, CallbackOrder, State, IRunner, BatchMetricCallback
 from torch import nn
 from torch.nn import DataParallel
 from torch.utils.data import Dataset, SequentialSampler
@@ -362,6 +362,12 @@ class DeviceReducingDataParallel(DataParallel):
             self.ctx[key] = value
         return gathered
 
+    def reset_device_reducing_tasks(self):
+        self.r_device_metrics = False
+        self.r_leaf_losses = False
+        self.r_per_sample_losses = False
+        self.store_inference_results = len(self.callbacks) > 0
+
 
 class ReplaceGatherCallback(Callback):
 
@@ -375,6 +381,17 @@ class ReplaceGatherCallback(Callback):
     def on_stage_start(self, runner: "IRunner"):
         if isinstance(runner.model, DataParallel):
             runner.model = DeviceReducingDataParallel(runner.model.module, self.task_flow, self.on_gather_callbacks)
+
+    def on_loader_start(self, runner: "IRunner"):
+        model = runner.model
+        if not isinstance(model, DeviceReducingDataParallel):
+            return
+        for idx, callback in runner.callbacks.items():
+            if isinstance(callback, InterpretationCallback):
+                model.r_per_sample_losses = not callback.should_skip_loader(runner)
+            if isinstance(callback, BatchMetricCallback):
+                model.r_device_metrics = True
+                model.r_leaf_losses = True
 
 
 def reduce_on_device(criterion,
