@@ -203,6 +203,14 @@ class TensorboardConverters:
             logger.close()
 
 
+def should_skip_loader(state, loaders_to_skip):
+    if not isinstance(state.loaders[state.loader_name].sampler, SequentialSampler):
+        return True
+    if state.loader_name in loaders_to_skip:
+        return True
+    return False
+
+
 class InterpretationCallback(Callback):
     """
     This callback publishes best and worst images per task, according to the configuration supplied via the constructor.
@@ -239,15 +247,8 @@ class InterpretationCallback(Callback):
             interpretation_dict[f'indices|{path}'] = []
         return interpretation_dict
 
-    def should_skip_loader(self, state):
-        if not isinstance(state.loaders[state.loader_name].sampler, SequentialSampler):
-            return True
-        if state.loader_name in self.loaders_to_skip:
-            return True
-        return False
-
     def on_loader_start(self, state: State):
-        if self.should_skip_loader(state):
+        if should_skip_loader(state, self.loaders_to_skip):
             return
         self.interpretations[state.loader_name] = self._initialize_interpretations()
         self.loader_counts[state.loader_name] = 0
@@ -256,7 +257,7 @@ class InterpretationCallback(Callback):
             self.tensorboard_converters.initialize(state)
 
     def on_batch_end(self, state: State):
-        if self.should_skip_loader(state):
+        if should_skip_loader(state, self.loaders_to_skip):
             return
         outputs = state.output['logits']
         targets = state.input['targets']
@@ -274,7 +275,7 @@ class InterpretationCallback(Callback):
         self.loader_counts[state.loader_name] += bs
 
     def on_loader_end(self, state: State):
-        if self.should_skip_loader(state):
+        if should_skip_loader(state, self.loaders_to_skip):
             return
         self.interpretations[state.loader_name] = {
             key: np.concatenate(value, axis=0)
@@ -285,7 +286,7 @@ class InterpretationCallback(Callback):
             self.tensorboard_converters.publish(state, self.interpretations[state.loader_name])
 
     def on_stage_end(self, state: State):
-        if self.should_skip_loader(state):
+        if should_skip_loader(state, self.loaders_to_skip):
             return
         if self.tensorboard_converters is not None:
             self.tensorboard_converters.close(state)
@@ -293,7 +294,7 @@ class InterpretationCallback(Callback):
 
 class DeviceReducingDataParallel(DataParallel):
 
-    def __init__(self, module: nn.Module, task_flow, callbacks):
+    def __init__(self, module: nn.Module, task_flow, infer_dict_callback):
         super().__init__(module)
         tasks_dict = task_flow.get_all_children()
         self.full_paths = []
@@ -310,12 +311,12 @@ class DeviceReducingDataParallel(DataParallel):
                                       per_sample_criterion=per_sample_criterion,
                                       leaf_criterions=leaf_losses,
                                       metrics=metrics)
-        self.callbacks = callbacks
+        self.infer_dict_callback = infer_dict_callback
         self.ctx = criterion.ctx
         self.r_device_metrics = False
         self.r_leaf_losses = False
         self.r_per_sample_losses = False
-        self.store_inference_results = len(self.callbacks) > 0
+        self.store_inference_results = self.infer_dict_callback is not None
 
     def gather(self, outputs, output_device):
         self.ctx.clear()
@@ -353,8 +354,8 @@ class DeviceReducingDataParallel(DataParallel):
                         dct['gt']['_targets'][full_path] = []
                     dct['gt']['_targets'][full_path].append(np_targets)
 
-        for callback in self.callbacks:
-            callback.on_dataparallel_gather(dct)
+        if self.infer_dict_callback is not None:
+            self.infer_dict_callback.on_dataparallel_gather(dct)
         gathered = super().gather(device_reduced_results, output_device)
         additional_metrics = {key: torch.cat(value, dim=0) for key, value in ctx_reductions.items()}
 
@@ -371,16 +372,14 @@ class DeviceReducingDataParallel(DataParallel):
 
 class ReplaceGatherCallback(Callback):
 
-    def __init__(self, task_flow, on_gather_callbacks=None):
+    def __init__(self, task_flow, infer_dict_callback=None):
         super().__init__(CallbackOrder.External)
-        if on_gather_callbacks is None:
-            on_gather_callbacks = []
         self.task_flow = task_flow
-        self.on_gather_callbacks = on_gather_callbacks
+        self.infer_dict_callback = infer_dict_callback
 
     def on_stage_start(self, runner: "IRunner"):
         if isinstance(runner.model, DataParallel):
-            runner.model = DeviceReducingDataParallel(runner.model.module, self.task_flow, self.on_gather_callbacks)
+            runner.model = DeviceReducingDataParallel(runner.model.module, self.task_flow, self.infer_dict_callback)
 
     def on_loader_start(self, runner: "IRunner"):
         model = runner.model
@@ -388,7 +387,7 @@ class ReplaceGatherCallback(Callback):
             return
         for idx, callback in runner.callbacks.items():
             if isinstance(callback, InterpretationCallback):
-                model.r_per_sample_losses = not callback.should_skip_loader(runner)
+                model.r_per_sample_losses = not should_skip_loader(runner, callback.loaders_to_skip)
             if isinstance(callback, BatchMetricCallback):
                 model.r_device_metrics = True
                 model.r_leaf_losses = True

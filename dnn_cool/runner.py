@@ -55,8 +55,9 @@ class TrainingArguments(Mapping):
 
 class InferDictCallback(InferCallback):
 
-    def __init__(self, out_key='logits', *args, **kwargs):
+    def __init__(self, out_key='logits', loaders_to_skip=(), *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.loaders_to_skip = loaders_to_skip
         self.out_key = out_key
         self.predictions = {}
         self.targets = {}
@@ -180,7 +181,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         kwargs['logdir'] = logdir
         interpretation_callback = self.create_interpretation_callback(**kwargs)
         infer_dict_callback = InferDictCallback()
-        replace_gather_callback = ReplaceGatherCallback(self.task_flow, [infer_dict_callback])
+        replace_gather_callback = ReplaceGatherCallback(self.task_flow, infer_dict_callback)
         default_callbacks = OrderedDict([("interpretation", interpretation_callback),
                                          ("inference", infer_dict_callback),
                                          ("dataparallel_reducer", replace_gather_callback)])
