@@ -327,7 +327,7 @@ class TaskFlowLossPerSample(nn.Module):
                 valid_indices_mask = indices >= 0
                 res[f'indices|{path}'] = indices[valid_indices_mask]
                 res[path] = res[path][valid_indices_mask]
-                overall_loss_items[indices] += res[path]
+                overall_loss_items[indices[valid_indices_mask]] += res[path]
             else:
                 indices = torch.arange(bs, device=value.device)
                 precondition = outputs[f'precondition|{path}']
