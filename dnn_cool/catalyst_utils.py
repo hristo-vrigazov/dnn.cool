@@ -239,10 +239,15 @@ class InterpretationCallback(Callback):
             interpretation_dict[f'indices|{path}'] = []
         return interpretation_dict
 
-    def on_loader_start(self, state: State):
+    def should_skip_loader(self, state):
         if not isinstance(state.loaders[state.loader_name].sampler, SequentialSampler):
-            return
+            return True
         if state.loader_name in self.loaders_to_skip:
+            return True
+        return False
+
+    def on_loader_start(self, state: State):
+        if self.should_skip_loader(state):
             return
         self.interpretations[state.loader_name] = self._initialize_interpretations()
         self.loader_counts[state.loader_name] = 0
@@ -251,9 +256,7 @@ class InterpretationCallback(Callback):
             self.tensorboard_converters.initialize(state)
 
     def on_batch_end(self, state: State):
-        if not isinstance(state.loaders[state.loader_name].sampler, SequentialSampler):
-            return
-        if state.loader_name in self.loaders_to_skip:
+        if self.should_skip_loader(state):
             return
         outputs = state.output['logits']
         targets = state.input['targets']
@@ -271,9 +274,7 @@ class InterpretationCallback(Callback):
         self.loader_counts[state.loader_name] += bs
 
     def on_loader_end(self, state: State):
-        if not isinstance(state.loaders[state.loader_name].sampler, SequentialSampler):
-            return
-        if state.loader_name in self.loaders_to_skip:
+        if self.should_skip_loader(state):
             return
         self.interpretations[state.loader_name] = {
             key: np.concatenate(value, axis=0)
@@ -284,9 +285,7 @@ class InterpretationCallback(Callback):
             self.tensorboard_converters.publish(state, self.interpretations[state.loader_name])
 
     def on_stage_end(self, state: State):
-        if not isinstance(state.loaders[state.loader_name].sampler, SequentialSampler):
-            return
-        if state.loader_name in self.loaders_to_skip:
+        if self.should_skip_loader(state):
             return
         if self.tensorboard_converters is not None:
             self.tensorboard_converters.close(state)
