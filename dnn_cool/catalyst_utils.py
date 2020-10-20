@@ -323,17 +323,17 @@ class DeviceReducingDataParallel(DataParallel):
             dct[full_path] = []
             dct[f'precondition|{full_path}'] = []
 
-        non_grad_reductions = {}
+        ctx_reductions = {}
         for i in range(len(outputs)):
             reduced_with_grad, reduced = self._reducing_func(outputs=outputs[i], targets=outputs[i]['gt']['_targets'])
             device_reduced_results.append(reduced_with_grad)
             for key, value in reduced.items():
-                if key not in non_grad_reductions:
-                    non_grad_reductions[key] = []
+                if key not in ctx_reductions:
+                    ctx_reductions[key] = []
                 value = value.detach().cpu()
                 if len(value.shape) == 0:
                     value = value.unsqueeze(0)
-                non_grad_reductions[key].append(value)
+                ctx_reductions[key].append(value)
 
             for full_path in self.full_paths:
                 dct[full_path].append(outputs[i][full_path].detach().cpu().numpy())
@@ -347,10 +347,8 @@ class DeviceReducingDataParallel(DataParallel):
         for callback in self.callbacks:
             callback.on_dataparallel_gather(dct)
         gathered = super().gather(device_reduced_results, output_device)
-        additional_metrics = {key: torch.cat(value, dim=0) for key, value in non_grad_reductions.items()}
+        additional_metrics = {key: torch.cat(value, dim=0) for key, value in ctx_reductions.items()}
 
-        for key, value in gathered.items():
-            self.ctx[key] = value.detach().cpu()
         for key, value in additional_metrics.items():
             self.ctx[key] = value
         return gathered
@@ -379,12 +377,15 @@ def reduce_on_device(criterion,
     loss = criterion(outputs, targets)
     any_tensor = any_value(targets)
     n = len(any_tensor)
+    criterion_n = torch.tensor(n, dtype=any_tensor.dtype, device=any_tensor.device)
     reduced_with_grad = {
-        '_device|overall|loss': loss,
-        '_device|overall|_n': torch.tensor(n, dtype=any_tensor.dtype, device=any_tensor.device)
+        f'_device|{criterion.prefix}{criterion.task_name}|loss': loss,
+        f'_device|{criterion.prefix}{criterion.task_name}|_n': criterion_n,
+        f'_device|overall|loss': loss,
+        f'_device|overall|_n': criterion_n
     }
-
     reduced = {}
+
     with torch.no_grad():
         for metric_name, metric in metrics:
             path = f'{metric.prefix}{metric.task_name}'
@@ -411,6 +412,7 @@ def reduce_on_device(criterion,
             reduced[f'_device|{key}|loss_per_sample'] = value
             if not key.startswith('indices') and key != 'overall':
                 reduced[f'_device|{key}|_n'] = outputs[f'precondition|{key}'].sum()
+
         for path, leaf_loss in leaf_criterions.items():
             reduced[f'_device|{path}|loss'] = leaf_loss(outputs, targets).loss_items
             reduced[f'_device|{path}|_n'] = outputs[f'precondition|{path}'].sum()
