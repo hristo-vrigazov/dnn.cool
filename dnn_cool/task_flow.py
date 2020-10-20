@@ -232,13 +232,14 @@ class TaskFlow(ITask):
             self.tasks[task.get_name()] = task
         if flow_func is not None:
             self._flow_func = flow_func
+        self.ctx = {}
 
     def get_loss(self):
-        return TaskFlowLoss(self)
+        return TaskFlowLoss(self, ctx=self.ctx)
 
     def get_per_sample_loss(self, prefix='', ctx=None):
         if ctx is None:
-            ctx = {}
+            ctx = self.ctx
         return TaskFlowLossPerSample(self, prefix=prefix, ctx=ctx)
 
     def torch(self):

@@ -304,11 +304,13 @@ class DeviceReducingDataParallel(DataParallel):
             self.full_paths.append(full_path)
         criterion = task_flow.get_loss()
         per_sample_criterion = task_flow.get_per_sample_loss(ctx=criterion.get_device_reduced_ctx())
+        leaf_losses = criterion.get_leaf_losses()
+        metrics = criterion.get_metrics()
         self._reducing_func = partial(reduce_on_device,
                                       criterion=criterion,
                                       per_sample_criterion=per_sample_criterion,
-                                      leaf_criterions=criterion.get_leaf_losses(),
-                                      metrics=criterion.get_metrics())
+                                      leaf_criterions=leaf_losses,
+                                      metrics=metrics)
         self.callbacks = callbacks
         self.ctx = criterion.ctx
 
