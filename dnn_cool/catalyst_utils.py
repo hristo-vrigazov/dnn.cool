@@ -388,34 +388,45 @@ def reduce_on_device(criterion,
     reduced = {}
 
     with torch.no_grad():
-        for metric_name, metric in metrics:
-            path = f'{metric.prefix}{metric.task_name}'
-            full_name = f'{path}|{metric_name}'
-            metric_res = metric(outputs, targets)
-            if isinstance(metric_res, dict):
-                for key, value in metric_res.items():
-                    value = torch.as_tensor(value, dtype=any_tensor.dtype, device=any_tensor.device)
-                    if len(value.shape) == 0:
-                        value = value.unsqueeze(0)
-                    reduced[f'_device|{full_name}_{key}'] = value
-            else:
-                value = torch.as_tensor(metric_res, dtype=any_tensor.dtype, device=any_tensor.device)
-                if len(value.shape) == 0:
-                    value = value.unsqueeze(0)
-                reduced[f'_device|{full_name}'] = value
-            reduced[f'_device|{path}|_n'] = outputs[f'precondition|{metric.prefix}{metric.task_name}'].sum()
-        per_sample_losses = per_sample_criterion(outputs, targets)
-        for key, value in per_sample_losses.items():
-            if key.startswith('indices'):
-                value += (n * value.device.index)
-            if len(value.shape) == 0:
-                value = value.unsqueeze(0)
-            reduced[f'_device|{key}|loss_per_sample'] = value
-            if not key.startswith('indices') and key != 'overall':
-                reduced[f'_device|{key}|_n'] = outputs[f'precondition|{key}'].sum()
-
-        for path, leaf_loss in leaf_criterions.items():
-            reduced[f'_device|{path}|loss'] = leaf_loss(outputs, targets).loss_items
-            reduced[f'_device|{path}|_n'] = outputs[f'precondition|{path}'].sum()
+        compute_device_metrics(reduced, any_tensor, metrics, outputs, targets)
+        compute_leaf_losses(leaf_criterions, outputs, reduced, targets)
+        compute_per_sample_losses(reduced, per_sample_criterion, outputs, targets, n)
 
     return reduced_with_grad, reduced
+
+
+def compute_leaf_losses(leaf_criterions, outputs, reduced, targets):
+    for path, leaf_loss in leaf_criterions.items():
+        reduced[f'_device|{path}|loss'] = leaf_loss(outputs, targets).loss_items
+        reduced[f'_device|{path}|_n'] = outputs[f'precondition|{path}'].sum()
+
+
+def compute_per_sample_losses(reduced, per_sample_criterion, outputs, targets, n):
+    per_sample_losses = per_sample_criterion(outputs, targets)
+    for key, value in per_sample_losses.items():
+        if key.startswith('indices'):
+            value += (n * value.device.index)
+        if len(value.shape) == 0:
+            value = value.unsqueeze(0)
+        reduced[f'_device|{key}|loss_per_sample'] = value
+        if not key.startswith('indices') and key != 'overall':
+            reduced[f'_device|{key}|_n'] = outputs[f'precondition|{key}'].sum()
+
+
+def compute_device_metrics(reduced, any_tensor, metrics, outputs, targets):
+    for metric_name, metric in metrics:
+        path = f'{metric.prefix}{metric.task_name}'
+        full_name = f'{path}|{metric_name}'
+        metric_res = metric(outputs, targets)
+        if isinstance(metric_res, dict):
+            for key, value in metric_res.items():
+                value = torch.as_tensor(value, dtype=any_tensor.dtype, device=any_tensor.device)
+                if len(value.shape) == 0:
+                    value = value.unsqueeze(0)
+                reduced[f'_device|{full_name}_{key}'] = value
+        else:
+            value = torch.as_tensor(metric_res, dtype=any_tensor.dtype, device=any_tensor.device)
+            if len(value.shape) == 0:
+                value = value.unsqueeze(0)
+            reduced[f'_device|{full_name}'] = value
+        reduced[f'_device|{path}|_n'] = outputs[f'precondition|{metric.prefix}{metric.task_name}'].sum()

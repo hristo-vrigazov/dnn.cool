@@ -34,7 +34,8 @@ setup(
                       "tqdm",
                       "scikit_learn",
                       "treelib",
-                      "matplotlib"],
+                      "matplotlib",
+                      "joblib"],
     extras_require={
         'nlp': ['transformers']
     }
