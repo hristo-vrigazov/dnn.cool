@@ -1,4 +1,5 @@
 import torch
+from catalyst.callbacks import BatchMetricCallback
 from torch import nn
 
 from dnn_cool.dsl import IFeaturesDict, IOut, ICondition, IFlowTaskResult
@@ -280,7 +281,6 @@ class TaskFlowLoss(nn.Module):
         return all_metrics
 
     def catalyst_callbacks(self):
-        from catalyst.core import MetricCallback
         callbacks = []
         for path, loss in self.get_leaf_losses().items():
             metric_decorator = BaseMetricDecorator(loss.task_name,
@@ -288,10 +288,10 @@ class TaskFlowLoss(nn.Module):
                                                    loss.metric,
                                                    'loss',
                                                    self.ctx)
-            callbacks.append(MetricCallback(f'loss_{path}', metric_decorator))
+            callbacks.append(BatchMetricCallback(f'loss_{path}', metric_decorator))
         for metric_name, metric_decorator in self.get_metrics():
             full_name = f'{metric_name}_{metric_decorator.prefix}{metric_decorator.task_name}'
-            callback = MetricCallback(full_name, metric_decorator)
+            callback = BatchMetricCallback(full_name, metric_decorator)
             callbacks.append(callback)
         return callbacks
 

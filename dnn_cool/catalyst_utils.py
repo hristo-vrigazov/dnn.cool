@@ -5,8 +5,9 @@ from typing import Callable, Dict, Optional, Tuple, List, Mapping
 
 import numpy as np
 import torch
+from catalyst.callbacks import BatchMetricCallback
 from catalyst.contrib.tools.tensorboard import SummaryWriter
-from catalyst.core import Callback, CallbackOrder, State, IRunner, BatchMetricCallback
+from catalyst.core import Callback, CallbackOrder, State, IRunner
 from torch import nn
 from torch.nn import DataParallel
 from torch.utils.data import Dataset, SequentialSampler
