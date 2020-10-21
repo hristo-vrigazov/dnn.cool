@@ -5,7 +5,7 @@ import pandas as pd
 import torch
 
 from dnn_cool.catalyst_utils import InterpretationCallback, TensorboardConverters, TensorboardConverter, \
-    ReplaceGatherCallback
+    ReplaceGatherCallback, img, text
 from dnn_cool.converters import Converters
 from dnn_cool.project import Project
 from dnn_cool.runner import InferDictCallback
@@ -95,7 +95,10 @@ def test_interpretation_default_runner():
     model, nested_loaders, datasets, project = synthetic_dataset_preparation()
     runner = project.runner(model=model, runner_name='default_experiment')
     model = runner.best()
+    project.converters.tensorboard_converters.type_mapping['img'] = [img]
+    project.converters.tensorboard_converters.type_mapping['text'] = [text]
     r = runner.infer(model=model)
+    print(r)
 
 
 def test_tune_pipeline():

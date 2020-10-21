@@ -64,7 +64,7 @@ def img(writer: SummaryWriter, idx: int, sample: Tuple[Dict, Dict], prefix: str,
     :param key: The key in X that is being published.
     """
     X, y = sample
-    writer.add_image(f'{prefix}_{task_name}_images', X[key])
+    writer.add_image(f'{prefix}_{task_name}_images', X[key], global_step=idx)
 
 
 def text(writer: SummaryWriter, idx: int, sample: Tuple, prefix: str, task_name: str, key: str):
@@ -84,7 +84,7 @@ def text(writer: SummaryWriter, idx: int, sample: Tuple, prefix: str, task_name:
     :param key: The key in X that is being published.
     """
     X, y = sample
-    writer.add_text(f'{prefix}_{task_name}_text', X[key])
+    writer.add_text(f'{prefix}_{task_name}_text', X[key], global_step=idx)
 
 
 def default_tensorboard_type_mapping():
