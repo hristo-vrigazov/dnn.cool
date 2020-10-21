@@ -150,6 +150,7 @@ Main features are:
 * [Task threshold tuning](#task-threshold-tuning)
 * [Dataset generation](#dataset-generation)
 * [Tree explanations](#tree-explanations)
+* [Memory balancing for dataparallel](#memory-balancing)
 
 ##### Task preconditioning
 
@@ -289,6 +290,24 @@ but if the model thinks the camera is blocked, then the explanation would be:
 ├── inp 2
 │   └── camera_blocked | decoded: [ True], activated: [1.], logits: [76.367676]
 ```
+
+##### Memory balancing
+
+When using [nn.DataParallel](https://pytorch.org/docs/stable/generated/torch.nn.DataParallel.html), the computation of 
+the loss function is done on the main GPU, which leads to dramatically unbalanced memory usage if your outputs are big
+and you have a lot of metrics (e.g segmentation masks, language modeling, etc). `dnn_cool` gives you a 
+convenient way to balance the memory in such situations - just a single `balance_dataparallel_memory = True` handles
+this case for you by first reducing all metrics on their respective device, and then additionally aggregating 
+the results that were reduced on each device automatically. Here's an example memory usage:
+
+
+Before:
+
+![Unbalanced memory usage](./static/unbalanced.png)
+
+After:
+
+![Balanced memory usage](./static/balanced.png)
 
 ### Customization
 
