@@ -1,3 +1,4 @@
+import torch
 
 
 def positive_values(tensor):
@@ -8,3 +9,5 @@ def positive_values(tensor):
     return mask
 
 
+def all_correct(tensor):
+    return torch.ones(len(tensor), dtype=bool)
