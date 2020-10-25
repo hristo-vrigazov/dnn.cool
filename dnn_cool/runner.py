@@ -73,7 +73,7 @@ class InferDictCallback(InferCallback):
             if self.__current_store is not None:
                 self.__current_store(loader_name=state.loader_name)
             return
-        dct = {key: value.detach().cpu().numpy() for key, value in dct.items()}
+        dct = {key: value.detach().cpu().numpy() for key, value in dct.items() if key != 'gt'}
         loader_name = state.loader_name
         targets = state.input['targets']
         self.update_storage(loader_name, dct, targets)
@@ -181,10 +181,11 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         kwargs['logdir'] = logdir
         interpretation_callback = self.create_interpretation_callback(**kwargs)
         infer_dict_callback = InferDictCallback()
-        replace_gather_callback = ReplaceGatherCallback(self.task_flow, infer_dict_callback)
         default_callbacks = OrderedDict([("interpretation", interpretation_callback),
-                                         ("inference", infer_dict_callback),
-                                         ("dataparallel_reducer", replace_gather_callback)])
+                                         ("inference", infer_dict_callback)])
+        if self.balance_dataparallel_memory:
+            replace_gather_callback = ReplaceGatherCallback(self.task_flow, infer_dict_callback)
+            default_callbacks["dataparallel_reducer"] = replace_gather_callback
         kwargs['callbacks'] = kwargs.get('callbacks', default_callbacks)
         kwargs['model'] = kwargs.get('model', self.model)
         store = kwargs.pop('store', True)
