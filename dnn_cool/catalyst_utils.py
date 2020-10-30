@@ -482,6 +482,25 @@ def text_single_publisher(writer: SummaryWriter, tag, sample, idx):
     writer.add_text(f"{tag}_text", sample, global_step=idx)
 
 
+class GuidedGradCamPublisher:
+
+    def __init__(self, model, layer, forward_pass_preprocess):
+        from captum.attr import GuidedGradCam
+        self.model = model
+        self.grad_cam = GuidedGradCam(model=model, layer=layer)
+        self.forward_pass_preprocess = forward_pass_preprocess
+
+    def __call__(self, writer: SummaryWriter, tag, sample, idx):
+        X = self.forward_pass_preprocess(sample)
+        logits = self.model(X)
+        res = self.grad_cam.attribute(X, logits.argmax())
+        res = res.squeeze().detach().cpu().numpy()
+        res = (res - res.min())
+        res /= res.max()
+        res = (res * 255).astype(np.uint8)
+        writer.add_image(f"{tag}_gradcam", res, global_step=idx)
+
+
 class SingleLossInterpretationCallback(IMetricCallback):
     def __init__(
         self,

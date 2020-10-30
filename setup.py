@@ -37,6 +37,7 @@ setup(
                       "matplotlib",
                       "joblib"],
     extras_require={
-        'nlp': ['transformers']
+        'nlp': ['transformers'],
+        'interpretability': ['captum']
     }
 )
