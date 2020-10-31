@@ -491,7 +491,13 @@ class GuidedGradCamPublisher:
         self.forward_pass_preprocess = forward_pass_preprocess
 
     def __call__(self, writer: SummaryWriter, tag, sample, idx):
-        X = self.forward_pass_preprocess(sample)
+        if not isinstance(sample, torch.Tensor):
+            sample = torch.tensor(sample)
+        if sample.shape[-1] == 3:# H, W, C
+            sample = sample.permute(2, 0, 1)
+        X = self.forward_pass_preprocess(sample).unsqueeze(0)
+        device = next(self.model.parameters()).device
+        X = X.to(device)
         logits = self.model(X)
         res = self.grad_cam.attribute(X, logits.argmax())
         res = res.squeeze().detach().cpu().numpy()
