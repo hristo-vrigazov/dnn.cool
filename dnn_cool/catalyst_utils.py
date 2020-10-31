@@ -1,4 +1,4 @@
-from typing import Any, Callable, Container, Sequence
+from typing import Any, Callable, Container, Sequence, Union
 
 import numpy as np
 
@@ -54,49 +54,37 @@ def publish_all(prefix: str,
     :param task_name: The name of the task, to be included in the name
     """
     if mapping_key in mapping:
-        publishers = mapping[mapping_key]
+        publishers: List[ITensorboardPublisher] = mapping[mapping_key]
         for publisher in publishers:
-            publisher(writer, idx, sample, prefix, task_name, key)
+            X, y = sample
+            tag = f'{prefix}_{task_name}'
+            publisher(writer, tag, X[key], idx)
 
 
-def img(writer: SummaryWriter, idx: int, sample: Tuple[Dict, Dict], prefix: str, task_name: str, key: str):
-    """
-    Publishes image interpretation data.
+class ITensorboardPublisher:
 
-    :param writer: A :class:`SummaryWriter` that logs to the tensorboard.
+    def __call__(self, writer: SummaryWriter, tag: str, sample: Any, idx: int):
+        """
+        Publishes interpretation data.
 
-    :param idx: The index of the dataset sample.
+        :param writer: A :class:`SummaryWriter` that logs to the tensorboard.
 
-    :param sample: A tuple of X, y dictionaries.
+        :param tag: The prefix, this is typically either "best_key" or "worst_key".
 
-    :param prefix: The prefix, this is typically either "best" or "worst".
+        :param sample: The sample that is going to be published to the Tensorboard
 
-    :param task_name: The name of the task, to be included in the name.
+        :param idx: The index of the dataset sample.
 
-    :param key: The key in X that is being published.
-    """
-    X, y = sample
-    writer.add_image(f'{prefix}_{task_name}_images', X[key], global_step=idx)
+        """
+        raise NotImplementedError()
 
 
-def text(writer: SummaryWriter, idx: int, sample: Tuple, prefix: str, task_name: str, key: str):
-    """
-    Publishes text interpretation data.
+def img(writer: SummaryWriter, tag: str, sample: Any, idx: int):
+    writer.add_image(f'{tag}_images', sample, global_step=idx)
 
-     :param writer: A :class:`SummaryWriter` that logs to the tensorboard.
 
-    :param idx: The index of the dataset sample.
-
-    :param sample: A tuple of X, y dictionaries.
-
-    :param prefix: The prefix, this is typically either "best" or "worst".
-
-    :param task_name: The name of the task, to be included in the name.
-
-    :param key: The key in X that is being published.
-    """
-    X, y = sample
-    writer.add_text(f'{prefix}_{task_name}_text', X[key], global_step=idx)
+def text(writer: SummaryWriter, tag: str, sample: Any, idx: int):
+    writer.add_text(f'{tag}_text', sample, global_step=idx)
 
 
 def default_tensorboard_type_mapping():
@@ -112,14 +100,14 @@ class TensorboardConverter:
     A dataclass which holds mappings from column names to Tensorboard publishers and from column types to Tensorboard
     publishers. Also, it stores which column is of what type, to be able to log any column name to the Tensorboard.
     """
-    col_mapping: Dict[str, List[Callable]] = field(default_factory=lambda: {})
+    col_mapping: Dict[str, List[ITensorboardPublisher]] = field(default_factory=lambda: {})
     """
     Stores a `dict` from column names to a list of publishers. A publisher is just a callable which will be called 
     with this signature: 
     :code:`publisher(writer: SummaryWriter, idx: int, sample: Tuple, prefix: str, task_name: str, key: str)`. Example 
     publisher functions are :meth:`dnn_cool.catalyst_utils.img` and :meth:`dnn_cool.catalyst_utils.text`.
     """
-    type_mapping: Dict[str, List[Callable]] = field(default_factory=lambda: {})
+    type_mapping: Dict[str, List[ITensorboardPublisher]] = field(default_factory=lambda: {})
     """
     Stores a `dict` from column types to a list of publishers. A publisher is just a callable which will be called 
     with this signature: 
@@ -154,7 +142,14 @@ class TensorboardConverter:
             publish_all(prefix, idx, sample, key, key, writer, self.col_mapping, task_name)
         for key in X:
             if key in self.col_to_type_mapping:
-                publish_all(prefix, idx, sample, self.col_to_type_mapping[key], key, writer, self.type_mapping, task_name)
+                publish_all(prefix,
+                            idx,
+                            sample,
+                            self.col_to_type_mapping[key],
+                            key,
+                            writer,
+                            self.type_mapping,
+                            task_name)
 
 
 @dataclass
@@ -227,6 +222,7 @@ class InterpretationCallback(Callback):
     """
     This callback publishes best and worst images per task, according to the configuration supplied via the constructor.
     """
+
     def __init__(self, flow: TaskFlow,
                  tensorboard_converters: Optional[TensorboardConverters] = None,
                  loaders_to_skip=()):
@@ -474,7 +470,7 @@ def compute_device_metrics(reduced, any_tensor, metrics, outputs, targets):
         reduced[f'_device|{path}|_n'] = outputs[f'precondition|{metric.prefix}{metric.task_name}'].sum()
 
 
-def img_single_publisher(writer: SummaryWriter, tag, sample, idx):
+def img_single_publisher(writer: SummaryWriter, tag: str, sample: Union[Dict, np.ndarray], idx: int):
     writer.add_image(f"{tag}_images", sample, global_step=idx)
 
 
@@ -493,7 +489,7 @@ class GuidedGradCamPublisher:
     def __call__(self, writer: SummaryWriter, tag, sample, idx):
         if not isinstance(sample, torch.Tensor):
             sample = torch.tensor(sample)
-        if sample.shape[-1] == 3:# H, W, C
+        if sample.shape[-1] == 3:  # H, W, C
             sample = sample.permute(2, 0, 1)
         X = self.forward_pass_preprocess(sample).unsqueeze(0)
         device = next(self.model.parameters()).device
@@ -509,19 +505,19 @@ class GuidedGradCamPublisher:
 
 class SingleLossInterpretationCallback(IMetricCallback):
     def __init__(
-        self,
-        criterion,
-        loaders_to_skip: Container[str] = (),
-        prefix: str = "",
-        input_key: str = "targets",
-        output_key: str = "logits",
-        idx_key=None,
-        top_k=10,
-        tensorboard_sequence: Sequence = None,
-        tensorboard_publishers: Sequence[
-            Callable[[SummaryWriter, str, Any, int], Any]
-        ] = (),
-        **loss_kwargs,
+            self,
+            criterion,
+            loaders_to_skip: Container[str] = (),
+            prefix: str = "",
+            input_key: str = "targets",
+            output_key: str = "logits",
+            idx_key=None,
+            top_k=10,
+            tensorboard_sequence: Sequence = None,
+            tensorboard_publishers: Sequence[
+                Callable[[SummaryWriter, str, Any, int], Any]
+            ] = (),
+            **loss_kwargs,
     ):
         super().__init__(prefix, input_key, output_key, **loss_kwargs)
         self.metric = criterion
@@ -537,7 +533,7 @@ class SingleLossInterpretationCallback(IMetricCallback):
         if runner.loader_name in self._loaders_to_skip:
             return False
         if isinstance(
-            runner.loaders[runner.loader_name].sampler, SequentialSampler
+                runner.loaders[runner.loader_name].sampler, SequentialSampler
         ):
             return True
 
@@ -576,7 +572,7 @@ class SingleLossInterpretationCallback(IMetricCallback):
         indices_sorted = self.interpretations[runner.loader_name]["indices"][loss_sorter]
         indices = {
             "best": indices_sorted[: self.top_k],
-            "worst": indices_sorted[-self.top_k :][::-1],
+            "worst": indices_sorted[-self.top_k:][::-1],
         }
 
         writer: SummaryWriter = self.loggers[runner.loader_name]
