@@ -32,6 +32,8 @@ class TrainingArguments(Mapping):
     callbacks: Optional[Union[List[Callback], Dict[str, Callback]]] = None
     fp16: Union[Dict, bool] = None
     catalyst_args: Dict = field(default_factory=lambda: {})
+    train_transforms: Callable = None
+    val_transforms: Callable = None
 
     def __getitem__(self, k):
         if hasattr(self, k):
@@ -248,9 +250,9 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
             raise ValueError(f'You must supply either a `loaders` parameter, or give `train_test_val_indices` via'
                              f'constructor.')
         train_indices, test_indices, val_indices = self.train_test_val_indices
-        train_dataset = TransformedSubset(dataset, train_indices)
-        val_dataset = TransformedSubset(dataset, val_indices)
-        test_dataset = TransformedSubset(dataset, test_indices)
+        train_dataset = TransformedSubset(dataset, train_indices, sample_transforms=kwargs.get('train_transforms'))
+        val_dataset = TransformedSubset(dataset, val_indices, sample_transforms=kwargs.get('val_transforms'))
+        test_dataset = TransformedSubset(dataset, test_indices, sample_transforms=kwargs.get('val_transforms'))
 
         datasets = {
             'train': train_dataset,
