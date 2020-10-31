@@ -313,6 +313,28 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         df.to_csv(self.project_dir / self.default_logdir / 'evaluation.csv', index=False)
         return df
 
+    def _run_batch(self, batch: Mapping[str, Any]) -> None:
+        """
+        Inner method to run train step on specified data batch,
+        with batch callbacks events.
+
+        Args:
+            batch (Mapping[str, Any]): dictionary with data batches
+                from DataLoader.
+        """
+        if isinstance(batch, dict):
+            self.batch_size = len(next(iter(batch.values())))
+        else:
+            self.batch_size = len(next(iter(batch[1].values())))
+        self.global_sample_step += self.batch_size
+        self.loader_sample_step += self.batch_size
+        batch = self._batch2device(batch, self.device)
+        self.input = batch
+
+        self._run_event("on_batch_start")
+        self._handle_batch(batch=batch)
+        self._run_event("on_batch_end")
+
 
 def split_already_done(df, project_dir):
     total_len = 0
