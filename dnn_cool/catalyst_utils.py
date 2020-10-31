@@ -506,9 +506,7 @@ class SingleLossInterpretationCallback(IMetricCallback):
             idx_key=None,
             top_k=10,
             tensorboard_sequence: Sequence = None,
-            tensorboard_publishers: Sequence[
-                Callable[[SummaryWriter, str, Any, int], Any]
-            ] = (),
+            tensorboard_publishers: Sequence[ITensorboardPublisher] = (),
             **loss_kwargs,
     ):
         super().__init__(prefix, input_key, output_key, **loss_kwargs)
@@ -524,9 +522,7 @@ class SingleLossInterpretationCallback(IMetricCallback):
     def _should_interpret_loader(self, runner: IRunner):
         if runner.loader_name in self._loaders_to_skip:
             return False
-        if isinstance(
-                runner.loaders[runner.loader_name].sampler, SequentialSampler
-        ):
+        if isinstance(runner.loaders[runner.loader_name].sampler, SequentialSampler):
             return True
 
         """
@@ -587,19 +583,13 @@ class SingleLossInterpretationCallback(IMetricCallback):
 
         if self._idx_key is None:
             bs = len(loss_items)
-            indices_so_far = self.interpretations[runner.loader_name][
-                "indices"
-            ]
-            start_idx = (
-                0 if len(indices_so_far) == 0 else (indices_so_far[-1][-1] + 1)
-            )
+            indices_so_far = self.interpretations[runner.loader_name]["indices"]
+            start_idx = (0 if len(indices_so_far) == 0 else (indices_so_far[-1][-1] + 1))
             indices = np.arange(start_idx, start_idx + bs)
         else:
             indices = runner.input[self._idx_key].detach().cpu().numpy()
 
-        self.interpretations[runner.loader_name]["loss"].append(
-            loss_items.detach().cpu().numpy()
-        )
+        self.interpretations[runner.loader_name]["loss"].append(loss_items.detach().cpu().numpy())
         self.interpretations[runner.loader_name]["indices"].append(indices)
 
     @property
