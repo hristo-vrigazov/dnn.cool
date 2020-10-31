@@ -79,18 +79,18 @@ class ITensorboardPublisher:
         raise NotImplementedError()
 
 
-def img(writer: SummaryWriter, tag: str, sample: Any, idx: int):
+def img_publisher(writer: SummaryWriter, tag: str, sample: Any, idx: int):
     writer.add_image(f'{tag}_images', sample, global_step=idx)
 
 
-def text(writer: SummaryWriter, tag: str, sample: Any, idx: int):
+def text_publisher(writer: SummaryWriter, tag: str, sample: Any, idx: int):
     writer.add_text(f'{tag}_text', sample, global_step=idx)
 
 
 def default_tensorboard_type_mapping():
     return {
-        'img': [img],
-        'text': [text]
+        'img': [img_publisher],
+        'text': [text_publisher]
     }
 
 
@@ -468,14 +468,6 @@ def compute_device_metrics(reduced, any_tensor, metrics, outputs, targets):
                 value = value.unsqueeze(0)
             reduced[f'_device|{full_name}'] = value
         reduced[f'_device|{path}|_n'] = outputs[f'precondition|{metric.prefix}{metric.task_name}'].sum()
-
-
-def img_single_publisher(writer: SummaryWriter, tag: str, sample: Union[Dict, np.ndarray], idx: int):
-    writer.add_image(f"{tag}_images", sample, global_step=idx)
-
-
-def text_single_publisher(writer: SummaryWriter, tag, sample, idx):
-    writer.add_text(f"{tag}_text", sample, global_step=idx)
 
 
 class GuidedGradCamPublisher:
