@@ -193,3 +193,14 @@ class MultilabelClassificationDecoder(Decoder):
 
     def load_tuned(self, params):
         self.thresholds = torch.tensor(params['thresholds']).unsqueeze(0)
+
+
+class NoOpDecoder(Decoder):
+    def __call__(self, x):
+        return x
+
+    def tune(self, predictions, targets):
+        pass
+
+    def load_tuned(self, params):
+        pass

@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 from dnn_cool.activations import CompositeActivation
 from dnn_cool.datasets import FlowDataset, LeafTaskDataset
 from dnn_cool.decoders import BinaryDecoder, TaskFlowDecoder, Decoder, ClassificationDecoder, \
-    MultilabelClassificationDecoder
+    MultilabelClassificationDecoder, NoOpDecoder, BoundedRegressionDecoder
 from dnn_cool.evaluation import EvaluationCompositeVisitor, EvaluationVisitor
 from dnn_cool.filter import FilterCompositeVisitor, FilterVisitor
 from dnn_cool.losses import TaskFlowLoss, ReducedPerSample, TaskFlowLossPerSample
@@ -35,8 +35,8 @@ class ITask:
     def get_activation(self) -> Optional[nn.Module]:
         return None
 
-    def get_decoder(self) -> Optional[Decoder]:
-        return None
+    def get_decoder(self) -> Decoder:
+        return NoOpDecoder()
 
     def get_filter(self) -> FilterVisitor:
         return FilterVisitor(self, prefix='')
@@ -110,6 +110,8 @@ class Task(ITask):
         return self.activation
 
     def get_decoder(self):
+        if self.decoder is None:
+            return NoOpDecoder()
         return self.decoder
 
     def get_loss(self):
@@ -161,7 +163,7 @@ class BoundedRegressionTask(Task):
     available_func: Callable = field(default_factory=lambda: positive_values)
     module: nn.Module = field(default_factory=lambda: nn.Identity())
     activation: nn.Module = field(default_factory=lambda: nn.Sigmoid())
-    decoder: Decoder = None
+    decoder: Decoder = field(default_factory=BoundedRegressionDecoder)
     inputs: Sequence = None
     metrics: Sequence[Tuple[str, TorchMetric]] = field(default_factory=get_default_bounded_regression_metrics)
 
