@@ -54,12 +54,17 @@ class LeafVisitor(IFlowTask):
     def __init__(self, task, prefix):
         self.activation = task.get_activation()
         self.decoder = task.get_decoder()
+        self.task_is_train_only = task.is_train_only()
         self.prefix = prefix
         self.path = self.prefix + task.get_name()
 
     def __call__(self, *args, **kwargs):
         visitor_data = get_visitor_data(*args, **kwargs)
-        preds = visitor_data.predictions[self.path]
+        preds = visitor_data.predictions.get(self.path)
+        if preds is None:
+            if not self.task_is_train_only:
+                raise ValueError(f'The task {self.path} has no predictions, but it is not marked as train only.')
+            return self.empty_result()
         if self.activation is not None:
             preds = self.activation(torch.tensor(preds).float()).detach().cpu().numpy()
         targets = visitor_data.targets[self.path] if visitor_data.targets is not None else None
