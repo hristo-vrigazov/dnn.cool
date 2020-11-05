@@ -7,7 +7,7 @@ from torchvision import transforms
 
 def any_value(outputs):
     for key, value in outputs.items():
-        if not key.startswith('precondition'):
+        if not key.startswith('precondition') and not key == 'gt':
             return value
 
 

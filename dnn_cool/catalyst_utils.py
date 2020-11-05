@@ -271,8 +271,8 @@ class InterpretationCallback(Callback):
         targets = state.input['targets']
         overall_res = self.overall_loss(outputs, targets)
         start = self.loader_counts[state.loader_name]
-        bs = len(any_value(outputs))
 
+        n = 0
         for path, loss in overall_res.items():
             if path.startswith('indices'):
                 continue
@@ -280,7 +280,9 @@ class InterpretationCallback(Callback):
             ind_key = f'indices|{path}'
             indices = overall_res[ind_key] + start
             self.interpretations[state.loader_name][ind_key].append(indices.detach().cpu().numpy())
-        self.loader_counts[state.loader_name] += bs
+            n = len(indices)
+
+        self.loader_counts[state.loader_name] += n
 
     def on_loader_end(self, state: State):
         if should_skip_loader(state, self.loaders_to_skip):
