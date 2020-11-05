@@ -113,7 +113,8 @@ class Project:
 
         for i in range(len(self.inputs.keys)):
             self.converters.tensorboard_converters.col_to_type_mapping[self.inputs.keys[i]] = self.inputs.types[i]
-        torch.save(self.converters.state_dict(), converters_file)
+        if not converters_file.exists():
+            torch.save(self.converters.state_dict(), converters_file)
 
     def add_task_flow(self, task_flow: TaskFlow):
         self.flow_tasks.append(task_flow)
