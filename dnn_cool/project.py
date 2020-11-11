@@ -87,7 +87,7 @@ class Project:
                  input_col: Union[str, Iterable[str]],
                  output_col: Union[str, Iterable[str]],
                  project_dir: Union[str, Path],
-                 converters: Converters = None):
+                 converters: Converters):
         self.df = df
         assert_col_in_df(input_col, df)
         assert_col_in_df(output_col, df)

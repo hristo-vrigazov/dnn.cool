@@ -89,7 +89,7 @@ class ValuesConverter(StatefulConverter):
     def to_values(self, df, col, guessed_type):
         if col in self.col_mapping:
             converter = self.col_mapping[col]
-            return Values([col], converter(df[col]), [guessed_type])
+            return Values([col], [converter(df[col])], [guessed_type])
         if guessed_type in self.type_mapping:
             converter = self.type_mapping[guessed_type]
             return Values([col], [converter(df[col])], [guessed_type])
