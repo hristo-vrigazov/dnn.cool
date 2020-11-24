@@ -287,13 +287,17 @@ class InterpretationCallback(Callback):
     def on_loader_end(self, state: State):
         if should_skip_loader(state, self.loaders_to_skip):
             return
-        self.interpretations[state.loader_name] = {
-            key: np.concatenate(value, axis=0)
-            for key, value in self.interpretations[state.loader_name].items()
-        }
+        self.interpretations[state.loader_name] = self.prepare_interpretations(state)
 
         if self.tensorboard_converters is not None:
             self.tensorboard_converters.publish(state, self.interpretations[state.loader_name])
+
+    def prepare_interpretations(self, state):
+        res = {}
+        for key, value in self.interpretations[state.loader_name].items():
+            value = np.concatenate([arr for arr in value if len(arr) > 0])
+            res[key] = value
+        return res
 
     def on_stage_end(self, state: State):
         if should_skip_loader(state, self.loaders_to_skip):

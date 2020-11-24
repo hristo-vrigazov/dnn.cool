@@ -77,7 +77,7 @@ def test_rf_multi_input():
     maxs = nonzero_indices.max(dim=0).values + 1
     lengths = maxs - mins
 
-    assert lengths[0].item() == (loader.batch_size - 1)
+    assert lengths[0].item() == loader.batch_size
     assert lengths[1].item() == 3
     assert lengths[2].item() == 9
     assert lengths[3].item() == 9
