@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Dict
+from typing import Dict, Optional
 
 import torch
 from torch import nn
@@ -70,20 +70,20 @@ class ModuleDecorator(nn.Module):
         self.decoder = task.get_decoder()
 
     def forward(self, *args, **kwargs):
-        if self.training:
-            args, kwargs, gt = find_gt_and_process_args_when_training(*args, **kwargs)
-            decoded_logits = gt.get(self.task_name, None)
-        else:
-            decoded_logits = None
-
+        key = self.prefix + self.task_name
+        condition = OnesCondition(key)
         logits = self.module(*args, **kwargs)
+        if self.training:
+            return LeafModuleOutput(path=key, logits=logits, precondition=condition, activated=None, decoded=None)
+        args, kwargs, gt = find_gt_and_process_args_when_training(*args, **kwargs)
+        decoded_logits = gt.get(self.task_name, None)
         activated_logits = self.activation(logits) if self.activation is not None else logits
 
         if decoded_logits is None:
             decoded_logits = self.decoder(activated_logits) if self.decoder is not None else activated_logits
-        key = self.prefix + self.task_name
         condition = OnesCondition(key)
-        return LeafModuleOutput(key, logits, activated_logits, decoded_logits, condition)
+        return LeafModuleOutput(path=key, logits=logits, precondition=condition,
+                                activated=activated_logits, decoded=decoded_logits)
 
 
 class Condition(ICondition):
@@ -174,9 +174,9 @@ class AndCondition(Condition):
 class LeafModuleOutput(IFlowTaskResult):
     path: str
     logits: torch.Tensor
-    activated: torch.Tensor
-    decoded: torch.Tensor
     precondition: Condition
+    activated: Optional[torch.Tensor]
+    decoded: Optional[torch.Tensor]
 
     def add_to_composite(self, composite_module_output):
         composite_module_output.logits[self.path] = self.logits
