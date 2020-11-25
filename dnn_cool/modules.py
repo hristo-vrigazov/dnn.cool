@@ -209,6 +209,8 @@ class CompositeModuleOutput(IFlowTaskResult):
     activated: Dict[str, torch.Tensor] = field(default_factory=lambda: {})
     decoded: Dict[str, torch.Tensor] = field(default_factory=lambda: {})
     preconditions: Dict[str, Condition] = field(default_factory=lambda: {})
+    # A number of predictions for the same tasks, with different parts dropped out
+    dropout_samples: Dict[str, torch.Tensor] = field(default_factory=lambda: {})
 
     def add_to_composite(self, other):
         _copy_to_self(self.logits, other.logits)
@@ -242,23 +244,24 @@ class CompositeModuleOutput(IFlowTaskResult):
         return self
 
     def reduce(self):
-        if len(self.prefix) == 0:
-            inference_without_gt = self.gt is None
-            preconditions_source = self.decoded if inference_without_gt else self.gt
-            res = self.decoded if inference_without_gt else self.logits
+        if len(self.prefix) != 0:
+            # if this is not root, do not reduce yet.
+            return self
+        inference_without_gt = self.gt is None
+        preconditions_source = self.decoded if inference_without_gt else self.gt
+        res = self.decoded if inference_without_gt else self.logits
 
-            if inference_without_gt and not self.training:
-                for key, value in self.preconditions.items():
-                    if value is not None:
-                        self.preconditions[key] = value.to_mask(preconditions_source)
-                return self
+        if inference_without_gt and not self.training:
             for key, value in self.preconditions.items():
                 if value is not None:
-                    res[f'precondition|{key}'] = value.to_mask(preconditions_source)
-            if not inference_without_gt:
-                res['gt'] = self.gt
-            return res
-        return self
+                    self.preconditions[key] = value.to_mask(preconditions_source)
+            return self
+        for key, value in self.preconditions.items():
+            if value is not None:
+                res[f'precondition|{key}'] = value.to_mask(preconditions_source)
+        if not inference_without_gt:
+            res['gt'] = self.gt
+        return res
 
 
 @dataclass
