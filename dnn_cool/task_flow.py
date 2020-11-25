@@ -77,6 +77,9 @@ class ITask:
             metric.bind_to_task(self)
         return self.metrics
 
+    def get_dropout_mc(self):
+        return None
+
     def __repr__(self):
         params = (
             ('name', self.get_name()),

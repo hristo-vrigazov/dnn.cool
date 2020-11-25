@@ -68,22 +68,22 @@ class ModuleDecorator(nn.Module):
         self.module = task.torch()
         self.activation = task.get_activation()
         self.decoder = task.get_decoder()
+        self.dropout_mc = task.get_dropout_mc()
 
     def forward(self, *args, **kwargs):
         key = self.prefix + self.task_name
-        condition = OnesCondition(key)
         logits = self.module(*args, **kwargs)
-        if self.training:
-            return LeafModuleOutput(path=key, logits=logits, precondition=condition, activated=None, decoded=None)
-        args, kwargs, gt = find_gt_and_process_args_when_training(*args, **kwargs)
-        decoded_logits = gt.get(self.task_name, None)
-        activated_logits = self.activation(logits) if self.activation is not None else logits
-
-        if decoded_logits is None:
-            decoded_logits = self.decoder(activated_logits) if self.decoder is not None else activated_logits
         condition = OnesCondition(key)
+        if self.training:
+            return LeafModuleOutput(path=key, logits=logits, precondition=condition,
+                                    activated=None, decoded=None, dropout_samples=None)
+        activated_logits = self.activation(logits) if self.activation is not None else logits
+        decoded_logits = self.decoder(activated_logits) if self.decoder is not None else activated_logits
+        condition = OnesCondition(key)
+        dropout_samples = None if self.dropout_mc is None else self.dropout_mc.create_samples(self.module,
+                                                                                              *args, **kwargs)
         return LeafModuleOutput(path=key, logits=logits, precondition=condition,
-                                activated=activated_logits, decoded=decoded_logits)
+                                activated=activated_logits, decoded=decoded_logits, dropout_samples=dropout_samples)
 
 
 class Condition(ICondition):
@@ -177,12 +177,14 @@ class LeafModuleOutput(IFlowTaskResult):
     precondition: Condition
     activated: Optional[torch.Tensor]
     decoded: Optional[torch.Tensor]
+    dropout_samples: Optional[torch.Tensor]
 
     def add_to_composite(self, composite_module_output):
         composite_module_output.logits[self.path] = self.logits
         composite_module_output.activated[self.path] = self.activated
         composite_module_output.decoded[self.path] = self.decoded
         composite_module_output.preconditions[self.path] = self.precondition
+        composite_module_output.dropout_samples[self.path] = self.dropout_samples
 
     def __or__(self, precondition: Condition):
         """
