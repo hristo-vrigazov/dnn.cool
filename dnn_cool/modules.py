@@ -81,6 +81,7 @@ class ModuleDecorator(nn.Module):
         decoded_logits = self.decoder(activated_logits) if self.decoder is not None else activated_logits
         condition = OnesCondition(key)
         dropout_samples = None if self.dropout_mc is None else self.dropout_mc.create_samples(self.module,
+                                                                                              self.activation,
                                                                                               *args, **kwargs)
         return LeafModuleOutput(path=key, logits=logits, precondition=condition,
                                 activated=activated_logits, decoded=decoded_logits, dropout_samples=dropout_samples)

@@ -9,12 +9,15 @@ class DropoutMC:
         self.num_samples = num_samples
         self.p = p
 
-    def create_samples(self, module, *args, **kwargs):
+    def create_samples(self, module, activation, *args, **kwargs):
         res = []
         for i in range(self.num_samples):
             new_args = [F.dropout(arg, p=self.p, training=True, inplace=False) for arg in args]
             new_kwargs = {key: F.dropout(value, p=self.p, training=True, inplace=False) for key, value in kwargs.items()}
-            res.append(module(*new_args, **new_kwargs))
+            logits = module(*new_args, **new_kwargs)
+            if activation is not None:
+                logits = activation(logits)
+            res.append(logits)
         return torch.stack(res, dim=0)
 
 

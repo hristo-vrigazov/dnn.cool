@@ -15,7 +15,7 @@ def test_samples_of_correct_shape():
     x = torch.randn((batch_size, in_features))
     prediction_shape = module(x).shape
     expected_shape = (dropout_mc.num_samples,) + prediction_shape
-    samples = dropout_mc.create_samples(module, x)
+    samples = dropout_mc.create_samples(module, None, x)
     actual_shape = samples.shape
 
     assert actual_shape == expected_shape
@@ -33,7 +33,7 @@ def test_uncertainty_goes_down_with_training():
     y = w * x + b
     dropout_mc = DropoutMC()
     model = nn.Linear(n_features, n_features, bias=True).eval()
-    std_before_training = dropout_mc.create_samples(model, x).std(dim=0)
+    std_before_training = dropout_mc.create_samples(model, None, x).std(dim=0)
     model.train()
     criterion = nn.MSELoss()
     optimizer = optim.SGD(model.parameters(), lr=1e-2, momentum=0.9)
@@ -46,7 +46,7 @@ def test_uncertainty_goes_down_with_training():
         loss.backward()
         optimizer.step()
         model.eval()
-        samples = dropout_mc.create_samples(model, x)
+        samples = dropout_mc.create_samples(model, None, x)
         std_after_training = samples.std(dim=0)
         std_is_smaller_ratio = (std_after_training < std_before_training).float().mean()
         ratios.append(std_is_smaller_ratio)
