@@ -57,9 +57,6 @@ class LossItems(IOut, IFlowTaskResult, ICondition):
 
 
 def get_flow_data(*args, **kwargs):
-    if len(args) == 2:
-        return LossFlowData(*args)
-
     for arg in args:
         if isinstance(arg, LossFlowData):
             return arg
@@ -67,6 +64,13 @@ def get_flow_data(*args, **kwargs):
     for arg in kwargs.values():
         if isinstance(arg, LossFlowData):
             return arg
+
+    if args_are_dicts(args):
+        return LossFlowData(*args)
+
+
+def args_are_dicts(args):
+    return len(args) == 2 and isinstance(args[0], dict) and isinstance(args[1], dict)
 
 
 def squeeze_if_needed(tensor):
@@ -232,8 +236,7 @@ class TaskFlowLoss(nn.Module):
         :param args:
         :return:
         """
-        is_root = self.prefix == ''
-        if is_root:
+        if args_are_dicts(args):
             outputs, targets = args
         else:
             loss_flow_data = args[0]
@@ -248,6 +251,7 @@ class TaskFlowLoss(nn.Module):
         loss_items = torch.zeros(1, dtype=value.dtype, device=value.device)
         flow_result = self.flow(self, LossFlowData(outputs, targets), LossItems(loss_items))
 
+        is_root = self.prefix == ''
         if not is_root:
             return LossItems(flow_result.loss_items)
 
