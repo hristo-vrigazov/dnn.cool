@@ -232,7 +232,7 @@ class TaskFlowLoss(nn.Module):
         :param args:
         :return:
         """
-        is_root = len(args) == 2
+        is_root = self.prefix == ''
         if is_root:
             outputs, targets = args
         else:
