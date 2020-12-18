@@ -32,6 +32,19 @@ class LossFlowData(IFeaturesDict):
     def __getattr__(self, item):
         return self
 
+    @classmethod
+    def from_args(cls, *args, **kwargs):
+        for arg in args:
+            if isinstance(arg, LossFlowData):
+                return arg
+
+        for arg in kwargs.values():
+            if isinstance(arg, LossFlowData):
+                return arg
+
+        if args_are_dicts(args):
+            return cls(*args)
+
 
 class LossItems(IOut, IFlowTaskResult, ICondition):
 
@@ -54,19 +67,6 @@ class LossItems(IOut, IFlowTaskResult, ICondition):
 
     def __and__(self, other):
         return self
-
-
-def get_flow_data(*args, **kwargs):
-    for arg in args:
-        if isinstance(arg, LossFlowData):
-            return arg
-
-    for arg in kwargs.values():
-        if isinstance(arg, LossFlowData):
-            return arg
-
-    if args_are_dicts(args):
-        return LossFlowData(*args)
 
 
 def args_are_dicts(args):
@@ -160,7 +160,7 @@ class BaseMetricDecorator(nn.Module):
                                                           ctx=ctx)
 
     def forward(self, *args, **kwargs):
-        loss_flow_data = get_flow_data(*args, **kwargs)
+        loss_flow_data = LossFlowData.from_args(*args, **kwargs)
         return self.postprocess_results(self.compute_with_precondition(loss_flow_data))
 
     def compute_with_precondition(self, loss_flow_data):
