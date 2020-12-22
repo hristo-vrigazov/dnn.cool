@@ -17,13 +17,15 @@ class TorchMetric:
         self.metric_fn = metric_fn
         self.metric_args = metric_args
         self._decode = decode
+        self._is_binded = False
 
     def bind_to_task(self, task):
+        self._is_binded = True
         self.activation = task.get_activation()
         self.decoder = task.get_decoder()
 
     def __call__(self, outputs, targets, activate=True):
-        if (self.activation is None) or (self.decoder is None):
+        if not self._is_binded:
             raise ValueError(f'The metric is not binded to a task, but is already used.')
         outputs = torch.as_tensor(outputs)
         targets = torch.as_tensor(targets)
