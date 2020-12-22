@@ -1,5 +1,5 @@
 torch
-catalyst==20.09
+catalyst==20.12
 pandas
 numpy
 tqdm

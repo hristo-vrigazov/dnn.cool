@@ -23,13 +23,13 @@ def test_loss_interpretation_callback_skips_loader():
         loaders_to_skip=["valid"],
     )
 
-    runner.loader_name = "valid"
+    runner.loader_key = "valid"
     loss_interpretation_callback.on_loader_start(runner)
 
 
 def test_loss_interpretation_callback_on_simple_example(tmp_path):
     runner = IRunnerMock()
-    runner.loader_name = "valid"
+    runner.loader_key = "valid"
     X = torch.rand(128, 3, 64, 64)
     n_classes = 10
     y = torch.randint(high=n_classes, size=(128,))

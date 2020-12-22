@@ -10,7 +10,7 @@ from torch import nn
 import numpy as np
 import torch
 from catalyst.dl import SupervisedRunner, EarlyStoppingCallback, InferCallback, State, Callback
-from catalyst.utils import load_checkpoint, unpack_checkpoint
+from catalyst.utils import load_checkpoint, unpack_checkpoint, any2device
 from torch import optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.optim.optimizer import Optimizer
@@ -66,17 +66,17 @@ class InferDictCallback(InferCallback):
         self.__current_store = None
 
     def on_loader_start(self, state: State):
-        self.predictions[state.loader_name] = {}
-        self.targets[state.loader_name] = {}
+        self.predictions[state.loader_key] = {}
+        self.targets[state.loader_key] = {}
 
     def on_batch_end(self, state: State):
         dct = state.output[self.out_key]
         if '_device|overall|_n' in dct:
             if self.__current_store is not None:
-                self.__current_store(loader_name=state.loader_name)
+                self.__current_store(loader_name=state.loader_key)
             return
         dct = {key: value.detach().cpu().numpy() for key, value in dct.items() if key != 'gt'}
-        loader_name = state.loader_name
+        loader_name = state.loader_key
         targets = state.input['targets']
         self.update_storage(loader_name, dct, targets)
 
@@ -104,14 +104,14 @@ class InferDictCallback(InferCallback):
                 self.targets[loader_name][key].append(value.detach().cpu().numpy())
 
     def on_loader_end(self, state: State):
-        self.predictions[state.loader_name] = {
+        self.predictions[state.loader_key] = {
             key: np.concatenate(value, axis=0)
-            for key, value in self.predictions[state.loader_name].items()
+            for key, value in self.predictions[state.loader_key].items()
         }
 
-        self.targets[state.loader_name] = {
+        self.targets[state.loader_key] = {
             key: np.concatenate(value, axis=0)
-            for key, value in self.targets[state.loader_name].items()
+            for key, value in self.targets[state.loader_key].items()
         }
 
 
@@ -264,14 +264,14 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         return datasets
 
     def batch_to_device(self, batch, device) -> Mapping[str, torch.Tensor]:
-        return super()._batch2device(batch, device)
+        return any2device(batch, device)
 
     def batch_to_model_device(self, batch) -> Mapping[str, torch.Tensor]:
-        return super()._batch2device(batch, next(self.model.parameters()).device)
+        return any2device(batch, next(self.model.parameters()).device)
 
     def best(self) -> nn.Module:
         model = self.model
-        checkpoint_path = self.project_dir / self.default_logdir / 'checkpoints' / 'best_full.pth'
+        checkpoint_path = str(self.project_dir / self.default_logdir / 'checkpoints' / 'best_full.pth')
         ckpt = load_checkpoint(checkpoint_path)
         unpack_checkpoint(ckpt, model)
 
@@ -314,28 +314,6 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         df = evaluator(res['logits'][loader_name], res['targets'][loader_name])
         df.to_csv(self.project_dir / self.default_logdir / 'evaluation.csv', index=False)
         return df
-
-    def _run_batch(self, batch: Mapping[str, Any]) -> None:
-        """
-        Inner method to run train step on specified data batch,
-        with batch callbacks events.
-
-        Args:
-            batch (Mapping[str, Any]): dictionary with data batches
-                from DataLoader.
-        """
-        if isinstance(batch, dict):
-            self.batch_size = len(next(iter(batch.values())))
-        else:
-            self.batch_size = len(next(iter(batch[1].values())))
-        self.global_sample_step += self.batch_size
-        self.loader_sample_step += self.batch_size
-        batch = self._batch2device(batch, self.device)
-        self.input = batch
-
-        self._run_event("on_batch_start")
-        self._handle_batch(batch=batch)
-        self._run_event("on_batch_end")
 
 
 def split_already_done(df, project_dir):

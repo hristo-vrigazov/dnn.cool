@@ -2,7 +2,7 @@ from functools import partial
 
 import torch
 
-from catalyst.utils.metrics import accuracy, multi_label_accuracy
+from catalyst.utils.metrics import accuracy, multilabel_accuracy
 from sklearn.metrics import f1_score, precision_score, recall_score
 from torch import nn
 
@@ -145,7 +145,7 @@ class MultiLabelClassificationAccuracy(TorchMetric):
     def __init__(self, metric_args=None):
         if metric_args is None:
             metric_args = {'threshold': 0.5}
-        super().__init__(multi_label_accuracy, decode=True, metric_args=metric_args)
+        super().__init__(multilabel_accuracy, decode=True, metric_args=metric_args)
 
     def _invoke_metric(self, outputs, targets, metric_args_dict):
         # the threshold does not actually matter, since the outputs are already decoded, i.e they are already 1 and 0

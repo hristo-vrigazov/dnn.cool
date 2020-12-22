@@ -2,6 +2,7 @@ import tempfile
 from collections import OrderedDict
 
 from catalyst.dl import SupervisedRunner
+from catalyst.utils import any2device
 from torch import optim
 from torch.utils.data import DataLoader
 
@@ -84,8 +85,8 @@ def test_synthetic_dataset_default_runner():
 def print_any_prediction(criterion, model, nested_loaders, runner):
     loader = nested_loaders['valid']
     X, y = next(iter(loader))
-    X = runner._batch2device(X, next(model.parameters()).device)
-    y = runner._batch2device(y, next(model.parameters()).device)
+    X = any2device(X, next(model.parameters()).device)
+    y = any2device(y, next(model.parameters()).device)
     model = model.eval()
     pred = model(X)
     res = criterion(pred, y)
