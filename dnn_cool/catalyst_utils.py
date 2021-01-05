@@ -295,7 +295,14 @@ class InterpretationCallback(Callback):
     def prepare_interpretations(self, state):
         res = {}
         for key, value in self.interpretations[state.loader_name].items():
-            value = np.concatenate([arr for arr in value if len(arr) > 0])
+            arrs = []
+            for arr in value:
+                try:
+                    if len(arr) > 0:
+                        arrs.append(arr)
+                except TypeError:
+                    pass
+            value = np.concatenate(arrs)
             res[key] = value
         return res
 
