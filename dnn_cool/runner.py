@@ -205,7 +205,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
             out_dir = logdir / 'infer'
             out_dir.mkdir(exist_ok=True)
             for key in res:
-                torch.save(res[key], out_dir / f'{key}.pkl')
+                torch.save(res[key], out_dir / f'{key}.pkl', pickle_protocol=4)
         return res
 
     def create_interpretation_callback(self, **kwargs) -> InterpretationCallback:
