@@ -194,7 +194,7 @@ class BinaryClassificationTask(Task):
 class ClassificationTask(Task):
     """
     Represents a classification task. Labels should be integers from 0 to N-1, where N is the number of classes
-    * activation - `nn.Softmax(dim=-1)`
+    * activation - `nn.Softmax()`
     * loss - `nn.CrossEntropyLoss()`
     """
     name: str
@@ -213,7 +213,7 @@ class ClassificationTask(Task):
 class MultilabelClassificationTask(Task):
     """
     Represents a classification task. Labels should be integers from 0 to N-1, where N is the number of classes
-    * activation - `nn.Softmax(dim=-1)`
+    * activation - `nn.Sigmoid()`
     * loss - `nn.CrossEntropyLoss()`
     """
     name: str
