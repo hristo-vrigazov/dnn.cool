@@ -1,22 +1,13 @@
-from typing import Any, Callable, Container, Sequence, Union
-
-import numpy as np
-
-import torch
-from torch.utils.data import SequentialSampler
-
-from catalyst.callbacks import IMetricCallback
-from catalyst.contrib.tools import SummaryWriter
-from catalyst.core import IRunner
-
 from dataclasses import dataclass, field
 from functools import partial
 from pathlib import Path
+from typing import Any, Container, Sequence
 from typing import Callable, Dict, Optional, Tuple, List, Mapping
 
 import numpy as np
 import torch
 from catalyst.callbacks import BatchMetricCallback
+from catalyst.callbacks import IMetricCallback
 from catalyst.contrib.tools.tensorboard import SummaryWriter
 from catalyst.core import Callback, CallbackOrder, State, IRunner
 from torch import nn
