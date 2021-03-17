@@ -193,7 +193,7 @@ class LeafModuleOutput(IFlowTaskResult):
         :param precondition: precondition
         :return: self
         """
-        self.precondition = precondition
+        self.precondition &= precondition
         return self
 
 
