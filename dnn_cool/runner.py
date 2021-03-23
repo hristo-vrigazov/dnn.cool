@@ -318,10 +318,12 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         return df
 
     def export_for_deployment(self, out_directory: Path):
-        copyfile(self.project_dir / self.default_logdir / 'tuned_params.pkl', out_directory / 'tuned_params.pkl')
+        params_file = self.project_dir / self.default_logdir / 'tuned_params.pkl'
+        if params_file.exists():
+            copyfile(params_file, out_directory / 'tuned_params.pkl')
         unbind_task_labels(self.task_flow)
-        torch.save(out_directory / 'full_flow.pkl', self.task_flow)
-        torch.save(out_directory / 'state_dict.pth', self.model.state_dict())
+        torch.save(self.task_flow, out_directory / 'full_flow.pkl')
+        torch.save(self.model.state_dict(), out_directory / 'state_dict.pth')
 
 
 def split_already_done(df, project_dir):
