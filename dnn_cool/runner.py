@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from shutil import copyfile
 from typing import Iterator, Mapping
 from dataclasses import dataclass, field
 from functools import partial
@@ -17,6 +18,7 @@ from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset
 
 from dnn_cool.catalyst_utils import InterpretationCallback, TensorboardConverters, ReplaceGatherCallback
+from dnn_cool.deployment import unbind_task_labels
 from dnn_cool.utils import TransformedSubset, train_test_val_split
 
 
@@ -314,6 +316,12 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         df = evaluator(res['logits'][loader_name], res['targets'][loader_name])
         df.to_csv(self.project_dir / self.default_logdir / 'evaluation.csv', index=False)
         return df
+
+    def export_for_deployment(self, out_directory: Path):
+        copyfile(self.project_dir / self.default_logdir / 'tuned_params.pkl', out_directory / 'tuned_params.pkl')
+        unbind_task_labels(self.task_flow)
+        torch.save(out_directory / 'full_flow.pkl', self.task_flow)
+        torch.save(out_directory / 'state_dict.pth', self.model.state_dict())
 
 
 def split_already_done(df, project_dir):
