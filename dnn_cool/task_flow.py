@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from typing import Iterable, Optional, Callable, Tuple, Sequence, List
 
 import torch
+import numpy as np
 from torch import nn
 from torch.utils.data import Dataset
 from treelib import Tree, Node
@@ -249,6 +250,26 @@ class MultilabelClassificationTask(Task):
     decoder: Decoder = field(default_factory=MultilabelClassificationDecoder)
     module: nn.Module = Identity()
     metrics: Sequence[Tuple[str, TorchMetric]] = field(default_factory=get_default_multilabel_classification_metrics)
+
+    class_names: Optional = None
+
+    def get_treelib_explainer(self) -> Callable:
+        def explainer(task_name: str,
+                      decoded: np.ndarray,
+                      activated: np.ndarray,
+                      logits: np.ndarray,
+                      node_identifier: str) -> Tuple[Tree, Node]:
+            tree = Tree()
+            start_node = tree.create_node(task_name, node_identifier)
+            for i, val in enumerate(decoded):
+                name = i if self.class_names is None else self.class_names[i]
+                description = f'{i}: {name} | decoded: {decoded[i]}, ' \
+                              f'activated: {activated[i]:.4f}, ' \
+                              f'logits: {logits[i]:.4f}'
+                tree.create_node(description, f'{node_identifier}.{i}', parent=start_node)
+            return tree, start_node
+
+        return explainer
 
 
 class TaskFlow(ITask):

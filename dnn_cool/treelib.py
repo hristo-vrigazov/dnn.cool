@@ -1,11 +1,10 @@
-import torch
-
 from dataclasses import dataclass
 from typing import Callable, Union, Tuple
 
+import numpy as np
 from treelib import Tree, Node
 
-from dnn_cool.modules import CompositeModuleOutput, LeafModuleOutput
+from dnn_cool.modules import CompositeModuleOutput
 from dnn_cool.utils import any_value
 
 
@@ -52,12 +51,27 @@ class TreeExplanation:
         return self
 
 
+def _to_print_str(arr):
+    if arr.size == 1:
+        res = arr.reshape((1,))[0]
+        if isinstance(res, float) or isinstance(res, np.floating):
+            res = f'{res:.4f}'
+        return res
+    return arr
+
+
 def default_leaf_tree_explainer(task_name: str,
-                                decoded: torch.Tensor,
-                                activated: torch.Tensor,
-                                logits: torch.Tensor,
+                                decoded: np.ndarray,
+                                activated: np.ndarray,
+                                logits: np.ndarray,
                                 node_identifier: str) -> Tuple[Tree, Node]:
-    description = f'{task_name} | decoded: {decoded}, activated: {activated}, logits: {logits}'
+    decoded = _to_print_str(decoded)
+    activated = _to_print_str(activated)
+    logits = _to_print_str(logits)
+    description = f'{task_name} | ' \
+                  f'decoded: {decoded}, ' \
+                  f'activated: {activated}, ' \
+                  f'logits: {logits}'
     tree = Tree()
     start_node = tree.create_node(description, node_identifier)
     return tree, start_node

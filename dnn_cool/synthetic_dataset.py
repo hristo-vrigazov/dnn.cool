@@ -333,7 +333,9 @@ def synthetic_dataset_preparation(n=int(1e4)):
         'valid': val_dataset,
         'infer': val_dataset
     }
-    shirt_type = full_flow.get_all_children()['person_regression.body_regression.shirt_type']
+    children = full_flow.get_all_children()
+    shirt_type = children['person_regression.body_regression.shirt_type']
     shirt_type.top_k = 10
     shirt_type.class_names = ['blue', 'red', 'yellow', 'cyan', 'magenta', 'green', 'black']
+    children['person_regression.face_regression.facial_characteristics'].class_names = ['red', 'green', 'blue']
     return model, nested_loaders, datasets, project
