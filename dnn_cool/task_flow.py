@@ -5,6 +5,7 @@ from typing import Iterable, Optional, Callable, Tuple, Sequence
 import torch
 from torch import nn
 from torch.utils.data import Dataset
+from treelib import Tree
 
 from dnn_cool.activations import CompositeActivation
 from dnn_cool.datasets import FlowDataset, LeafTaskDataset
@@ -17,7 +18,7 @@ from dnn_cool.metrics import TorchMetric, get_default_binary_metrics, \
     get_default_bounded_regression_metrics, get_default_classification_metrics, \
     get_default_multilabel_classification_metrics
 from dnn_cool.missing_values import positive_values
-from dnn_cool.modules import SigmoidAndMSELoss, Identity, TaskFlowModule
+from dnn_cool.modules import SigmoidAndMSELoss, Identity, TaskFlowModule, IModuleOutput
 from dnn_cool.treelib import TreeExplainer
 
 
@@ -43,6 +44,9 @@ class ITask:
 
     def get_evaluator(self) -> EvaluationVisitor:
         return EvaluationVisitor(self, prefix='')
+
+    def get_treelib_explainer(self) -> Callable[[IModuleOutput], Tree]:
+        raise NotImplementedError()
 
     def has_children(self) -> bool:
         return False
@@ -134,6 +138,9 @@ class Task(ITask):
 
     def get_dataset(self, **kwargs):
         return LeafTaskDataset(self.inputs, self.labels)
+
+    def get_treelib_explainer(self) -> Callable[[IModuleOutput], Tree]:
+        raise NotImplementedError()
 
 
 @dataclass()

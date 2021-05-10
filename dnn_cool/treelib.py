@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+from typing import Callable
+
 from treelib import Tree
 
 from dnn_cool.utils import any_value
@@ -24,7 +26,7 @@ class Precondition:
 
 class TreeExplanation:
 
-    def __init__(self, tree, start_node, results, prefix):
+    def __init__(self, tree: Tree, start_node, results, prefix: str):
         self.tree = tree
         self.start_node = start_node
         self.results = results
@@ -49,9 +51,9 @@ class TreeExplanation:
 
 class LeafExplainer:
 
-    def __init__(self, task, prefix):
+    def __init__(self, task_name: str, prefix: str):
         self.prefix = prefix
-        self.task_name = task.get_name()
+        self.task_name = task_name
 
     def __call__(self, *args, **kwargs):
         results: Results = find_results_for_treelib(*args, **kwargs)
@@ -88,14 +90,14 @@ class Results:
 
 class TreeExplainer:
 
-    def __init__(self, task_name, flow_func, flow_tasks, prefix=''):
+    def __init__(self, task_name: str, flow_func: Callable, flow_tasks, prefix=''):
         self.task_name = task_name
         self.flow = flow_func
         self.prefix = prefix
 
         for key, task in flow_tasks.items():
             if not task.has_children():
-                instance = LeafExplainer(task, prefix)
+                instance = LeafExplainer(task.get_name(), prefix=prefix)
             else:
                 instance = TreeExplainer(task.get_name(),
                                          task.get_flow_func(),

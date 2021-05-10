@@ -1,3 +1,4 @@
+from abc import ABC
 from dataclasses import dataclass, field
 from typing import Dict, Optional
 
@@ -171,8 +172,12 @@ class AndCondition(Condition):
         return mask_one & mask_two
 
 
+class IModuleOutput(IFlowTaskResult, ABC):
+    pass
+
+
 @dataclass
-class LeafModuleOutput(IFlowTaskResult):
+class LeafModuleOutput(IModuleOutput):
     path: str
     logits: torch.Tensor
     precondition: Condition
@@ -204,7 +209,7 @@ def _copy_to_self(self_arr, other_arr):
 
 
 @dataclass
-class CompositeModuleOutput(IFlowTaskResult):
+class CompositeModuleOutput(IModuleOutput):
     training: bool
     gt: Dict[str, torch.Tensor]
     prefix: str
