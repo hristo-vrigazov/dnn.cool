@@ -59,7 +59,6 @@ def default_leaf_tree_explainer(task_name: str,
                                 node_identifier: str) -> Tuple[Tree, Node]:
     description = f'{task_name} | decoded: {decoded}, activated: {activated}, logits: {logits}'
     tree = Tree()
-    # f'inp_{results.idx}.{path}')
     start_node = tree.create_node(description, node_identifier)
     return tree, start_node
 
