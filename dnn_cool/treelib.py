@@ -64,13 +64,14 @@ class LeafExplainer:
         if precondition is not None:
             precondition = precondition[results.idx][0].item()
 
-        tree = Tree()
         should_create_node = (precondition is None) or (precondition is True)
         if should_create_node:
             description = f'{self.task_name} | decoded: {decoded}, activated: {activated}, logits: {logits}'
+            tree = Tree()
             start_node = tree.create_node(description, f'inp_{results.idx}.{path}')
         else:
             start_node = None
+            tree = Tree()
         return TreeExplanation(tree, start_node, results, self.prefix)
 
 
@@ -87,18 +88,19 @@ class Results:
 
 class TreeExplainer:
 
-    def __init__(self, task_flow, prefix=''):
-        self.task_flow = task_flow
-
-        self.flow = task_flow.get_flow_func()
+    def __init__(self, task_name, flow_func, flow_tasks, prefix=''):
+        self.task_name = task_name
+        self.flow = flow_func
         self.prefix = prefix
-        self.task_name = task_flow.get_name()
 
-        for key, task in task_flow.tasks.items():
+        for key, task in flow_tasks.items():
             if not task.has_children():
                 instance = LeafExplainer(task, prefix)
             else:
-                instance = TreeExplainer(task, prefix=f'{prefix}{task.get_name()}.')
+                instance = TreeExplainer(task.get_name(),
+                                         task.get_flow_func(),
+                                         task.tasks,
+                                         prefix=f'{prefix}{task.get_name()}.')
             setattr(self, key, instance)
 
     def __call__(self, x):

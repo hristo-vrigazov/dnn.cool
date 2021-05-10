@@ -271,7 +271,7 @@ class TaskFlow(ITask):
         return all_metrics
 
     def get_treelib_explainer(self):
-        return TreeExplainer(self)
+        return TreeExplainer(self.get_name(), self.get_flow_func(), self.tasks)
 
     def get_labels(self, *args, **kwargs):
         all_labels = []
