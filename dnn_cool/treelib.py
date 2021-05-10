@@ -1,7 +1,9 @@
-from dataclasses import dataclass
-from typing import Callable, Union
+import torch
 
-from treelib import Tree
+from dataclasses import dataclass
+from typing import Callable, Union, Tuple
+
+from treelib import Tree, Node
 
 from dnn_cool.modules import CompositeModuleOutput, LeafModuleOutput
 from dnn_cool.utils import any_value
@@ -50,7 +52,11 @@ class TreeExplanation:
         return self
 
 
-def default_leaf_tree_explainer(task_name, decoded, activated, logits, node_identifier):
+def default_leaf_tree_explainer(task_name: str,
+                                decoded: torch.Tensor,
+                                activated: torch.Tensor,
+                                logits: torch.Tensor,
+                                node_identifier: str) -> Tuple[Tree, Node]:
     description = f'{task_name} | decoded: {decoded}, activated: {activated}, logits: {logits}'
     tree = Tree()
     # f'inp_{results.idx}.{path}')
@@ -103,7 +109,7 @@ class TreeExplainer:
 
         for key, task in flow_tasks.items():
             if not task.has_children():
-                instance = LeafExplainer(task.get_name(), prefix=prefix)
+                instance = LeafExplainer(task.get_name(), prefix=prefix, tree_func=task.get_treelib_explainer())
             else:
                 instance = TreeExplainer(task.get_name(),
                                          task.get_flow_func(),

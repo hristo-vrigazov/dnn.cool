@@ -19,7 +19,7 @@ from dnn_cool.metrics import TorchMetric, get_default_binary_metrics, \
     get_default_multilabel_classification_metrics
 from dnn_cool.missing_values import positive_values
 from dnn_cool.modules import SigmoidAndMSELoss, Identity, TaskFlowModule, IModuleOutput
-from dnn_cool.treelib import TreeExplainer
+from dnn_cool.treelib import TreeExplainer, default_leaf_tree_explainer
 
 
 class ITask:
@@ -135,6 +135,9 @@ class Task(ITask):
 
     def get_dataset(self, **kwargs):
         return LeafTaskDataset(self.inputs, self.labels)
+
+    def get_treelib_explainer(self) -> Callable:
+        return default_leaf_tree_explainer
 
 
 @dataclass()
