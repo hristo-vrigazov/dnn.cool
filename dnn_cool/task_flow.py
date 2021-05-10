@@ -1,11 +1,11 @@
 import os
 from dataclasses import dataclass, field
-from typing import Iterable, Optional, Callable, Tuple, Sequence
+from typing import Iterable, Optional, Callable, Tuple, Sequence, List
 
 import torch
 from torch import nn
 from torch.utils.data import Dataset
-from treelib import Tree
+from treelib import Tree, Node
 
 from dnn_cool.activations import CompositeActivation
 from dnn_cool.datasets import FlowDataset, LeafTaskDataset
@@ -211,6 +211,25 @@ class ClassificationTask(Task):
     decoder: Decoder = field(default_factory=ClassificationDecoder)
     module: nn.Module = Identity()
     metrics: Sequence[Tuple[str, TorchMetric]] = field(default_factory=get_default_classification_metrics)
+
+    class_names: Optional = None
+    top_k: Optional[int] = 5
+
+    def get_treelib_explainer(self) -> Callable:
+        def classification_explainer(task_name: str,
+                                     decoded: torch.Tensor,
+                                     activated: torch.Tensor,
+                                     logits: torch.Tensor,
+                                     node_identifier: str) -> Tuple[Tree, Node]:
+            tree = Tree()
+            start_node = tree.create_node(task_name, node_identifier)
+            for i, idx in enumerate(decoded[:self.top_k]):
+                name = idx if self.class_names is None else self.class_names[idx]
+                description = f'{i}: {name} | activated: {activated[idx]:.4f}, logits: {logits[idx]:.4f}'
+                tree.create_node(description, f'{node_identifier}.{idx}', parent=start_node)
+            return tree, start_node
+
+        return classification_explainer
 
 
 @dataclass()

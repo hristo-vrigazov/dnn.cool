@@ -10,4 +10,5 @@ def test_treelib_regression(treelib_explanation_on_first_batch):
         expected_path.parent.mkdir(exist_ok=True, parents=True)
         torch.save(actual, expected_path)
     expected = str(torch.load(expected_path))
+    print(actual)
     assert actual == expected
