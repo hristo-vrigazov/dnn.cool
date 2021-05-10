@@ -1,8 +1,9 @@
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, Union
 
 from treelib import Tree
 
+from dnn_cool.modules import CompositeModuleOutput, LeafModuleOutput
 from dnn_cool.utils import any_value
 
 
@@ -55,7 +56,7 @@ class LeafExplainer:
         self.prefix = prefix
         self.task_name = task_name
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> TreeExplanation:
         results: Results = find_results_for_treelib(*args, **kwargs)
         path = self.prefix + self.task_name
 
@@ -105,7 +106,7 @@ class TreeExplainer:
                                          prefix=f'{prefix}{task.get_name()}.')
             setattr(self, key, instance)
 
-    def __call__(self, x):
+    def __call__(self, x: Union[CompositeModuleOutput, Results]) -> Union[Tree, TreeExplanation]:
         if not isinstance(x, Results):
             x = Results(x)
 
