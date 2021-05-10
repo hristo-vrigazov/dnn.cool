@@ -50,11 +50,20 @@ class TreeExplanation:
         return self
 
 
+def default_leaf_tree_explainer(task_name, decoded, activated, logits, node_identifier):
+    description = f'{task_name} | decoded: {decoded}, activated: {activated}, logits: {logits}'
+    tree = Tree()
+    # f'inp_{results.idx}.{path}')
+    start_node = tree.create_node(description, node_identifier)
+    return tree, start_node
+
+
 class LeafExplainer:
 
-    def __init__(self, task_name: str, prefix: str):
+    def __init__(self, task_name: str, prefix: str, tree_func=default_leaf_tree_explainer):
         self.prefix = prefix
         self.task_name = task_name
+        self.tree_func = tree_func
 
     def __call__(self, *args, **kwargs) -> TreeExplanation:
         results: Results = find_results_for_treelib(*args, **kwargs)
@@ -68,13 +77,9 @@ class LeafExplainer:
             precondition = precondition[results.idx][0].item()
 
         should_create_node = (precondition is None) or (precondition is True)
+        tree, start_node = Tree(), None
         if should_create_node:
-            description = f'{self.task_name} | decoded: {decoded}, activated: {activated}, logits: {logits}'
-            tree = Tree()
-            start_node = tree.create_node(description, f'inp_{results.idx}.{path}')
-        else:
-            start_node = None
-            tree = Tree()
+            tree, start_node = self.tree_func(self.task_name, decoded, activated, logits, f'inp_{results.idx}.{path}')
         return TreeExplanation(tree, start_node, results, self.prefix)
 
 

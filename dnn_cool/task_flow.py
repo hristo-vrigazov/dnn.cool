@@ -45,9 +45,6 @@ class ITask:
     def get_evaluator(self) -> EvaluationVisitor:
         return EvaluationVisitor(self, prefix='')
 
-    def get_treelib_explainer(self) -> Callable[[IModuleOutput], Tree]:
-        raise NotImplementedError()
-
     def has_children(self) -> bool:
         return False
 
@@ -138,9 +135,6 @@ class Task(ITask):
 
     def get_dataset(self, **kwargs):
         return LeafTaskDataset(self.inputs, self.labels)
-
-    def get_treelib_explainer(self) -> Callable[[IModuleOutput], Tree]:
-        raise NotImplementedError()
 
 
 @dataclass()
