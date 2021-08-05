@@ -35,7 +35,7 @@ class FlowDatasetDecorator:
 
     def __init__(self, task, prefix, labels):
         self.task_name = task.get_name()
-        self.available = task.get_available_func()(labels)
+        self.available = task.get_available_func()(labels) if labels is not None else None
         self.prefix = prefix
         self.arr = labels
 
@@ -138,7 +138,7 @@ class FlowDataset(Dataset, IFlowTask):
         for key, task in task_flow.tasks.items():
             if not task.has_children():
                 labels_instance = FlowDatasetDecorator(task, prefix, task.get_labels())
-                self.n = len(labels_instance.arr)
+                self.n = len(labels_instance.arr) if labels_instance.available is not None else None
                 setattr(self, key, labels_instance)
             else:
                 instance = FlowDataset(task, prefix=f'{prefix}{task.get_name()}.')

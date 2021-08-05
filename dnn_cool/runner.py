@@ -123,7 +123,8 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
                  early_stop: bool = True,
                  balance_dataparallel_memory: bool = False,
                  runner_name=None,
-                 train_test_val_indices=None):
+                 train_test_val_indices=None,
+                 perform_conversion=True):
         self.task_flow = project.get_full_flow()
 
         self.default_criterion = self.task_flow.get_loss()
@@ -144,10 +145,11 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
             self.default_callbacks.append(EarlyStoppingCallback(patience=5))
 
         (self.project_dir / self.default_logdir).mkdir(exist_ok=True)
-        if train_test_val_indices is None:
-            train_test_val_indices = project_split(project.df, self.project_dir / self.default_logdir)
-        else:
-            save_split(self.project_dir / self.default_logdir, train_test_val_indices)
+        if perform_conversion:
+            if train_test_val_indices is None:
+                train_test_val_indices = project_split(project.df, self.project_dir / self.default_logdir)
+            else:
+                save_split(self.project_dir / self.default_logdir, train_test_val_indices)
         self.train_test_val_indices = train_test_val_indices
         self.tensor_loggers = project.converters.tensorboard_converters
         super().__init__(model=model)

@@ -21,40 +21,40 @@ def assert_col_in_df(col, df):
             assert col_s in df, not_found_error_message(col_s, df)
 
 
-def create_values(df, output_col, converters):
-    log(f'Creating values from column "{output_col}" in dataframe shaped {df.shape} ...')
+def create_values(df, output_col, converters, perform_conversion):
+    log(f'Creating values from column "{output_col}" in dataframe ...')
     values_type = converters.type.guess(df, output_col)
-    values = converters.values.to_values(df, output_col, values_type)
+    values = converters.values.to_values(df, output_col, values_type, perform_conversion)
     return values
 
 
-def create_leaf_task(df, col, converters):
-    values = create_values(df, col, converters)
+def create_leaf_task(df, col, converters, perform_conversion):
+    values = create_values(df, col, converters, perform_conversion)
     task = converters.task.to_task(col, values.types[0], values.values[0])
     return task
 
 
-def create_leaf_tasks(df, col, converters):
+def create_leaf_tasks(df, col, converters, perform_conversion):
     if isinstance(col, str):
-        return [create_leaf_task(df, col, converters)]
+        return [create_leaf_task(df, col, converters, perform_conversion)]
 
     res = []
     for col_s in col:
-        res.append(create_leaf_task(df, col_s, converters))
+        res.append(create_leaf_task(df, col_s, converters, perform_conversion))
     return res
 
 
-def read_inputs(df, input_col, converters):
+def read_inputs(df, input_col, converters, perform_conversion):
     log(f'Reading inputs from dataframe...')
     if isinstance(input_col, str):
-        values = create_values(df, input_col, converters)
+        values = create_values(df, input_col, converters, perform_conversion)
         return values
 
     keys = []
     values = []
     types = []
     for col_s in input_col:
-        vals = create_values(df, col_s, converters)
+        vals = create_values(df, col_s, converters, perform_conversion)
         keys.extend(vals.keys)
         values.extend(vals.values)
         types.extend(vals.types)
@@ -90,10 +90,14 @@ class Project:
                  input_col: Union[str, Iterable[str]],
                  output_col: Union[str, Iterable[str]],
                  project_dir: Union[str, Path],
-                 converters: Converters):
+                 converters: Converters,
+                 perform_conversion=True):
         self.df = df
-        assert_col_in_df(input_col, df)
-        assert_col_in_df(output_col, df)
+        self.perform_conversion = perform_conversion
+        if perform_conversion:
+            assert self.df is not None
+            assert_col_in_df(input_col, df)
+            assert_col_in_df(output_col, df)
 
         self.project_dir = Path(project_dir)
         self.project_dir.mkdir(exist_ok=True)
@@ -102,11 +106,11 @@ class Project:
         if converters is None:
             converters = Converters()
         self.converters = converters
-        if converters_file.exists():
+        if converters_file.exists() and perform_conversion:
             self.converters.load_state_dict(torch.load(converters_file))
 
-        self.inputs = read_inputs(df, input_col, converters)
-        self.leaf_tasks = create_leaf_tasks(df, output_col, converters)
+        self.inputs = read_inputs(df, input_col, converters, perform_conversion)
+        self.leaf_tasks = create_leaf_tasks(df, output_col, converters, perform_conversion)
 
         self.flow_tasks = []
 
@@ -158,4 +162,5 @@ class Project:
                                        early_stop=early_stop,
                                        balance_dataparallel_memory=balance_dataparallel_memory,
                                        runner_name=runner_name,
-                                       train_test_val_indices=train_test_val_indices)
+                                       train_test_val_indices=train_test_val_indices,
+                                       perform_conversion=self.perform_conversion)

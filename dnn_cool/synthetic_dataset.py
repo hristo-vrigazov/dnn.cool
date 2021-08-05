@@ -1,3 +1,4 @@
+import time
 from collections import OrderedDict
 from functools import partial
 from pathlib import Path
@@ -174,7 +175,7 @@ def create_df_and_images_tensor(n=int(1e4), cache_file=Path('dnn_cool_synthetic_
     return res
 
 
-def synthetic_dataset_preparation(n=int(1e4)):
+def synthetic_dataset_preparation(n=int(1e4), perform_conversion=True):
     imgs, df = create_df_and_images_tensor(n)
     output_col = ['camera_blocked', 'door_open', 'person_present', 'door_locked',
                   'face_x1', 'face_y1', 'face_w', 'face_h',
@@ -227,8 +228,9 @@ def synthetic_dataset_preparation(n=int(1e4)):
     converters.type = type_guesser
     converters.values = values_converter
 
+    df = df if perform_conversion else None
     project = Project(df, input_col='syn_img', output_col=output_col, converters=converters,
-                      project_dir='./security_project')
+                      project_dir='./security_project', perform_conversion=perform_conversion)
 
     @project.add_flow
     def face_regression(flow, x, out):
@@ -264,13 +266,18 @@ def synthetic_dataset_preparation(n=int(1e4)):
         return out
 
     dataset = project.get_full_flow().get_dataset()
-    train_dataset, val_dataset = torch_split_dataset(dataset, random_state=42)
-    train_loader = DataLoader(train_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=False)
-    nested_loaders = OrderedDict({
-        'train': train_loader,
-        'valid': val_loader
-    })
+    if perform_conversion:
+        train_dataset, val_dataset = torch_split_dataset(dataset, random_state=42)
+        train_loader = DataLoader(train_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=False)
+        nested_loaders = OrderedDict({
+            'train': train_loader,
+            'valid': val_loader
+        })
+    else:
+        nested_loaders = None
+        train_dataset = None
+        val_dataset = None
 
     class SecurityModule(nn.Module):
 
