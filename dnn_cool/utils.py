@@ -103,3 +103,7 @@ class ImageNetNormalizer:
             X = X.permute(2, 0, 1)
         X = self.normalize(X)
         return X
+
+
+def log(messsage):
+    print(f'[dnn_cool] {messsage}.')

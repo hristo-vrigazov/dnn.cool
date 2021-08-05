@@ -6,6 +6,7 @@ from typing import Union, Iterable
 from dnn_cool.converters import Values, Converters
 from dnn_cool.runner import DnnCoolSupervisedRunner
 from dnn_cool.task_flow import TaskFlow
+from dnn_cool.utils import log
 
 
 def not_found_error_message(col, df):
@@ -21,6 +22,7 @@ def assert_col_in_df(col, df):
 
 
 def create_values(df, output_col, converters):
+    log(f'Creating values from column "{output_col}" in dataframe shaped {df.shape} ...')
     values_type = converters.type.guess(df, output_col)
     values = converters.values.to_values(df, output_col, values_type)
     return values
@@ -43,6 +45,7 @@ def create_leaf_tasks(df, col, converters):
 
 
 def read_inputs(df, input_col, converters):
+    log(f'Reading inputs from dataframe...')
     if isinstance(input_col, str):
         values = create_values(df, input_col, converters)
         return values
