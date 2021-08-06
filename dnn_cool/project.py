@@ -90,9 +90,9 @@ class Project:
                  input_col: Union[str, Iterable[str]],
                  output_col: Union[str, Iterable[str]],
                  project_dir: Union[str, Path],
-                 converters: Converters,
-                 perform_conversion=True):
+                 converters: Converters):
         self.df = df
+        perform_conversion = df is not None
         self.perform_conversion = perform_conversion
         if perform_conversion:
             assert self.df is not None

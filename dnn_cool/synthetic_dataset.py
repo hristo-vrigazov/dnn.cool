@@ -230,7 +230,7 @@ def synthetic_dataset_preparation(n=int(1e4), perform_conversion=True):
 
     df = df if perform_conversion else None
     project = Project(df, input_col='syn_img', output_col=output_col, converters=converters,
-                      project_dir='./security_project', perform_conversion=perform_conversion)
+                      project_dir='./security_project')
 
     @project.add_flow
     def face_regression(flow, x, out):
