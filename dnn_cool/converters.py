@@ -1,7 +1,8 @@
 from dataclasses import dataclass, field
-from typing import Tuple, Dict
+from pathlib import Path
+from typing import Dict
 
-import numpy as np
+import joblib
 
 from dnn_cool.catalyst_utils import TensorboardConverter
 
@@ -35,15 +36,21 @@ class TypeGuesser:
         if str(df[output_col].dtype) == 'bool':
             return 'binary'
 
-        # TODO: smart guessing for different types here
         if str(df[output_col].dtype).startswith('int'):
             return 'category'
 
     def state_dict(self):
         return self.type_mapping
 
-    def load_state_dict(self, state_dict):
-        self.type_mapping = state_dict
+    def load_state_from_directory(self, directory: Path):
+        mapping_file = directory / 'type_mapping.pkl'
+        if not mapping_file.exists():
+            return
+        self.type_mapping = joblib.load(mapping_file)
+
+    def dump_state_to_directory(self, directory):
+        directory.mkdir(exist_ok=True)
+        joblib.dump(self.type_mapping, directory / 'type_mapping.pkl')
 
 
 def extract_state_when_possible(mapping):
@@ -57,14 +64,26 @@ def extract_state_when_possible(mapping):
     return out_mapping
 
 
-def load_state_when_possible(mapping, state_dict):
+def load_state_from_directory_when_possible(mapping: Dict, directory: Path):
     for key, value in mapping.items():
         try:
-            mapping[key].load_state_dict(state_dict[key])
+            if (directory / key).exists():
+                state_dict = joblib.load(directory / f'{key}.pkl')
+                mapping[key].load_state_dict(state_dict)
         except AttributeError:
             # It is ok for a converter not to have a state at all.
             pass
     return mapping
+
+
+def dump_state_to_directory_when_possible(mapping, directory):
+    for key, value in mapping.items():
+        try:
+            directory.mkdir(exist_ok=True)
+            joblib.dump(value.state_dict(), directory / f'{key}.pkl')
+        except AttributeError:
+            # It is ok for a converter not to have a state at all.
+            pass
 
 
 @dataclass()
@@ -78,9 +97,14 @@ class StatefulConverter:
             'type': extract_state_when_possible(self.type_mapping)
         }
 
-    def load_state_dict(self, state_dict):
-        load_state_when_possible(self.col_mapping, state_dict['col'])
-        load_state_when_possible(self.type_mapping, state_dict['type'])
+    def dump_state_to_directory(self, directory: Path):
+        directory.mkdir(exist_ok=True)
+        dump_state_to_directory_when_possible(self.col_mapping, directory / 'col')
+        dump_state_to_directory_when_possible(self.type_mapping, directory / 'type')
+
+    def load_state_from_directory(self, directory: Path):
+        load_state_from_directory_when_possible(self.col_mapping, directory / 'col')
+        load_state_from_directory_when_possible(self.type_mapping, directory / 'type')
 
 
 @dataclass()
@@ -125,7 +149,13 @@ class Converters:
             'task': self.task.state_dict()
         }
 
-    def load_state_dict(self, state_dict):
-        self.type.load_state_dict(state_dict['type'])
-        self.values.load_state_dict(state_dict['values'])
-        self.task.load_state_dict(state_dict['task'])
+    def dump_state_to_directory(self, converters_directory: Path):
+        converters_directory.mkdir(exist_ok=True)
+        self.type.dump_state_to_directory(converters_directory / 'type')
+        self.values.dump_state_to_directory(converters_directory / 'values')
+        self.task.dump_state_to_directory(converters_directory / 'task')
+
+    def load_state_from_directory(self, converters_directory: Path):
+        self.type.load_state_from_directory(converters_directory / 'type')
+        self.values.load_state_from_directory(converters_directory / 'values')
+        self.task.load_state_from_directory(converters_directory / 'task')
