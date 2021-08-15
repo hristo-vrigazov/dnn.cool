@@ -6,7 +6,7 @@ from typing import Union, Iterable
 from dnn_cool.converters import Values, Converters
 from dnn_cool.runner import DnnCoolSupervisedRunner
 from dnn_cool.task_flow import TaskFlow
-from dnn_cool.utils import log
+from dnn_cool.verbosity import log, StatsRegistry, Verbosity
 
 
 def not_found_error_message(col, df):
@@ -90,7 +90,8 @@ class Project:
                  input_col: Union[str, Iterable[str]],
                  output_col: Union[str, Iterable[str]],
                  project_dir: Union[str, Path],
-                 converters: Converters):
+                 converters: Converters,
+                 verbosity: Verbosity = Verbosity.SILENT):
         self.df = df
         perform_conversion = df is not None
         self.perform_conversion = perform_conversion
@@ -102,12 +103,14 @@ class Project:
         self.project_dir = Path(project_dir)
         self.project_dir.mkdir(exist_ok=True)
 
-        converters_file = self.project_dir / 'converters.pkl'
+        self.stats_registry = StatsRegistry(self.project_dir / 'stats_registry.pkl', verbosity)
+        converters_directory = self.project_dir / 'converters'
         if converters is None:
             converters = Converters()
         self.converters = converters
-        if converters_file.exists() and perform_conversion:
-            self.converters.load_state_dict(torch.load(converters_file))
+        self.converters.connect_to_stats_registry(self.stats_registry)
+        if converters_directory.exists() and perform_conversion:
+            self.converters.load_state_from_directory(converters_directory)
 
         self.inputs = read_inputs(df, input_col, converters, perform_conversion)
         self.leaf_tasks = create_leaf_tasks(df, output_col, converters, perform_conversion)
@@ -120,8 +123,8 @@ class Project:
 
         for i in range(len(self.inputs.keys)):
             self.converters.tensorboard_converters.col_to_type_mapping[self.inputs.keys[i]] = self.inputs.types[i]
-        if not converters_file.exists():
-            torch.save(self.converters.state_dict(), converters_file, pickle_protocol=4)
+        if not converters_directory.exists():
+            self.converters.dump_state_to_directory(converters_directory)
 
     def add_task_flow(self, task_flow: TaskFlow):
         self.flow_tasks.append(task_flow)

@@ -104,6 +104,3 @@ class ImageNetNormalizer:
         X = self.normalize(X)
         return X
 
-
-def log(messsage):
-    print(f'[dnn_cool] {messsage}.')

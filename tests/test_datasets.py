@@ -32,7 +32,8 @@ def example_numerical_flow():
     tasks = [is_even_task, predict_positive, multiple_three]
 
     numerical_flow_task = TaskFlow(name='numerical_flow', tasks=tasks, inputs=inputs, flow_func=numerical_flow)
-    full_task_flow = TaskFlow(name='full_flow', tasks=[is_interesting_task, numerical_flow_task], inputs=inputs, flow_func=full_flow)
+    full_task_flow = TaskFlow(name='full_flow', tasks=[is_interesting_task, numerical_flow_task], inputs=inputs,
+                              flow_func=full_flow)
     return full_task_flow
 
 
