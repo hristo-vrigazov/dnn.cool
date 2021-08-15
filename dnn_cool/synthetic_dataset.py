@@ -19,6 +19,7 @@ from dnn_cool.task_flow import BoundedRegressionTask, BinaryClassificationTask, 
 from dnn_cool.utils import torch_split_dataset
 from dnn_cool.value_converters import binary_value_converter, classification_converter, \
     ImageCoordinatesValuesConverter, MultiLabelValuesConverter
+from dnn_cool.verbosity import Verbosity
 
 
 def add_random_noise(img):
@@ -230,7 +231,8 @@ def synthetic_dataset_preparation(n=int(1e4), perform_conversion=True):
 
     df = df if perform_conversion else None
     project = Project(df, input_col='syn_img', output_col=output_col, converters=converters,
-                      project_dir='./security_project')
+                      project_dir='./security_project',
+                      verbosity=Verbosity.BASIC_STATS)
 
     @project.add_flow
     def face_regression(flow, x, out):

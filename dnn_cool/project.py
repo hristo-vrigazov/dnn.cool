@@ -6,7 +6,7 @@ from typing import Union, Iterable
 from dnn_cool.converters import Values, Converters
 from dnn_cool.runner import DnnCoolSupervisedRunner
 from dnn_cool.task_flow import TaskFlow
-from dnn_cool.utils import log
+from dnn_cool.verbosity import log, StatsRegistry, Verbosity
 
 
 def not_found_error_message(col, df):
@@ -90,7 +90,8 @@ class Project:
                  input_col: Union[str, Iterable[str]],
                  output_col: Union[str, Iterable[str]],
                  project_dir: Union[str, Path],
-                 converters: Converters):
+                 converters: Converters,
+                 verbosity: Verbosity = Verbosity.SILENT):
         self.df = df
         perform_conversion = df is not None
         self.perform_conversion = perform_conversion
@@ -102,10 +103,12 @@ class Project:
         self.project_dir = Path(project_dir)
         self.project_dir.mkdir(exist_ok=True)
 
+        self.stats_registry = StatsRegistry(self.project_dir / 'stats_registry.pkl', verbosity)
         converters_directory = self.project_dir / 'converters'
         if converters is None:
             converters = Converters()
         self.converters = converters
+        self.converters.connect_to_stats_registry(self.stats_registry)
         if converters_directory.exists() and perform_conversion:
             self.converters.load_state_from_directory(converters_directory)
 

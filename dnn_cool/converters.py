@@ -5,6 +5,7 @@ from typing import Dict
 import joblib
 
 from dnn_cool.catalyst_utils import TensorboardConverter
+from dnn_cool.verbosity import StatsRegistry, Logger, Verbosity
 
 
 class Values:
@@ -27,7 +28,7 @@ class Values:
 
 @dataclass()
 class TypeGuesser:
-    type_mapping = {}
+    type_mapping: Dict = field(default_factory=lambda: {})
 
     def guess(self, df, output_col):
         if output_col in self.type_mapping:
@@ -64,23 +65,25 @@ def extract_state_when_possible(mapping):
     return out_mapping
 
 
-def load_state_from_directory_when_possible(mapping: Dict, directory: Path):
+def load_state_from_directory_when_possible(mapping: Dict, directory: Path, stats_registry):
     for key, value in mapping.items():
         try:
-            if (directory / key).exists():
-                state_dict = joblib.load(directory / f'{key}.pkl')
-                mapping[key].load_state_dict(state_dict)
+            if (directory / f'{key}.pkl').exists():
+                with Logger(f'Load "{directory}/{key}.pkl"', stats_registry=stats_registry):
+                    state_dict = joblib.load(directory / f'{key}.pkl')
+                    mapping[key].load_state_dict(state_dict)
         except AttributeError:
             # It is ok for a converter not to have a state at all.
             pass
     return mapping
 
 
-def dump_state_to_directory_when_possible(mapping, directory):
+def dump_state_to_directory_when_possible(mapping, directory, stats_registry):
     for key, value in mapping.items():
         try:
             directory.mkdir(exist_ok=True)
-            joblib.dump(value.state_dict(), directory / f'{key}.pkl')
+            with Logger(f'Dump "{directory}/{key}.pkl"', stats_registry=stats_registry):
+                joblib.dump(value.state_dict(), directory / f'{key}.pkl')
         except AttributeError:
             # It is ok for a converter not to have a state at all.
             pass
@@ -90,6 +93,7 @@ def dump_state_to_directory_when_possible(mapping, directory):
 class StatefulConverter:
     col_mapping: Dict = field(default_factory=lambda: {})
     type_mapping: Dict = field(default_factory=lambda: {})
+    stats_registry: StatsRegistry = field(default_factory=StatsRegistry)
 
     def state_dict(self):
         return {
@@ -99,12 +103,15 @@ class StatefulConverter:
 
     def dump_state_to_directory(self, directory: Path):
         directory.mkdir(exist_ok=True)
-        dump_state_to_directory_when_possible(self.col_mapping, directory / 'col')
-        dump_state_to_directory_when_possible(self.type_mapping, directory / 'type')
+        dump_state_to_directory_when_possible(self.col_mapping, directory / 'col', self.stats_registry)
+        dump_state_to_directory_when_possible(self.type_mapping, directory / 'type', self.stats_registry)
 
     def load_state_from_directory(self, directory: Path):
-        load_state_from_directory_when_possible(self.col_mapping, directory / 'col')
-        load_state_from_directory_when_possible(self.type_mapping, directory / 'type')
+        load_state_from_directory_when_possible(self.col_mapping, directory / 'col', self.stats_registry)
+        load_state_from_directory_when_possible(self.type_mapping, directory / 'type', self.stats_registry)
+
+    def connect_to_stats_registry(self, stats_registry):
+        self.stats_registry = stats_registry
 
 
 @dataclass()
@@ -142,6 +149,8 @@ class Converters:
 
     tensorboard_converters: TensorboardConverter = field(default_factory=TensorboardConverter)
 
+    stats_registry: StatsRegistry = field(default_factory=StatsRegistry)
+
     def state_dict(self):
         return {
             'type': self.type.state_dict(),
@@ -159,3 +168,7 @@ class Converters:
         self.type.load_state_from_directory(converters_directory / 'type')
         self.values.load_state_from_directory(converters_directory / 'values')
         self.task.load_state_from_directory(converters_directory / 'task')
+
+    def connect_to_stats_registry(self, stats_registry):
+        self.values.connect_to_stats_registry(stats_registry)
+        self.task.connect_to_stats_registry(stats_registry)
