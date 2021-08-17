@@ -22,7 +22,7 @@ class ReducedPerSample(nn.Module):
         return loss_results
 
 
-class LossFlowData(IFeaturesDict):
+class CriterionFlowData(IFeaturesDict):
 
     def __init__(self, outputs, targets):
         self.outputs = outputs
@@ -35,11 +35,11 @@ class LossFlowData(IFeaturesDict):
     @classmethod
     def from_args(cls, *args, **kwargs):
         for arg in args:
-            if isinstance(arg, LossFlowData):
+            if isinstance(arg, CriterionFlowData):
                 return arg
 
         for arg in kwargs.values():
-            if isinstance(arg, LossFlowData):
+            if isinstance(arg, CriterionFlowData):
                 return arg
 
         if args_are_dicts(args):
@@ -160,7 +160,7 @@ class BaseMetricDecorator(nn.Module):
                                                           ctx=ctx)
 
     def forward(self, *args, **kwargs):
-        loss_flow_data = LossFlowData.from_args(*args, **kwargs)
+        loss_flow_data = CriterionFlowData.from_args(*args, **kwargs)
         return self.postprocess_results(self.compute_with_precondition(loss_flow_data))
 
     def compute_with_precondition(self, loss_flow_data):
@@ -186,7 +186,7 @@ class BaseMetricDecorator(nn.Module):
         return metric_res
 
 
-class TaskLossDecorator(BaseMetricDecorator):
+class TaskCriterionDecorator(BaseMetricDecorator):
 
     def __init__(self, task_name, prefix, loss, metric_name, ctx):
         super().__init__(task_name, prefix, loss, metric_name, ctx)
@@ -195,7 +195,7 @@ class TaskLossDecorator(BaseMetricDecorator):
         return LossItems(metric_res)
 
 
-class TaskFlowLoss(nn.Module):
+class TaskFlowCriterion(nn.Module):
 
     def __init__(self, task_flow, prefix='', ctx=None):
         super().__init__()
@@ -210,15 +210,15 @@ class TaskFlowLoss(nn.Module):
 
         for key, task in task_flow.tasks.items():
             if not task.has_children():
-                instance = TaskLossDecorator(task.get_name(),
-                                             prefix,
-                                             task.get_loss(),
+                instance = TaskCriterionDecorator(task.get_name(),
+                                                  prefix,
+                                                  task.get_loss(),
                                              'loss',
-                                             self.ctx)
+                                                  self.ctx)
             else:
-                instance = TaskFlowLoss(task,
-                                        prefix=f'{prefix}{task.get_name()}.',
-                                        ctx=self.ctx)
+                instance = TaskFlowCriterion(task,
+                                             prefix=f'{prefix}{task.get_name()}.',
+                                             ctx=self.ctx)
             setattr(self, key, instance)
 
         self.prefix = prefix
@@ -249,7 +249,7 @@ class TaskFlowLoss(nn.Module):
         if result_from_device_reducing is not None:
             return result_from_device_reducing
         loss_items = torch.zeros(1, dtype=value.dtype, device=value.device)
-        flow_result = self.flow(self, LossFlowData(outputs, targets), LossItems(loss_items))
+        flow_result = self.flow(self, CriterionFlowData(outputs, targets), LossItems(loss_items))
 
         is_root = self.prefix == ''
         if not is_root:
@@ -359,11 +359,11 @@ class TaskFlowLossPerSample(nn.Module):
                 prefix = ''
             else:
                 prefix = path.rsplit('.', 1)[0] + '.'
-            all_losses[path] = TaskLossDecorator(task.get_name(),
-                                                 prefix,
-                                                 task.get_per_sample_loss(ctx=self.ctx),
+            all_losses[path] = TaskCriterionDecorator(task.get_name(),
+                                                      prefix,
+                                                      task.get_per_sample_loss(ctx=self.ctx),
                                                  'loss_per_sample',
-                                                 self.ctx)
+                                                      self.ctx)
         return all_losses
 
 

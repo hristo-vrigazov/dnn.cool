@@ -1,7 +1,8 @@
+import pandas as pd
 import torch
 
 from pathlib import Path
-from typing import Union, Iterable
+from typing import Union, Iterable, List
 
 from dnn_cool.converters import Values, Converters
 from dnn_cool.runner import DnnCoolSupervisedRunner
@@ -82,6 +83,59 @@ class UsedTasksTracer:
 
     def __or__(self, other):
         return self
+
+
+class MinimalProject:
+
+    def __init__(self, inputs: List[str],
+                 outputs: List[str],
+                 project_dir: Union[str, Path],
+                 verbosity: Verbosity = Verbosity.SILENT):
+        self.inputs = inputs
+        self.outputs = outputs
+        self.project_dir = Path(project_dir)
+        self.project_dir.mkdir(exist_ok=True)
+        self.stats_registry = StatsRegistry(self.project_dir / 'stats_registry.pkl', verbosity)
+
+
+class TrainingProject:
+
+    def __init__(self, project: MinimalProject,
+                 df: pd.DataFrame,
+                 converters: Converters,
+                 name: str):
+        self.project = project
+        self.df = df
+        self.converters = converters
+        self.name = name
+
+        self.df = df
+        self.converters = converters
+        self.name = name
+        assert df is not None, 'Cannot create inputs before set_data(df, converters, name) has been called.'
+        assert_col_in_df(self.project.inputs, df)
+        assert_col_in_df(self.project.outputs, df)
+        converters_directory = self.project.project_dir / self.name
+        if converters is None:
+            converters = Converters()
+        self.converters = converters
+        self.converters.connect_to_stats_registry(self.project.stats_registry)
+        if converters_directory.exists():
+            self.converters.load_state_from_directory(converters_directory)
+
+        self.inputs = read_inputs(df, project.inputs, converters, True)
+        self.leaf_tasks = create_leaf_tasks(df, project.outputs, converters, True)
+
+        self.flow_tasks = []
+
+        self._name_to_task = {}
+        for leaf_task in self.leaf_tasks:
+            self._name_to_task[leaf_task.get_name()] = leaf_task
+
+        for i in range(len(self.inputs.keys)):
+            self.converters.tensorboard_converters.col_to_type_mapping[self.inputs.keys[i]] = self.inputs.types[i]
+        if not converters_directory.exists():
+            self.converters.dump_state_to_directory(converters_directory)
 
 
 class Project:

@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from dnn_cool.losses import ReducedPerSample, LossFlowData
+from dnn_cool.losses import ReducedPerSample, CriterionFlowData
 
 
 def test_reduced_per_sample_utility(simple_binary_data):
@@ -28,7 +28,7 @@ def test_loss_flow_data_creation():
         'target_task0': torch.zeros(8),
         'target_task1': torch.zeros(8)
     }
-    loss_flow_data = LossFlowData.from_args(outputs, targets)
+    loss_flow_data = CriterionFlowData.from_args(outputs, targets)
     assert loss_flow_data is not None
 
 
@@ -41,6 +41,6 @@ def test_loss_flow_data_creation_from_other():
         'target_task0': torch.zeros(8),
         'target_task1': torch.zeros(8)
     }
-    loss_flow_data = LossFlowData(outputs, targets)
-    loss_flow_data = LossFlowData.from_args(loss_flow_data, loss_flow_data)
+    loss_flow_data = CriterionFlowData(outputs, targets)
+    loss_flow_data = CriterionFlowData.from_args(loss_flow_data, loss_flow_data)
     assert loss_flow_data is not None
