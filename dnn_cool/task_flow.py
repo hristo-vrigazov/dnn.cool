@@ -1,12 +1,9 @@
-import os
-from dataclasses import dataclass, field
-from typing import Iterable, Optional, Callable, Tuple, Sequence, List
+from typing import Iterable, Optional, Callable, Tuple, List
 
-import numpy as np
 import torch
 from torch import nn
 from torch.utils.data import Dataset
-from treelib import Tree, Node
+from treelib import Tree
 
 from dnn_cool.activations import CompositeActivation
 from dnn_cool.datasets import FlowDataset, LeafTaskDataset
@@ -19,7 +16,7 @@ from dnn_cool.metrics import TorchMetric, get_default_binary_metrics, \
     get_default_bounded_regression_metrics, get_default_classification_metrics, \
     get_default_multilabel_classification_metrics
 from dnn_cool.missing_values import positive_values
-from dnn_cool.modules import SigmoidAndMSELoss, Identity, TaskFlowModule
+from dnn_cool.modules import SigmoidAndMSELoss, TaskFlowModule
 from dnn_cool.treelib import TreeExplainer, default_leaf_tree_explainer
 
 
@@ -187,7 +184,7 @@ class ClassificationTaskMinimal(MinimalTask):
                          activation=nn.Softmax(dim=-1),
                          decoder=ClassificationDecoder,
                          dropout_mc=dropout_mc)
-        self.class_names = class_names
+        self.class_names: List[str] = class_names
         self.top_k = top_k
 
     def get_treelib_explainer(self) -> Callable:
@@ -311,7 +308,7 @@ class TaskFlowMinimal(MinimalTask, TaskFlowBase):
 class TaskFlowForDevelopment(TaskForDevelopment, TaskFlowBase):
 
     def __init__(self, name: str, labels, inputs, tasks: Iterable[MinimalTask], flow_func):
-        TaskFlowBase.__init__(self, tasks, flow_func)
+        TaskFlowBase.__init__(self, name, tasks, flow_func)
         TaskForDevelopment.__init__(self,
                                     name=name,
                                     labels=labels,
@@ -340,3 +337,9 @@ class TaskFlowForDevelopment(TaskForDevelopment, TaskFlowBase):
         for task in self.tasks.values():
             all_labels += task.get_labels()
         return all_labels
+
+    def get_filter(self):
+        return FilterCompositeVisitor(self, prefix='')
+
+    def get_evaluator(self):
+        return EvaluationCompositeVisitor(self, prefix='')
