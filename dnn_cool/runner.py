@@ -147,6 +147,13 @@ class DnnCoolRunnerMinimal:
         self.project.get_full_flow().get_decoder().load_tuned(tuned_params)
         return model
 
+    def load_tuned_params(self) -> Optional[Dict]:
+        logdir = self.project.project_dir / self.logdir_name
+        thresholds_path = logdir / 'tuned_params.pkl'
+        if not thresholds_path.exists():
+            return None
+        return torch.load(thresholds_path)
+
 
 class DnnCoolSupervisedRunner(SupervisedRunner):
 

@@ -6,7 +6,7 @@ from typing import Union, Iterable, List
 
 from dnn_cool.converters import Values, Converters
 from dnn_cool.runner import DnnCoolSupervisedRunner, DnnCoolRunnerMinimal
-from dnn_cool.task_flow import TaskFlowForDevelopment, TaskFlowMinimal
+from dnn_cool.task_flow import TaskFlowForDevelopment, TaskFlowMinimal, MinimalTask
 from dnn_cool.verbosity import log, StatsRegistry, Verbosity
 
 
@@ -99,13 +99,9 @@ def trace_used_tasks(flow_func, flow_name, name_to_task_dict):
 
 class ProjectMinimal:
 
-    def __init__(self, inputs: List[str],
-                 outputs: List[str],
-                 leaf_tasks: List[TaskFlowMinimal],
+    def __init__(self, leaf_tasks: List[MinimalTask],
                  project_dir: Union[str, Path],
                  verbosity: Verbosity = Verbosity.SILENT):
-        self.inputs = inputs
-        self.outputs = outputs
         self.project_dir = Path(project_dir)
         self.project_dir.mkdir(exist_ok=True)
         self.stats_registry = StatsRegistry(self.project_dir / 'stats_registry.pkl', verbosity)
@@ -116,17 +112,17 @@ class ProjectMinimal:
         for leaf_task in self.leaf_tasks:
             self._name_to_task[leaf_task.get_name()] = leaf_task
 
-    def add_task_flow(self, task_flow: TaskFlowMinimal):
+    def add_task_flow(self, task_flow: TaskFlowMinimal) -> TaskFlowMinimal:
         self.flow_tasks.append(task_flow)
         self._name_to_task[task_flow.get_name()] = task_flow
         return task_flow
 
-    def add_flow(self, func, flow_name=None, dropout_mc=None):
+    def add_flow(self, func, flow_name=None, dropout_mc=None) -> TaskFlowMinimal:
         flow_name = func.__name__ if flow_name is None else flow_name
         flow = self.create_flow(func, flow_name, dropout_mc)
         return self.add_task_flow(flow)
 
-    def create_flow(self, flow_func, flow_name=None, dropout_mc=None):
+    def create_flow(self, flow_func, flow_name=None, dropout_mc=None) -> TaskFlowMinimal:
         name_to_task_dict = self._name_to_task
         flow_name, used_tasks = trace_used_tasks(flow_func, flow_name, name_to_task_dict)
         return TaskFlowMinimal(name=flow_name,
@@ -134,16 +130,16 @@ class ProjectMinimal:
                                flow_func=flow_func,
                                dropout_mc=dropout_mc)
 
-    def get_all_tasks(self):
+    def get_all_tasks(self) -> List[MinimalTask]:
         return self.leaf_tasks + self.flow_tasks
 
     def get_full_flow(self) -> TaskFlowMinimal:
         return self.flow_tasks[-1]
 
-    def get_task(self, task_name):
-        return self._name_to_task[task_name]
+    def get_task(self, task_name) -> MinimalTask:
+        return self._name_to_task.get(task_name)
 
-    def runner(self, model, runner_name):
+    def runner(self, model, runner_name) -> DnnCoolRunnerMinimal:
         return DnnCoolRunnerMinimal(project=self, model=model, runner_name=runner_name)
 
 
