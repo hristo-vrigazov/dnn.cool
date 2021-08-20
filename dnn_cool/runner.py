@@ -19,6 +19,7 @@ from torch.utils.data import DataLoader, Dataset
 
 from dnn_cool.catalyst_utils import InterpretationCallback, TensorboardConverters, ReplaceGatherCallback
 from dnn_cool.deployment import unbind_task_labels
+from dnn_cool.project import ProjectMinimal
 from dnn_cool.utils import TransformedSubset, train_test_val_split
 
 
@@ -115,6 +116,36 @@ class InferDictCallback(InferCallback):
             key: np.concatenate(value, axis=0)
             for key, value in self.targets[state.loader_key].items()
         }
+
+
+class DnnCoolRunnerMinimal:
+
+    def __init__(self, project: ProjectMinimal, model: nn.Module, runner_name: str):
+        self.project = project
+        self.model = model
+        self.runner_name = runner_name
+        self.logdir_name = f'./logdir_{runner_name}'
+
+    def best(self) -> nn.Module:
+        return self.load_model_from_checkpoint('best')
+
+    def last(self) -> nn.Module:
+        return self.load_model_from_checkpoint('last')
+
+    def from_epoch(self, i) -> nn.Module:
+        return self.load_model_from_checkpoint(f'train.{i}')
+
+    def load_model_from_checkpoint(self, checkpoint_name):
+        model = self.model
+        logdir = self.project.project_dir / self.logdir_name
+        checkpoint_path = str(logdir / 'checkpoints' / f'{checkpoint_name}.pth')
+        model.load_state_dict(torch.load(checkpoint_path))
+        thresholds_path = logdir / 'tuned_params.pkl'
+        if not thresholds_path.exists():
+            return model
+        tuned_params = torch.load(thresholds_path)
+        self.project.get_full_flow().get_decoder().load_tuned(tuned_params)
+        return model
 
 
 class DnnCoolSupervisedRunner(SupervisedRunner):
@@ -219,7 +250,9 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
             datasets=kwargs.get('datasets', self.get_default_datasets(**kwargs))
         )
         loaders_to_skip = kwargs.get('loader_names_to_skip_in_interpretation', ())
-        interpretation_callback = InterpretationCallback(self.task_flow, tensorboard_converters, loaders_to_skip)
+        interpretation_callback = InterpretationCallback(self.task_flow.get_per_sample_criterion(),
+                                                         tensorboard_converters,
+                                                         loaders_to_skip)
         return interpretation_callback
 
     def get_default_loaders(self, shuffle_train=True,

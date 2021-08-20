@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import Union, Iterable, List
 
 from dnn_cool.converters import Values, Converters
-from dnn_cool.runner import DnnCoolSupervisedRunner
-from dnn_cool.task_flow import TaskFlow
+from dnn_cool.runner import DnnCoolSupervisedRunner, DnnCoolRunnerMinimal
+from dnn_cool.task_flow import TaskFlowForDevelopment, TaskFlowMinimal
 from dnn_cool.verbosity import log, StatsRegistry, Verbosity
 
 
@@ -85,10 +85,23 @@ class UsedTasksTracer:
         return self
 
 
-class MinimalProject:
+def trace_used_tasks(flow_func, flow_name, name_to_task_dict):
+    flow_name = flow_func.__name__ if flow_name is None else flow_name
+    used_tasks_tracer = UsedTasksTracer()
+    flow_func(used_tasks_tracer, UsedTasksTracer(), UsedTasksTracer())
+    used_tasks = []
+    for used_task_name in used_tasks_tracer.used_tasks:
+        task = name_to_task_dict.get(used_task_name, None)
+        if task is not None:
+            used_tasks.append(task)
+    return flow_name, used_tasks
+
+
+class ProjectMinimal:
 
     def __init__(self, inputs: List[str],
                  outputs: List[str],
+                 leaf_tasks: List[TaskFlowMinimal],
                  project_dir: Union[str, Path],
                  verbosity: Verbosity = Verbosity.SILENT):
         self.inputs = inputs
@@ -97,10 +110,46 @@ class MinimalProject:
         self.project_dir.mkdir(exist_ok=True)
         self.stats_registry = StatsRegistry(self.project_dir / 'stats_registry.pkl', verbosity)
 
+        self.leaf_tasks = leaf_tasks
+        self.flow_tasks = []
+        self._name_to_task = {}
+        for leaf_task in self.leaf_tasks:
+            self._name_to_task[leaf_task.get_name()] = leaf_task
 
-class TrainingProject:
+    def add_task_flow(self, task_flow: TaskFlowMinimal):
+        self.flow_tasks.append(task_flow)
+        self._name_to_task[task_flow.get_name()] = task_flow
+        return task_flow
 
-    def __init__(self, project: MinimalProject,
+    def add_flow(self, func, flow_name=None, dropout_mc=None):
+        flow_name = func.__name__ if flow_name is None else flow_name
+        flow = self.create_flow(func, flow_name, dropout_mc)
+        return self.add_task_flow(flow)
+
+    def create_flow(self, flow_func, flow_name=None, dropout_mc=None):
+        name_to_task_dict = self._name_to_task
+        flow_name, used_tasks = trace_used_tasks(flow_func, flow_name, name_to_task_dict)
+        return TaskFlowMinimal(name=flow_name,
+                               tasks=used_tasks,
+                               flow_func=flow_func,
+                               dropout_mc=dropout_mc)
+
+    def get_all_tasks(self):
+        return self.leaf_tasks + self.flow_tasks
+
+    def get_full_flow(self) -> TaskFlowMinimal:
+        return self.flow_tasks[-1]
+
+    def get_task(self, task_name):
+        return self._name_to_task[task_name]
+
+    def runner(self, model, runner_name):
+        return DnnCoolRunnerMinimal(project=self, model=model, runner_name=runner_name)
+
+
+class ProjectForDevelopment:
+
+    def __init__(self, project: ProjectMinimal,
                  df: pd.DataFrame,
                  converters: Converters,
                  name: str):

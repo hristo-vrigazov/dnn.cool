@@ -14,7 +14,7 @@ from torch import nn
 from torch.nn import DataParallel
 from torch.utils.data import Dataset, SequentialSampler
 
-from dnn_cool.task_flow import TaskFlow
+from dnn_cool.task_flow import TaskFlowForDevelopment
 from dnn_cool.utils import any_value
 
 
@@ -214,7 +214,7 @@ class InterpretationCallback(Callback):
     This callback publishes best and worst images per task, according to the configuration supplied via the constructor.
     """
 
-    def __init__(self, flow: TaskFlow,
+    def __init__(self, per_sample_criterion,
                  tensorboard_converters: Optional[TensorboardConverters] = None,
                  loaders_to_skip=()):
         """
@@ -226,10 +226,9 @@ class InterpretationCallback(Callback):
         :param loaders_to_skip: Optional loaders to be skipped, for example because labels aren't available for them.
         """
         super().__init__(CallbackOrder.Metric)
-        self.flow = flow
         self.loaders_to_skip = loaders_to_skip
 
-        self.overall_loss = flow.get_per_sample_loss()
+        self.overall_loss = per_sample_criterion
         self.leaf_losses = self.overall_loss.get_leaf_losses_per_sample()
         self.interpretations = {}
         self.loader_counts = {}
