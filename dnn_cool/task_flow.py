@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 from treelib import Tree
 
 from dnn_cool.activations import CompositeActivation
-from dnn_cool.datasets import FlowDataset, LeafTaskDataset
+from dnn_cool.datasets import FlowDataset
 from dnn_cool.decoders import BinaryDecoder, TaskFlowDecoder, Decoder, ClassificationDecoder, \
     MultilabelClassificationDecoder, NoOpDecoder, BoundedRegressionDecoder
 from dnn_cool.evaluation import EvaluationCompositeVisitor, EvaluationVisitor
@@ -59,27 +59,22 @@ class TaskForDevelopment:
 
     def __init__(self, name: str,
                  labels,
-                 inputs,
                  criterion,
                  per_sample_criterion,
                  available_func,
-                 metrics: Tuple[str, TorchMetric]):
+                 metrics: List[Tuple[str, TorchMetric]]):
         self.name = name
         self.labels = labels
-        self.inputs = inputs
         self.criterion = criterion
         self.per_sample_criterion = per_sample_criterion
         self.available_func = available_func
-        self.metrics = metrics
+        self.metrics = metrics if metrics is not None else []
 
     def get_name(self) -> str:
         return self.name
 
     def get_filter(self) -> FilterVisitor:
         return FilterVisitor(self, prefix='')
-
-    def get_inputs(self):
-        return self.inputs
 
     def get_evaluator(self) -> EvaluationVisitor:
         return EvaluationVisitor(self, prefix='')
@@ -95,9 +90,6 @@ class TaskForDevelopment:
 
     def get_labels(self):
         return self.labels
-
-    def get_dataset(self):
-        return LeafTaskDataset(self.inputs, self.labels)
 
     def get_metrics(self):
         for i in range(len(self.metrics)):
@@ -116,12 +108,11 @@ class BinaryHardcodedTaskForDevelopment(TaskForDevelopment):
 
     def __init__(self, name: str, labels):
         super().__init__(name,
-                         inputs=None,
                          labels=labels,
                          criterion=None,
                          per_sample_criterion=None,
                          available_func=positive_values,
-                         metrics=())
+                         metrics=[])
 
 
 class BoundedRegressionTaskMinimal(MinimalTask):
@@ -142,7 +133,6 @@ class BoundedRegressionTaskForDevelopment(TaskForDevelopment):
     def __init__(self, name: str, labels):
         super().__init__(name,
                          labels,
-                         inputs=None,
                          criterion=SigmoidAndMSELoss(reduction='mean'),
                          per_sample_criterion=ReducedPerSample(SigmoidAndMSELoss(reduction='none'),
                                                                reduction=torch.sum),
@@ -162,11 +152,10 @@ class BinaryClassificationTaskMinimal(MinimalTask):
 
 class BinaryClassificationTaskForDevelopment(TaskForDevelopment):
 
-    def __init__(self, name: str, labels, inputs=None):
+    def __init__(self, name: str, labels):
         reduced_per_sample = ReducedPerSample(nn.BCEWithLogitsLoss(reduction='none'), reduction=torch.mean)
         super().__init__(name,
                          labels,
-                         inputs=inputs,
                          criterion=nn.BCEWithLogitsLoss(reduction='mean'),
                          per_sample_criterion=reduced_per_sample,
                          available_func=positive_values,
@@ -210,7 +199,6 @@ class ClassificationTaskForDevelopment(TaskForDevelopment):
                  labels):
         super().__init__(name,
                          labels,
-                         inputs=None,
                          criterion=nn.CrossEntropyLoss(reduction='mean'),
                          per_sample_criterion=ReducedPerSample(nn.CrossEntropyLoss(reduction='none'), torch.mean),
                          available_func=positive_values,
@@ -252,7 +240,6 @@ class MultilabelClassificationTaskForDevelopment(TaskForDevelopment):
     def __init__(self, name: str, labels):
         super().__init__(name,
                          labels,
-                         inputs=None,
                          criterion=nn.BCEWithLogitsLoss(reduction='mean'),
                          per_sample_criterion=ReducedPerSample(nn.BCEWithLogitsLoss(reduction='none'), torch.mean),
                          available_func=positive_values,
@@ -312,11 +299,14 @@ class TaskFlowForDevelopment(TaskForDevelopment, TaskFlowBase):
         TaskForDevelopment.__init__(self,
                                     name=name,
                                     labels=labels,
-                                    inputs=inputs,
                                     criterion=TaskFlowCriterion(self, ctx=self.ctx),
                                     per_sample_criterion=None,
                                     available_func=None,
                                     metrics=self.get_metrics())
+        self.inputs = inputs
+
+    def get_inputs(self):
+        return self.inputs
 
     def get_per_sample_criterion(self, prefix='', ctx=None):
         if ctx is None:

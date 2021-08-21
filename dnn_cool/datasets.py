@@ -8,21 +8,6 @@ from torch.utils.data.dataset import Dataset
 from dnn_cool.dsl import IFeaturesDict, IOut, ICondition, IFlowTask
 
 
-class LeafTaskDataset(Dataset):
-
-    def __init__(self, inputs, labels):
-        self.inputs = inputs
-        self.labels = labels
-        assert len(self.inputs) == len(self.labels), f'The provided inputs and labels are of different length: ' \
-                                                     f'{len(self.inputs)} and {len(self.labels)}'
-
-    def __getitem__(self, item):
-        return self.inputs[item], self.labels[item]
-
-    def __len__(self):
-        return len(self.inputs)
-
-
 def discover_index_holder(*args, **kwargs):
     all_args = [*args, *kwargs.values()]
 
