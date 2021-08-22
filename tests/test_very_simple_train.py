@@ -74,7 +74,7 @@ def test_interpretation_synthetic():
     model = runner.best()
 
     tensorboard_converters = TensorboardConverters(
-        logdir=runner.project_dir / runner.default_logdir,
+        logdir=runner.project_dir / runner.logdir,
         tensorboard_loggers=TensorboardConverter(),
         datasets=datasets
     )
@@ -118,7 +118,7 @@ def test_load_tuned_pipeline():
 def test_load_tuned_pipeline_from_decoder():
     model, nested_loaders, datasets, project = synthetic_dataset_preparation()
     runner = project.runner(model=model, runner_name='default_experiment')
-    tuned_params = torch.load(runner.project_dir / runner.default_logdir / 'tuned_params.pkl')
+    tuned_params = torch.load(runner.project_dir / runner.logdir / 'tuned_params.pkl')
     flow = project.get_full_flow()
     flow.get_decoder().load_tuned(tuned_params)
 

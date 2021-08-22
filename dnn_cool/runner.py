@@ -1,24 +1,23 @@
 from collections import OrderedDict
-from shutil import copyfile
-from typing import Iterator, Mapping
 from dataclasses import dataclass, field
 from functools import partial
 from pathlib import Path
+from shutil import copyfile
 from time import time
-from typing import Dict, Tuple, Callable, Optional, Any, Union, List
-from torch import nn
+from typing import Dict, Tuple, Callable, Optional, Any, Union, List, Sized
+from typing import Iterator, Mapping
 
 import numpy as np
 import torch
 from catalyst.dl import SupervisedRunner, EarlyStoppingCallback, InferCallback, State, Callback
 from catalyst.utils import load_checkpoint, unpack_checkpoint, any2device
+from torch import nn
 from torch import optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset
 
 from dnn_cool.catalyst_utils import InterpretationCallback, TensorboardConverters, ReplaceGatherCallback
-from dnn_cool.deployment import unbind_task_labels
 from dnn_cool.project import ProjectMinimal
 from dnn_cool.utils import TransformedSubset, train_test_val_split
 
@@ -157,12 +156,13 @@ class DnnCoolRunnerMinimal:
 
 class DnnCoolSupervisedRunner(SupervisedRunner):
 
-    def __init__(self, project, model,
+    def __init__(self, project,
+                 model,
+                 runner_name,
                  early_stop: bool = True,
                  balance_dataparallel_memory: bool = False,
-                 runner_name=None,
-                 train_test_val_indices=None,
-                 perform_conversion=True):
+                 train_test_val_indices=None):
+        self.project = project
         self.task_flow = project.get_full_flow()
 
         self.default_criterion = self.task_flow.get_loss()
@@ -176,20 +176,19 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         self.default_scheduler = ReduceLROnPlateau
         self.project_dir: Path = project.project_dir
         self.project_dir.mkdir(exist_ok=True)
-        runner_name = f'{self.task_flow.get_name()}_{time()}' if runner_name is None else runner_name
-        self.default_logdir = f'./logdir_{runner_name}'
+        self.logdir = f'./logdir_{runner_name}'
 
         if early_stop:
             self.default_callbacks.append(EarlyStoppingCallback(patience=5))
 
-        (self.project_dir / self.default_logdir).mkdir(exist_ok=True)
-        if perform_conversion:
-            if train_test_val_indices is None:
-                train_test_val_indices = project_split(project.df, self.project_dir / self.default_logdir)
-            else:
-                save_split(self.project_dir / self.default_logdir, train_test_val_indices)
+        (self.project_dir / self.logdir).mkdir(exist_ok=True)
+        if train_test_val_indices is None:
+            n = len(project.get_full_flow().get_dataset())
+            train_test_val_indices = project_split(n, self.project_dir / self.logdir)
+        else:
+            save_split(self.project_dir / self.logdir, train_test_val_indices)
         self.train_test_val_indices = train_test_val_indices
-        self.tensor_loggers = project.converters.tensorboard_converters
+        self.tensor_loggers = project.tensorboard_converters
         super().__init__(model=model)
 
     def train(self, *args, **kwargs):
@@ -205,7 +204,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
             kwargs['scheduler'] = self.default_scheduler(kwargs['optimizer'])
 
         if 'logdir' not in kwargs:
-            kwargs['logdir'] = self.default_logdir
+            kwargs['logdir'] = self.logdir
         kwargs['logdir'] = self.project_dir / kwargs['logdir']
         kwargs['num_epochs'] = kwargs.get('num_epochs', 50)
 
@@ -221,7 +220,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         kwargs['loaders'] = kwargs.get('loaders', default_loaders)
         kwargs['datasets'] = kwargs.get('datasets', default_datasets)
 
-        logdir = self.project_dir / Path(kwargs.get('logdir', self.default_logdir))
+        logdir = self.project_dir / Path(kwargs.get('logdir', self.logdir))
         kwargs['logdir'] = logdir
         interpretation_callback = self.create_interpretation_callback(**kwargs)
         infer_dict_callback = InferDictCallback()
@@ -315,11 +314,11 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
 
     def best(self) -> nn.Module:
         model = self.model
-        checkpoint_path = str(self.project_dir / self.default_logdir / 'checkpoints' / 'best_full.pth')
+        checkpoint_path = str(self.project_dir / self.logdir / 'checkpoints' / 'best_full.pth')
         ckpt = load_checkpoint(checkpoint_path)
         unpack_checkpoint(ckpt, model)
 
-        thresholds_path = self.project_dir / self.default_logdir / 'tuned_params.pkl'
+        thresholds_path = self.project_dir / self.logdir / 'tuned_params.pkl'
         if not thresholds_path.exists():
             return model
         tuned_params = torch.load(thresholds_path)
@@ -331,12 +330,12 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         decoder = self.task_flow.get_decoder()
         tuned_params = decoder.tune(res['logits'][loader_name], res['targets'][loader_name])
         if store:
-            out_path = self.project_dir / self.default_logdir / 'tuned_params.pkl'
+            out_path = self.project_dir / self.logdir / 'tuned_params.pkl'
             torch.save(tuned_params, out_path)
         return tuned_params
 
     def load_inference_results(self) -> Dict:
-        logdir = self.project_dir / self.default_logdir
+        logdir = self.project_dir / self.logdir
         out_dir = logdir / 'infer'
         out_dir.mkdir(exist_ok=True)
         res = {}
@@ -347,7 +346,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         return res
 
     def load_tuned(self) -> Dict:
-        tuned_params = torch.load(self.project_dir / self.default_logdir / 'tuned_params.pkl')
+        tuned_params = torch.load(self.project_dir / self.logdir / 'tuned_params.pkl')
         self.task_flow.get_decoder().load_tuned(tuned_params)
         return tuned_params
 
@@ -356,17 +355,17 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         self.load_tuned()
         evaluator = self.task_flow.get_evaluator()
         df = evaluator(res['logits'][loader_name], res['targets'][loader_name])
-        df.to_csv(self.project_dir / self.default_logdir / 'evaluation.csv', index=False)
+        df.to_csv(self.project_dir / self.logdir / 'evaluation.csv', index=False)
         return df
 
     def export_for_deployment(self, out_directory: Path):
-        params_file = self.project_dir / self.default_logdir / 'tuned_params.pkl'
+        params_file = self.project_dir / self.logdir / 'tuned_params.pkl'
         if params_file.exists():
             copyfile(params_file, out_directory / 'tuned_params.pkl')
         torch.save(self.model.state_dict(), out_directory / 'state_dict.pth')
 
 
-def split_already_done(df, project_dir):
+def split_already_done(n: int, project_dir):
     total_len = 0
     for i, split_name in enumerate(['train', 'test', 'val']):
         split_path = project_dir / f'{split_name}_indices.npy'
@@ -374,9 +373,7 @@ def split_already_done(df, project_dir):
             return False
         total_len += len(np.load(split_path))
 
-    if total_len != len(df):
-        return False
-    return True
+    return total_len == n
 
 
 def read_split(project_dir):
@@ -393,9 +390,9 @@ def save_split(project_dir, res):
         np.save(split_path, res[i])
 
 
-def project_split(df, project_dir):
-    if split_already_done(df, project_dir):
+def project_split(n: int, project_dir):
+    if split_already_done(n, project_dir):
         return read_split(project_dir)
-    res = train_test_val_split(df)
+    res = train_test_val_split(n)
     save_split(project_dir, res)
     return res

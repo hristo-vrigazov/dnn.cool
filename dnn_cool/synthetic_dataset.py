@@ -12,10 +12,7 @@ from torch.utils.data import DataLoader
 
 from dnn_cool.converters import TypeGuesser, ValuesConverter, TaskConverter, Converters
 from dnn_cool.decoders import BoundedRegressionDecoder
-from dnn_cool.project import Project
 from dnn_cool.task_converters import To
-from dnn_cool.task_flow import BoundedRegressionTask, BinaryClassificationTask, ClassificationTask, \
-    MultilabelClassificationTask
 from dnn_cool.utils import torch_split_dataset
 from dnn_cool.value_converters import binary_value_converter, classification_converter, \
     ImageCoordinatesValuesConverter, MultiLabelValuesConverter

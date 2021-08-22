@@ -14,7 +14,7 @@ from torch import nn
 from torch.nn import DataParallel
 from torch.utils.data import Dataset, SequentialSampler
 
-from dnn_cool.task_flow import TaskFlowForDevelopment
+from dnn_cool.tasks import TaskFlowForDevelopment
 from dnn_cool.utils import any_value
 
 

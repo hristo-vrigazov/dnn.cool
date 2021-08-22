@@ -1,3 +1,5 @@
+from typing import Sized
+
 import numpy as np
 import torch
 from sklearn.model_selection import train_test_split
@@ -18,14 +20,14 @@ def torch_split_dataset(dataset, test_size=0.2, random_state=None):
     return train_dataset, test_dataset
 
 
-def split_dataset(dataset, test_size=0.2, random_state=None):
-    X, y = np.arange(len(dataset)), np.arange(len(dataset))
+def split_dataset(n: int, test_size=0.2, random_state=None):
+    X, y = np.arange(n), np.arange(n)
     train_indices, test_indices, _, _ = train_test_split(X, y, test_size=test_size, random_state=random_state)
     return train_indices, test_indices
 
 
-def train_test_val_split(df, random_state=None):
-    train_indices, val_indices = split_dataset(df, test_size=0.2, random_state=random_state)
+def train_test_val_split(n: int, random_state=None):
+    train_indices, val_indices = split_dataset(n, test_size=0.2, random_state=random_state)
     rel_test_indices, rel_val_indices = split_dataset(val_indices, test_size=0.5, random_state=random_state)
     return train_indices, val_indices[rel_test_indices], val_indices[rel_val_indices]
 

@@ -1,4 +1,5 @@
-from typing import Iterable, Optional, Callable, Tuple, List
+from pathlib import Path
+from typing import Iterable, Optional, Callable, Tuple, List, Union
 
 import torch
 from torch import nn
@@ -294,7 +295,7 @@ class TaskFlowMinimal(MinimalTask, TaskFlowBase):
 
 class TaskFlowForDevelopment(TaskForDevelopment, TaskFlowBase):
 
-    def __init__(self, name: str, labels, inputs, tasks: Iterable[MinimalTask], flow_func):
+    def __init__(self, name: str, labels, inputs, tasks: Iterable[TaskForDevelopment], flow_func):
         TaskFlowBase.__init__(self, name, tasks, flow_func)
         TaskForDevelopment.__init__(self,
                                     name=name,
@@ -333,3 +334,77 @@ class TaskFlowForDevelopment(TaskForDevelopment, TaskFlowBase):
 
     def get_evaluator(self):
         return EvaluationCompositeVisitor(self, prefix='')
+
+
+class UsedTasksTracer:
+
+    def __init__(self):
+        self.used_tasks = []
+
+    def __getattr__(self, item):
+        self.used_tasks.append(item)
+        return self
+
+    def __call__(self, *args, **kwargs):
+        return self
+
+    def __add__(self, other):
+        return self
+
+    def __invert__(self):
+        return self
+
+    def __or__(self, other):
+        return self
+
+
+def trace_used_tasks(flow_func, flow_name, name_to_task_dict):
+    flow_name = flow_func.__name__ if flow_name is None else flow_name
+    used_tasks_tracer = UsedTasksTracer()
+    flow_func(used_tasks_tracer, UsedTasksTracer(), UsedTasksTracer())
+    used_tasks = []
+    for used_task_name in used_tasks_tracer.used_tasks:
+        task = name_to_task_dict.get(used_task_name, None)
+        if task is not None:
+            used_tasks.append(task)
+    return flow_name, used_tasks
+
+
+class Tasks:
+    """
+    Represents a collections of related tasks and task flows.
+    """
+
+    def __init__(self, leaf_tasks: List[MinimalTask]):
+        self.leaf_tasks = leaf_tasks
+        self.flow_tasks = []
+        self._name_to_task = {}
+        for leaf_task in self.leaf_tasks:
+            self._name_to_task[leaf_task.get_name()] = leaf_task
+
+    def add_task_flow(self, task_flow: TaskFlowMinimal) -> TaskFlowMinimal:
+        self.flow_tasks.append(task_flow)
+        self._name_to_task[task_flow.get_name()] = task_flow
+        return task_flow
+
+    def add_flow(self, func, flow_name=None, dropout_mc=None) -> TaskFlowMinimal:
+        flow_name = func.__name__ if flow_name is None else flow_name
+        flow = self.create_flow(func, flow_name, dropout_mc)
+        return self.add_task_flow(flow)
+
+    def create_flow(self, flow_func, flow_name=None, dropout_mc=None) -> TaskFlowMinimal:
+        name_to_task_dict = self._name_to_task
+        flow_name, used_tasks = trace_used_tasks(flow_func, flow_name, name_to_task_dict)
+        return TaskFlowMinimal(name=flow_name,
+                               tasks=used_tasks,
+                               flow_func=flow_func,
+                               dropout_mc=dropout_mc)
+
+    def get_all_tasks(self) -> List[MinimalTask]:
+        return self.leaf_tasks + self.flow_tasks
+
+    def get_full_flow(self) -> TaskFlowMinimal:
+        return self.flow_tasks[-1]
+
+    def get_task(self, task_name) -> MinimalTask:
+        return self._name_to_task.get(task_name)
