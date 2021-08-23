@@ -5,62 +5,9 @@ import pandas as pd
 
 from dnn_cool.catalyst_utils import TensorboardConverter
 from dnn_cool.converters import Values, Converters
-from dnn_cool.runner import DnnCoolSupervisedRunner, DnnCoolRunnerMinimal
-from dnn_cool.task_flow import TaskFlowForDevelopment, TaskFlowMinimal, MinimalTask, TaskForDevelopment
+from dnn_cool.runner import DnnCoolSupervisedRunner
 from dnn_cool.verbosity import log, StatsRegistry, Verbosity
 
-
-def not_found_error_message(col, df):
-    return f'Input column "{col}" not found in df. Dataframe has columns: {df.columns.tolist()}'
-
-
-def assert_col_in_df(col, df):
-    if isinstance(col, str):
-        assert col in df, not_found_error_message(col, df)
-    else:
-        for col_s in col:
-            assert col_s in df, not_found_error_message(col_s, df)
-
-
-def create_values(df, output_col, converters, perform_conversion):
-    log(f'Creating values from column "{output_col}" in dataframe ...')
-    values_type = converters.type.guess(df, output_col)
-    values = converters.values.to_values(df, output_col, values_type, perform_conversion)
-    return values
-
-
-def create_leaf_task(df, col, converters, perform_conversion):
-    values = create_values(df, col, converters, perform_conversion)
-    task = converters.task.to_task(col, values.types[0], values.values[0])
-    return task
-
-
-def create_leaf_tasks(df, col, converters, perform_conversion):
-    if isinstance(col, str):
-        return [create_leaf_task(df, col, converters, perform_conversion)]
-
-    res = []
-    for col_s in col:
-        res.append(create_leaf_task(df, col_s, converters, perform_conversion))
-    return res
-
-
-def read_inputs(df, input_col, converters, perform_conversion):
-    log(f'Reading inputs from dataframe...')
-    if isinstance(input_col, str):
-        values = create_values(df, input_col, converters, perform_conversion)
-        return values
-
-    keys = []
-    values = []
-    types = []
-    for col_s in input_col:
-        vals = create_values(df, col_s, converters, perform_conversion)
-        keys.extend(vals.keys)
-        values.extend(vals.values)
-        types.extend(vals.types)
-
-    return Values(keys=keys, values=values, types=types)
 
 
 

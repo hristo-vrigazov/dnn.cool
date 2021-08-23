@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Iterable, Optional, Callable, Tuple, List, Union
+from typing import Iterable, Optional, Callable, Tuple, List, Union, Dict
 
 import torch
 from torch import nn
@@ -21,7 +21,7 @@ from dnn_cool.modules import SigmoidAndMSELoss, TaskFlowModule
 from dnn_cool.treelib import TreeExplainer, default_leaf_tree_explainer
 
 
-class MinimalTask:
+class Task:
 
     def __init__(self, name, torch_module, activation, decoder, dropout_mc, treelib_explainer=None):
         self.name = name
@@ -99,7 +99,7 @@ class TaskForDevelopment:
         return self.metrics
 
 
-class BinaryHardcodedTaskMinimal(MinimalTask):
+class BinaryHardcodedTask(Task):
 
     def __init__(self, name):
         super().__init__(name, torch_module=None, activation=None, decoder=NoOpDecoder(), dropout_mc=None)
@@ -116,7 +116,7 @@ class BinaryHardcodedTaskForDevelopment(TaskForDevelopment):
                          metrics=[])
 
 
-class BoundedRegressionTaskMinimal(MinimalTask):
+class BoundedRegressionTask(Task):
 
     def __init__(self, name, torch_module, dropout_mc=None):
         super().__init__(name, torch_module=torch_module, activation=nn.Sigmoid(), decoder=BoundedRegressionDecoder(),
@@ -141,7 +141,7 @@ class BoundedRegressionTaskForDevelopment(TaskForDevelopment):
                          metrics=get_default_bounded_regression_metrics())
 
 
-class BinaryClassificationTaskMinimal(MinimalTask):
+class BinaryClassificationTask(Task):
 
     def __init__(self, name, torch_module, dropout_mc=None):
         super().__init__(name,
@@ -163,7 +163,7 @@ class BinaryClassificationTaskForDevelopment(TaskForDevelopment):
                          metrics=get_default_binary_metrics())
 
 
-class ClassificationTaskMinimal(MinimalTask):
+class ClassificationTask(Task):
 
     def __init__(self, name, torch_module,
                  class_names: Optional[List[str]] = None,
@@ -206,7 +206,7 @@ class ClassificationTaskForDevelopment(TaskForDevelopment):
                          metrics=get_default_classification_metrics())
 
 
-class MultilabelClassificationTaskMinimal(MinimalTask):
+class MultilabelClassificationTask(Task):
 
     def __init__(self, name, torch_module,
                  class_names: Optional[List[str]] = None,
@@ -275,16 +275,16 @@ class TaskFlowBase:
         return tasks
 
 
-class TaskFlowMinimal(MinimalTask, TaskFlowBase):
+class TaskFlow(Task, TaskFlowBase):
 
-    def __init__(self, name, tasks: Iterable[MinimalTask], flow_func, dropout_mc=None):
+    def __init__(self, name, tasks: Iterable[Task], flow_func, dropout_mc=None):
         TaskFlowBase.__init__(self, name, tasks, flow_func)
-        MinimalTask.__init__(self,
-                             name=name,
-                             torch_module=TaskFlowModule(self),
-                             activation=CompositeActivation(self),
-                             decoder=TaskFlowDecoder(self),
-                             dropout_mc=dropout_mc)
+        Task.__init__(self,
+                      name=name,
+                      torch_module=TaskFlowModule(self),
+                      activation=CompositeActivation(self),
+                      decoder=TaskFlowDecoder(self),
+                      dropout_mc=dropout_mc)
 
     def has_children(self):
         return True
@@ -375,36 +375,33 @@ class Tasks:
     Represents a collections of related tasks and task flows.
     """
 
-    def __init__(self, leaf_tasks: List[MinimalTask]):
+    def __init__(self, leaf_tasks: List[Task]):
         self.leaf_tasks = leaf_tasks
         self.flow_tasks = []
-        self._name_to_task = {}
+        self.task_dict = {}
         for leaf_task in self.leaf_tasks:
-            self._name_to_task[leaf_task.get_name()] = leaf_task
+            self.task_dict[leaf_task.get_name()] = leaf_task
 
-    def add_task_flow(self, task_flow: TaskFlowMinimal) -> TaskFlowMinimal:
+    def add_task_flow(self, task_flow: TaskFlow) -> TaskFlow:
         self.flow_tasks.append(task_flow)
-        self._name_to_task[task_flow.get_name()] = task_flow
+        self.task_dict[task_flow.get_name()] = task_flow
         return task_flow
 
-    def add_flow(self, func, flow_name=None, dropout_mc=None) -> TaskFlowMinimal:
+    def add_flow(self, func, flow_name=None, dropout_mc=None) -> TaskFlow:
         flow_name = func.__name__ if flow_name is None else flow_name
         flow = self.create_flow(func, flow_name, dropout_mc)
         return self.add_task_flow(flow)
 
-    def create_flow(self, flow_func, flow_name=None, dropout_mc=None) -> TaskFlowMinimal:
-        name_to_task_dict = self._name_to_task
+    def create_flow(self, flow_func, flow_name=None, dropout_mc=None) -> TaskFlow:
+        name_to_task_dict = self.task_dict
         flow_name, used_tasks = trace_used_tasks(flow_func, flow_name, name_to_task_dict)
-        return TaskFlowMinimal(name=flow_name,
-                               tasks=used_tasks,
-                               flow_func=flow_func,
-                               dropout_mc=dropout_mc)
+        return TaskFlow(name=flow_name,
+                        tasks=used_tasks,
+                        flow_func=flow_func,
+                        dropout_mc=dropout_mc)
 
-    def get_all_tasks(self) -> List[MinimalTask]:
-        return self.leaf_tasks + self.flow_tasks
+    def get_all_tasks(self) -> Dict[str, Task]:
+        return self.task_dict
 
-    def get_full_flow(self) -> TaskFlowMinimal:
+    def get_full_flow(self) -> TaskFlow:
         return self.flow_tasks[-1]
-
-    def get_task(self, task_name) -> MinimalTask:
-        return self._name_to_task.get(task_name)

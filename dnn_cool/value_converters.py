@@ -10,11 +10,13 @@ from sklearn.preprocessing import MultiLabelBinarizer
 
 
 def binary_value_converter(values):
+    values = values.copy()
     values[np.isnan(values.astype(float))] = -1
     return torch.tensor(values.astype(float)).float().unsqueeze(dim=-1)
 
 
 def classification_converter(values):
+    values = values.copy()
     values[np.isnan(values)] = -1
     return torch.tensor(values).long()
 

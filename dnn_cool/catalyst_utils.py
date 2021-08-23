@@ -14,7 +14,6 @@ from torch import nn
 from torch.nn import DataParallel
 from torch.utils.data import Dataset, SequentialSampler
 
-from dnn_cool.tasks import TaskFlowForDevelopment
 from dnn_cool.utils import any_value
 
 
@@ -160,10 +159,10 @@ class TensorboardConverters:
 
         :param state: The state with which the callback is called.
         """
-        if (self.logdir is not None) and (state.loader_name not in self.loggers):
-            path = str(self.logdir / f"{state.loader_name}_log")
+        if (self.logdir is not None) and (state.loader_key not in self.loggers):
+            path = str(self.logdir / f"{state.loader_key}_log")
             writer = SummaryWriter(path)
-            self.loggers[state.loader_name] = writer
+            self.loggers[state.loader_key] = writer
 
     def publish(self, state: State, interpretations: Dict[str, torch.Tensor]):
         """
@@ -182,8 +181,8 @@ class TensorboardConverters:
             sorted_indices = value.argsort()
             best_indices = interpretations[f'indices|{key}'][sorted_indices][:self.top_k]
             worst_indices = interpretations[f'indices|{key}'][sorted_indices][-self.top_k:]
-            writer: SummaryWriter = self.loggers[state.loader_name]
-            dataset = self.datasets[state.loader_name]
+            writer: SummaryWriter = self.loggers[state.loader_key]
+            dataset = self.datasets[state.loader_key]
             self._publish_inputs(best_indices, writer, dataset, prefix='best', key=key)
             self._publish_inputs(worst_indices, writer, dataset, prefix='worst', key=key)
 

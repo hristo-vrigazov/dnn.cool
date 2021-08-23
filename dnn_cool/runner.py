@@ -17,8 +17,9 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset
 
-from dnn_cool.catalyst_utils import InterpretationCallback, TensorboardConverters, ReplaceGatherCallback
-from dnn_cool.project import ProjectMinimal
+from dnn_cool.catalyst_utils import InterpretationCallback, TensorboardConverters, ReplaceGatherCallback, \
+    TensorboardConverter
+from dnn_cool.tasks import TaskFlow, TaskFlowForDevelopment
 from dnn_cool.utils import TransformedSubset, train_test_val_split
 
 
@@ -117,10 +118,12 @@ class InferDictCallback(InferCallback):
         }
 
 
-class DnnCoolRunnerMinimal:
+class DnnCoolRunnerView:
 
-    def __init__(self, project: ProjectMinimal, model: nn.Module, runner_name: str):
-        self.project = project
+    def __init__(self, full_flow: TaskFlow, model: nn.Module,
+                 project_dir: Union[str, Path], runner_name: str):
+        self.project_dir = project_dir
+        self.full_flow = full_flow
         self.model = model
         self.runner_name = runner_name
         self.logdir_name = f'./logdir_{runner_name}'
@@ -136,36 +139,41 @@ class DnnCoolRunnerMinimal:
 
     def load_model_from_checkpoint(self, checkpoint_name):
         model = self.model
-        logdir = self.project.project_dir / self.logdir_name
+        logdir = self.project_dir / self.logdir_name
         checkpoint_path = str(logdir / 'checkpoints' / f'{checkpoint_name}.pth')
         model.load_state_dict(torch.load(checkpoint_path))
         thresholds_path = logdir / 'tuned_params.pkl'
         if not thresholds_path.exists():
             return model
         tuned_params = torch.load(thresholds_path)
-        self.project.get_full_flow().get_decoder().load_tuned(tuned_params)
+        self.full_flow.get_decoder().load_tuned(tuned_params)
         return model
 
     def load_tuned_params(self) -> Optional[Dict]:
-        logdir = self.project.project_dir / self.logdir_name
+        logdir = self.project_dir / self.logdir_name
         thresholds_path = logdir / 'tuned_params.pkl'
         if not thresholds_path.exists():
             return None
         return torch.load(thresholds_path)
 
 
+def batch_to_device(batch, device) -> Mapping[str, torch.Tensor]:
+    return any2device(batch, device)
+
+
 class DnnCoolSupervisedRunner(SupervisedRunner):
 
-    def __init__(self, project,
-                 model,
-                 runner_name,
+    def __init__(self, model: nn.Module,
+                 full_flow: TaskFlowForDevelopment,
+                 project_dir: Union[str, Path],
+                 tensoboard_converters: TensorboardConverter,
+                 runner_name: str,
                  early_stop: bool = True,
                  balance_dataparallel_memory: bool = False,
-                 train_test_val_indices=None):
-        self.project = project
-        self.task_flow = project.get_full_flow()
+                 train_test_val_indices: Tuple[np.ndarray, np.ndarray, np.ndarray] = None):
+        self.task_flow = full_flow
 
-        self.default_criterion = self.task_flow.get_loss()
+        self.default_criterion = self.task_flow.get_criterion()
         self.balance_dataparallel_memory = balance_dataparallel_memory
 
         self.default_callbacks = []
@@ -174,7 +182,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         self.default_callbacks.extend(self.default_criterion.catalyst_callbacks())
         self.default_optimizer = partial(optim.AdamW, lr=1e-4)
         self.default_scheduler = ReduceLROnPlateau
-        self.project_dir: Path = project.project_dir
+        self.project_dir: Path = Path(project_dir)
         self.project_dir.mkdir(exist_ok=True)
         self.logdir = f'./logdir_{runner_name}'
 
@@ -183,12 +191,12 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
 
         (self.project_dir / self.logdir).mkdir(exist_ok=True)
         if train_test_val_indices is None:
-            n = len(project.get_full_flow().get_dataset())
+            n = len(self.task_flow.get_dataset())
             train_test_val_indices = project_split(n, self.project_dir / self.logdir)
         else:
             save_split(self.project_dir / self.logdir, train_test_val_indices)
         self.train_test_val_indices = train_test_val_indices
-        self.tensor_loggers = project.tensorboard_converters
+        self.tensor_loggers = tensoboard_converters
         super().__init__(model=model)
 
     def train(self, *args, **kwargs):
@@ -305,9 +313,6 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
 
         datasets['infer'] = datasets[kwargs.get('target_loader', 'valid')]
         return datasets
-
-    def batch_to_device(self, batch, device) -> Mapping[str, torch.Tensor]:
-        return any2device(batch, device)
 
     def batch_to_model_device(self, batch) -> Mapping[str, torch.Tensor]:
         return any2device(batch, next(self.model.parameters()).device)

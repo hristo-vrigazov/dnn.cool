@@ -5,7 +5,7 @@ from typing import Dict
 import joblib
 
 from dnn_cool.catalyst_utils import TensorboardConverter
-from dnn_cool.verbosity import StatsRegistry, Logger, Verbosity
+from dnn_cool.verbosity import StatsRegistry, Logger, Verbosity, log
 
 
 class Values:
@@ -117,7 +117,7 @@ class StatefulConverter:
 @dataclass()
 class ValuesConverter(StatefulConverter):
 
-    def to_values(self, df, col, guessed_type, perform_conversion):
+    def to_values(self, df, col, guessed_type, perform_conversion=True):
         if col in self.col_mapping:
             converter = self.col_mapping[col]
             values = converter(df[col]) if perform_conversion else None
@@ -139,6 +139,18 @@ class TaskConverter(StatefulConverter):
             return self.col_mapping[output_col](name=output_col, labels=values)
 
         return self.type_mapping[guessed_type](name=output_col, labels=values)
+
+
+def not_found_error_message(col, df):
+    return f'Input column "{col}" not found in df. Dataframe has columns: {df.columns.tolist()}'
+
+
+def assert_col_in_df(df, col):
+    if isinstance(col, str):
+        assert col in df, not_found_error_message(col, df)
+    else:
+        for col_s in col:
+            assert col_s in df, not_found_error_message(col_s, df)
 
 
 @dataclass
@@ -172,3 +184,40 @@ class Converters:
     def connect_to_stats_registry(self, stats_registry):
         self.values.connect_to_stats_registry(stats_registry)
         self.task.connect_to_stats_registry(stats_registry)
+
+    def create_values(self, df, output_col):
+        log(f'Creating values from column "{output_col}" in dataframe ...')
+        values_type = self.type.guess(df, output_col)
+        values = self.values.to_values(df, output_col, values_type)
+        return values
+
+    def read_inputs(self, df, input_col):
+        log(f'Reading inputs from dataframe...')
+        if isinstance(input_col, str):
+            values = self.create_values(df, input_col)
+            return values
+
+        keys = []
+        values = []
+        types = []
+        for col_s in input_col:
+            vals = self.create_values(df, col_s)
+            keys.extend(vals.keys)
+            values.extend(vals.values)
+            types.extend(vals.types)
+
+        return Values(keys=keys, values=values, types=types)
+
+    def create_leaf_task(self, df, col):
+        values = self.create_values(df, col)
+        task = self.task.to_task(col, values.types[0], values.values[0])
+        return task
+
+    def create_leaf_tasks(self, df, col):
+        if isinstance(col, str):
+            return [self.create_leaf_task(df, col)]
+
+        res = []
+        for col_s in col:
+            res.append(self.create_leaf_task(df, col_s))
+        return res
