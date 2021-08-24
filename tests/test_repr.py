@@ -15,6 +15,6 @@ def test_repr_binary_task():
 
 def test_repr_flow():
     model, nested_loaders, datasets, project = synthetic_dataset_preparation()
-    flow = project.get_full_flow()
+    flow = project.get_synthetic_full_flow()
     print(flow)
 

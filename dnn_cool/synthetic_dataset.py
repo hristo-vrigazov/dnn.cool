@@ -165,32 +165,41 @@ def create_df_and_images_tensor(n=int(1e4), cache_file=Path('dnn_cool_synthetic_
     return res
 
 
-def get_full_flow(n_shirt_types, n_facial_characteristics) -> TaskFlow:
+def get_synthetic_full_flow(n_shirt_types, n_facial_characteristics) -> TaskFlow:
     camera_blocked = BinaryClassificationTask('camera_blocked', nn.Linear(256, 1))
     door_open = BinaryClassificationTask('door_open', nn.Linear(256, 1))
     person_present = BinaryClassificationTask('person_present', nn.Linear(256, 1))
     face_x1 = BoundedRegressionTask('face_x1', nn.Linear(256, 1), 64)
     face_y1 = BoundedRegressionTask('face_y1', nn.Linear(256, 1), 64)
-    face_x2 = BoundedRegressionTask('face_x2', nn.Linear(256, 1), 64)
-    face_y2 = BoundedRegressionTask('face_y2', nn.Linear(256, 1), 64)
+    face_w = BoundedRegressionTask('face_w', nn.Linear(256, 1), 64)
+    face_h = BoundedRegressionTask('face_h', nn.Linear(256, 1), 64)
     facial_characteristics = MultilabelClassificationTask('facial_characteristics',
                                                           nn.Linear(256, n_facial_characteristics))
     body_x1 = BoundedRegressionTask('body_x1', nn.Linear(256, 1), 64)
     body_y1 = BoundedRegressionTask('body_y1', nn.Linear(256, 1), 64)
-    body_x2 = BoundedRegressionTask('body_x2', nn.Linear(256, 1), 64)
-    body_y2 = BoundedRegressionTask('body_y2', nn.Linear(256, 1), 64)
+    body_w = BoundedRegressionTask('body_w', nn.Linear(256, 1), 64)
+    body_h = BoundedRegressionTask('body_h', nn.Linear(256, 1), 64)
     shirt_type = ClassificationTask('shirt_type', nn.Linear(256, n_shirt_types))
     door_locked = BinaryClassificationTask('door_locked', nn.Linear(256, 1))
     leaf_tasks = [
         camera_blocked,
         door_open,
         person_present,
-        face_x1, face_y1, face_x2, face_y2,
+        face_x1, face_y1, face_w, face_h,
         facial_characteristics,
-        body_x1, body_y1, body_x2, body_y2,
+        body_x1, body_y1, body_w, body_h,
         shirt_type, door_locked
     ]
     tasks = Tasks(leaf_tasks)
+
+    @tasks.add_flow
+    def body_regression(flow, x, out):
+        out += flow.body_x1(x.body_localization)
+        out += flow.body_y1(x.body_localization)
+        out += flow.body_w(x.body_localization)
+        out += flow.body_h(x.body_localization)
+        out += flow.shirt_type(x.features)
+        return out
 
     @tasks.add_flow
     def face_regression(flow, x, out):
@@ -219,13 +228,69 @@ def get_full_flow(n_shirt_types, n_facial_characteristics) -> TaskFlow:
     return tasks.get_full_flow()
 
 
+class SecurityModule(nn.Module):
+
+    def __init__(self, full_flow):
+        super().__init__()
+        self.seq = nn.Sequential(
+            nn.Conv2d(3, 64, kernel_size=5),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(64, 128, kernel_size=5),
+            nn.ReLU(inplace=True),
+            nn.AvgPool2d(2),
+            nn.Conv2d(128, 128, kernel_size=5),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(128, 256, kernel_size=5),
+            nn.AvgPool2d(2),
+            nn.ReLU(inplace=True),
+        )
+
+        self.features_seq = nn.Sequential(
+            nn.Conv2d(256, 256, kernel_size=5),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 256, kernel_size=5),
+            nn.ReLU(inplace=True),
+            nn.AdaptiveAvgPool2d(1),
+            nn.Flatten(),
+        )
+
+        self.face_localization_seq = nn.Sequential(
+            nn.Conv2d(256, 256, kernel_size=5),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 256, kernel_size=5),
+            nn.ReLU(inplace=True),
+            nn.AdaptiveAvgPool2d(1),
+            nn.Flatten(),
+        )
+
+        self.body_localization_seq = nn.Sequential(
+            nn.Conv2d(256, 256, kernel_size=5),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 256, kernel_size=5),
+            nn.ReLU(inplace=True),
+            nn.AdaptiveAvgPool2d(1),
+            nn.Flatten(),
+        )
+
+        self.flow_module = full_flow.torch()
+
+    def forward(self, x):
+        res = {}
+        common = self.seq(x['syn_img'])
+        res['features'] = self.features_seq(common)
+        res['face_localization'] = self.face_localization_seq(common)
+        res['body_localization'] = self.body_localization_seq(common)
+        res['gt'] = x.get('gt')
+        return self.flow_module(res)
+
+
 def synthetic_dataset_preparation(n=int(1e4), perform_conversion=True):
     imgs, df = create_df_and_images_tensor(n)
     multilabel_converter = MultiLabelValuesConverter()
     n_shirt_types = classification_converter(df['shirt_type']).max().item() + 1
     n_facial_characteristics = multilabel_converter(df['facial_characteristics']).shape[1]
 
-    full_flow = get_full_flow(n_shirt_types, n_facial_characteristics)
+    full_flow = get_synthetic_full_flow(n_shirt_types, n_facial_characteristics)
 
     output_col = ['camera_blocked', 'door_open', 'person_present', 'door_locked',
                   'face_x1', 'face_y1', 'face_w', 'face_h',
@@ -264,22 +329,22 @@ def synthetic_dataset_preparation(n=int(1e4), perform_conversion=True):
     task_converter.type_mapping['category'] = ClassificationTaskForDevelopment
     task_converter.type_mapping['multilabel'] = MultilabelClassificationTaskForDevelopment
 
-    converters = Converters()
+    converters = Converters(project_dir=Path('./security_project'))
     converters.task = task_converter
     converters.type = type_guesser
     converters.values = values_converter
 
-    inputs, leaf_tasks = converters.create_inputs_and_leaf_tasks_from_df(df, input_col='syn_img',
-                                                                         output_col=output_col,
-                                                                         project_dir='./security_project')
+    full_flow_for_development = converters.create_task_flow_for_development(df, input_col='syn_img',
+                                                                            output_col=output_col,
+                                                                            task_flow=full_flow)
     # df = df if perform_conversion else None
     # project = Project(df, input_col='syn_img', output_col=output_col, converters=converters,
     #                   project_dir='./security_project',
     #                   verbosity=Verbosity.BASIC_STATS)
 
-    dataset = full_flow.get_dataset()
+    dataset = full_flow_for_development.get_dataset()
     if perform_conversion:
-        train_dataset, val_dataset = torch_split_dataset(dataset, random_state=42)
+        train_dataset, val_dataset = torch_split_dataset(len(dataset), random_state=42)
         train_loader = DataLoader(train_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=True)
         val_loader = DataLoader(val_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=False)
         nested_loaders = OrderedDict({
@@ -291,70 +356,16 @@ def synthetic_dataset_preparation(n=int(1e4), perform_conversion=True):
         train_dataset = None
         val_dataset = None
 
-    class SecurityModule(nn.Module):
 
-        def __init__(self):
-            super().__init__()
-            self.seq = nn.Sequential(
-                nn.Conv2d(3, 64, kernel_size=5),
-                nn.ReLU(inplace=True),
-                nn.Conv2d(64, 128, kernel_size=5),
-                nn.ReLU(inplace=True),
-                nn.AvgPool2d(2),
-                nn.Conv2d(128, 128, kernel_size=5),
-                nn.ReLU(inplace=True),
-                nn.Conv2d(128, 256, kernel_size=5),
-                nn.AvgPool2d(2),
-                nn.ReLU(inplace=True),
-            )
-
-            self.features_seq = nn.Sequential(
-                nn.Conv2d(256, 256, kernel_size=5),
-                nn.ReLU(inplace=True),
-                nn.Conv2d(256, 256, kernel_size=5),
-                nn.ReLU(inplace=True),
-                nn.AdaptiveAvgPool2d(1),
-                nn.Flatten(),
-            )
-
-            self.face_localization_seq = nn.Sequential(
-                nn.Conv2d(256, 256, kernel_size=5),
-                nn.ReLU(inplace=True),
-                nn.Conv2d(256, 256, kernel_size=5),
-                nn.ReLU(inplace=True),
-                nn.AdaptiveAvgPool2d(1),
-                nn.Flatten(),
-            )
-
-            self.body_localization_seq = nn.Sequential(
-                nn.Conv2d(256, 256, kernel_size=5),
-                nn.ReLU(inplace=True),
-                nn.Conv2d(256, 256, kernel_size=5),
-                nn.ReLU(inplace=True),
-                nn.AdaptiveAvgPool2d(1),
-                nn.Flatten(),
-            )
-
-            self.flow_module = full_flow.torch()
-
-        def forward(self, x):
-            res = {}
-            common = self.seq(x['syn_img'])
-            res['features'] = self.features_seq(common)
-            res['face_localization'] = self.face_localization_seq(common)
-            res['body_localization'] = self.body_localization_seq(common)
-            res['gt'] = x.get('gt')
-            return self.flow_module(res)
-
-    model = SecurityModule()
+    model = SecurityModule(full_flow)
     datasets = {
         'train': train_dataset,
         'valid': val_dataset,
         'infer': val_dataset
     }
-    children = full_flow.get_all_children()
+    children = full_flow_for_development.get_all_children()
     shirt_type = children['person_regression.body_regression.shirt_type']
     shirt_type.top_k = 10
     shirt_type.class_names = ['blue', 'red', 'yellow', 'cyan', 'magenta', 'green', 'black']
     children['person_regression.face_regression.facial_characteristics'].class_names = ['red', 'green', 'blue']
-    return model, nested_loaders, datasets, project
+    return model, nested_loaders, datasets

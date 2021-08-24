@@ -161,7 +161,7 @@ def treelib_explanation_on_first_batch():
     runner = project.runner(model=model, runner_name='default_experiment')
     model = runner.best()
     n = 4 * torch.cuda.device_count()
-    flow: TaskFlow = project.get_full_flow()
+    flow: TaskFlow = project.get_synthetic_full_flow()
     dataset = flow.get_dataset()
     loader = DataLoader(dataset, batch_size=n, shuffle=False)
     X, y = next(iter(loader))

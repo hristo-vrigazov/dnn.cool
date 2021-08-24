@@ -4,7 +4,8 @@ from typing import Union, Iterable, List
 import pandas as pd
 
 from dnn_cool.catalyst_utils import TensorboardConverter
-from dnn_cool.converters import Values, Converters
+from dnn_cool.converters import Converters
+from dnn_cool.utils import Values
 from dnn_cool.runner import DnnCoolSupervisedRunner
 from dnn_cool.verbosity import log, StatsRegistry, Verbosity
 

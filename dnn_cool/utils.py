@@ -106,3 +106,20 @@ class ImageNetNormalizer:
         X = self.normalize(X)
         return X
 
+
+class Values:
+
+    def __init__(self, keys, values, types):
+        assert len(keys) == len(values)
+        self.keys = keys
+        self.values = values
+        self.types = types
+
+    def __getitem__(self, item):
+        res = {}
+        for i, key in enumerate(self.keys):
+            res[key] = self.values[i][item]
+        return res
+
+    def __len__(self):
+        return len(self.values[0])

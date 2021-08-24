@@ -1,13 +1,11 @@
-from pathlib import Path
-from typing import Iterable, Optional, Callable, Tuple, List, Union, Dict
+from typing import Iterable, Optional, Callable, Tuple, List, Dict
 
 import torch
-from dnn_cool.converters import Values
 from torch import nn
-from torch.utils.data import Dataset
 from treelib import Tree
 
 from dnn_cool.activations import CompositeActivation
+from dnn_cool.utils import Values
 from dnn_cool.datasets import FlowDataset
 from dnn_cool.decoders import BinaryDecoder, TaskFlowDecoder, Decoder, ClassificationDecoder, \
     MultilabelClassificationDecoder, NoOpDecoder, BoundedRegressionDecoder
@@ -22,7 +20,13 @@ from dnn_cool.modules import SigmoidAndMSELoss, TaskFlowModule
 from dnn_cool.treelib import TreeExplainer, default_leaf_tree_explainer
 
 
-class Task:
+class IMinimal:
+
+    def get_minimal(self):
+        raise NotImplementedError()
+
+
+class Task(IMinimal):
 
     def __init__(self, name, torch_module, activation, decoder, dropout_mc, treelib_explainer=None):
         self.name = name
@@ -56,8 +60,11 @@ class Task:
     def get_treelib_explainer(self) -> Callable:
         return default_leaf_tree_explainer if self.treelib_explainer is None else self.treelib_explainer
 
+    def get_minimal(self):
+        return self
 
-class TaskForDevelopment:
+
+class TaskForDevelopment(IMinimal):
 
     def __init__(self, name: str,
                  labels,
@@ -71,6 +78,7 @@ class TaskForDevelopment:
         self.per_sample_criterion = per_sample_criterion
         self.available_func = available_func
         self.metrics = metrics if metrics is not None else []
+        self.task = None
 
     def get_name(self) -> str:
         return self.name
@@ -96,8 +104,11 @@ class TaskForDevelopment:
     def get_metrics(self):
         for i in range(len(self.metrics)):
             metric_name, metric = self.metrics[i]
-            metric.bind_to_task(self)
+            metric.bind_to_task(self.task)
         return self.metrics
+
+    def get_minimal(self):
+        return self.task
 
 
 class BinaryHardcodedTask(Task):
@@ -268,7 +279,7 @@ class TaskFlowBase:
     def get_all_children(self, prefix=''):
         tasks = {}
         for task_name, task in self.tasks.items():
-            if task.has_children():
+            if task.get_minimal().has_children():
                 assert isinstance(task, TaskFlowBase)
                 tasks.update(task.get_all_children(prefix=f'{prefix}{task.get_name()}.'))
             else:
@@ -296,12 +307,13 @@ class TaskFlow(Task, TaskFlowBase):
 
 class TaskFlowForDevelopment(TaskForDevelopment, TaskFlowBase):
 
-    def __init__(self, name: str, labels, inputs, tasks: Iterable[TaskForDevelopment], flow_func):
+    def __init__(self, name: str, inputs: Values, tasks: Iterable[TaskForDevelopment], flow_func: Callable,
+                 labels=None):
         TaskFlowBase.__init__(self, name, tasks, flow_func)
         TaskForDevelopment.__init__(self,
                                     name=name,
                                     labels=labels,
-                                    criterion=TaskFlowCriterion(self, ctx=self.ctx),
+                                    criterion=None,
                                     per_sample_criterion=None,
                                     available_func=None,
                                     metrics=self.get_metrics())
@@ -309,6 +321,11 @@ class TaskFlowForDevelopment(TaskForDevelopment, TaskFlowBase):
 
     def get_inputs(self) -> Values:
         return self.inputs
+
+    def get_criterion(self, prefix='', ctx=None):
+        if ctx is None:
+            ctx = self.ctx
+        return TaskFlowCriterion(self, prefix=prefix, ctx=ctx)
 
     def get_per_sample_criterion(self, prefix='', ctx=None):
         if ctx is None:
@@ -406,3 +423,34 @@ class Tasks:
 
     def get_full_flow(self) -> TaskFlow:
         return self.flow_tasks[-1]
+
+
+def create_task_for_development(child: str,
+                                inputs: Values,
+                                minimal_tasks: Dict[str, TaskFlow],
+                                tasks_for_development: Dict[str, TaskFlowForDevelopment]):
+    task_for_development = tasks_for_development.get(child)
+    if task_for_development is not None:
+        task_for_development.task = minimal_tasks[child]
+        return task_for_development
+    task_flow = minimal_tasks[child]
+    res = convert_task_flow_for_development(inputs, task_flow, tasks_for_development)
+    return res
+
+
+def convert_task_flow_for_development(inputs: Values,
+                                      task_flow: TaskFlow,
+                                      tasks_for_development: Dict[str, TaskFlowForDevelopment]):
+    assert isinstance(task_flow, TaskFlow)
+    full_flow_name = task_flow.flow_func.__name__
+    child_tasks = []
+    for child, child_task in task_flow.tasks.items():
+        new_task = create_task_for_development(child, inputs, task_flow.tasks, tasks_for_development)
+        child_tasks.append(new_task)
+    res = TaskFlowForDevelopment(name=task_flow.get_name(),
+                                 inputs=inputs,
+                                 tasks=child_tasks,
+                                 flow_func=task_flow.get_flow_func())
+    res.task = task_flow
+    tasks_for_development[full_flow_name] = res
+    return res

@@ -53,7 +53,7 @@ def test_project_example():
         out += flow.camera_not_blocked_flow(x.features) | out.camera_blocked
         return out
 
-    flow: TaskFlow = project.get_full_flow()
+    flow: TaskFlow = project.get_synthetic_full_flow()
     print(flow)
 
     dataset = flow.get_dataset()
@@ -67,7 +67,7 @@ def test_inference_synthetic_treelib(treelib_explanation_on_first_batch):
 def test_interpretation_synthetic():
     model, nested_loaders, datasets, project = synthetic_dataset_preparation()
     runner = project.runner(model=model, runner_name='default_experiment')
-    flow = project.get_full_flow()
+    flow = project.get_synthetic_full_flow()
 
     loaders = OrderedDict({'infer': nested_loaders['valid']})
 
@@ -119,7 +119,7 @@ def test_load_tuned_pipeline_from_decoder():
     model, nested_loaders, datasets, project = synthetic_dataset_preparation()
     runner = project.runner(model=model, runner_name='default_experiment')
     tuned_params = torch.load(runner.project_dir / runner.logdir / 'tuned_params.pkl')
-    flow = project.get_full_flow()
+    flow = project.get_synthetic_full_flow()
     flow.get_decoder().load_tuned(tuned_params)
 
 
@@ -137,7 +137,7 @@ def test_evaluation_is_shown():
 def test_composite_activation():
     model, nested_loaders, datasets, project = synthetic_dataset_preparation()
     runner = project.runner(model=model, runner_name='default_experiment')
-    flow = project.get_full_flow()
+    flow = project.get_synthetic_full_flow()
     activation = flow.get_activation()
     res = runner.load_inference_results()
     activated_predictions = activation(res['logits']['test'])
@@ -147,7 +147,7 @@ def test_composite_activation():
 def test_composite_decoding():
     model, nested_loaders, datasets, project = synthetic_dataset_preparation()
     runner = project.runner(model=model, runner_name='default_experiment')
-    flow = project.get_full_flow()
+    flow = project.get_synthetic_full_flow()
     decoder = flow.get_decoder()
     res = runner.load_inference_results()
     activated_predictions = decoder(res['logits']['test'])
@@ -157,7 +157,7 @@ def test_composite_decoding():
 def test_composite_filtering():
     model, nested_loaders, datasets, project = synthetic_dataset_preparation()
     runner = project.runner(model=model, runner_name='default_experiment')
-    flow = project.get_full_flow()
+    flow = project.get_synthetic_full_flow()
     filter_func = flow.get_filter()
     res = runner.load_inference_results()
     filtered_results = filter_func(res['logits']['test'], res['targets']['test'])

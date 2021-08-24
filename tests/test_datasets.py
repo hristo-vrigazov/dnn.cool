@@ -2,7 +2,7 @@ import torch
 import pytest
 
 from dnn_cool.datasets import FlowDataset
-from dnn_cool.converters import Values
+from dnn_cool.utils import Values
 from dnn_cool.synthetic_dataset import synthetic_dataset_preparation
 from dnn_cool.task_flow import TaskFlow, BinaryHardcodedTask
 

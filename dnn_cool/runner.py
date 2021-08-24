@@ -122,7 +122,7 @@ class DnnCoolRunnerView:
 
     def __init__(self, full_flow: TaskFlow, model: nn.Module,
                  project_dir: Union[str, Path], runner_name: str):
-        self.project_dir = project_dir
+        self.project_dir = Path(project_dir)
         self.full_flow = full_flow
         self.model = model
         self.runner_name = runner_name
@@ -141,7 +141,7 @@ class DnnCoolRunnerView:
         model = self.model
         logdir = self.project_dir / self.logdir_name
         checkpoint_path = str(logdir / 'checkpoints' / f'{checkpoint_name}.pth')
-        model.load_state_dict(torch.load(checkpoint_path))
+        model.load_state_dict(torch.load(checkpoint_path)['model_state_dict'])
         thresholds_path = logdir / 'tuned_params.pkl'
         if not thresholds_path.exists():
             return model

@@ -120,13 +120,14 @@ class FlowDataset(Dataset, IFlowTask, Sized):
         self.flow = task_flow.get_flow_func()
 
         self.n = None
-        for key, task in task_flow.tasks.items():
+        for key, task_for_development in task_flow.tasks.items():
+            task = task_for_development.task
             if not task.has_children():
-                labels_instance = FlowDatasetDecorator(task, prefix, task.get_labels())
+                labels_instance = FlowDatasetDecorator(task_for_development, prefix, task_for_development.get_labels())
                 self.n = len(labels_instance.arr) if labels_instance.available is not None else None
                 setattr(self, key, labels_instance)
             else:
-                instance = FlowDataset(task, prefix=f'{prefix}{task.get_name()}.')
+                instance = FlowDataset(task_for_development, prefix=f'{prefix}{task.get_name()}.')
                 setattr(self, key, instance)
         self.prefix = prefix
 

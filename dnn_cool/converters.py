@@ -6,25 +6,9 @@ import joblib
 import pandas as pd
 
 from dnn_cool.catalyst_utils import TensorboardConverter
+from dnn_cool.tasks import TaskFlow, TaskFlowForDevelopment, convert_task_flow_for_development
+from dnn_cool.utils import Values
 from dnn_cool.verbosity import StatsRegistry, Logger, Verbosity, log
-
-
-class Values:
-
-    def __init__(self, keys, values, types):
-        assert len(keys) == len(values)
-        self.keys = keys
-        self.values = values
-        self.types = types
-
-    def __getitem__(self, item):
-        res = {}
-        for i, key in enumerate(self.keys):
-            res[key] = self.values[i][item]
-        return res
-
-    def __len__(self):
-        return len(self.values[0])
 
 
 @dataclass()
@@ -156,6 +140,7 @@ def assert_col_in_df(df, col):
 
 @dataclass
 class Converters:
+    project_dir: Path
     name: str = 'converters'
 
     type: TypeGuesser = field(default_factory=TypeGuesser)
@@ -218,23 +203,26 @@ class Converters:
 
     def create_leaf_tasks(self, df, col):
         if isinstance(col, str):
-            return [self.create_leaf_task(df, col)]
+            leaf_task = self.create_leaf_task(df, col)
+            return {
+                leaf_task.get_name(): leaf_task
+            }
 
-        res = []
+        res = {}
         for col_s in col:
-            res.append(self.create_leaf_task(df, col_s))
+            leaf_task = self.create_leaf_task(df, col_s)
+            res[leaf_task.get_name()] = leaf_task
         return res
 
     def create_inputs_and_leaf_tasks_from_df(self,
                                              df: pd.DataFrame,
                                              input_col: Union[str, Iterable[str]],
                                              output_col: Union[str, Iterable[str]],
-                                             project_dir: Union[str, Path],
                                              verbosity: Verbosity = Verbosity.SILENT):
         converters = self
         assert_col_in_df(df, input_col)
         assert_col_in_df(df, output_col)
-        project_dir = Path(project_dir)
+        project_dir = Path(self.project_dir)
         converters_directory = project_dir / self.name
         stats_registry = StatsRegistry(project_dir / 'stats_registry.pkl', verbosity)
         converters.connect_to_stats_registry(stats_registry)
@@ -250,3 +238,14 @@ class Converters:
             converters.dump_state_to_directory(converters_directory)
 
         return inputs, leaf_tasks
+
+    def create_task_flow_for_development(self,
+                                         df: pd.DataFrame,
+                                         input_col: Union[str, Iterable[str]],
+                                         output_col: Union[str, Iterable[str]],
+                                         task_flow: TaskFlow,
+                                         verbosity: Verbosity = Verbosity.SILENT) -> TaskFlowForDevelopment:
+        inputs, tasks_for_development = self.create_inputs_and_leaf_tasks_from_df(df, input_col, output_col, verbosity)
+        return convert_task_flow_for_development(inputs, task_flow, tasks_for_development)
+
+

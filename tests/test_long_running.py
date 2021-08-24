@@ -6,7 +6,7 @@ from catalyst.utils import any2device
 from torch import optim
 from torch.utils.data import DataLoader
 
-from dnn_cool.catalyst_utils import img_publisher, text_publisher, ReplaceGatherCallback
+from dnn_cool.catalyst_utils import img_publisher, text_publisher
 from dnn_cool.runner import TrainingArguments
 from dnn_cool.synthetic_dataset import synthetic_dataset_preparation
 from dnn_cool.utils import torch_split_dataset
@@ -49,7 +49,7 @@ def test_passenger_example(interior_car_task):
 def test_synthetic_dataset():
     model, nested_loaders, datasets, project = synthetic_dataset_preparation()
     runner = project.runner(model=model, runner_name='security_logs')
-    flow = project.get_full_flow()
+    flow = project.get_synthetic_full_flow()
     criterion = flow.get_loss()
 
     args = TrainingArguments(
@@ -67,7 +67,7 @@ def test_synthetic_dataset():
 def test_synthetic_dataset_default_runner():
     model, nested_loaders, datasets, project = synthetic_dataset_preparation()
     runner = project.runner(model=model, runner_name='default_experiment', balance_dataparallel_memory=True)
-    flow = project.get_full_flow()
+    flow = project.get_synthetic_full_flow()
     criterion = flow.get_loss()
     assert len(criterion.get_metrics()) < 100, 'Callbacks are too many!'
 
