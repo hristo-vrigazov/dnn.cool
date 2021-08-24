@@ -1,4 +1,4 @@
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Sized
 
 import torch
 
@@ -102,7 +102,7 @@ class FlowDatasetDict(IOut):
         return TensorDict(X), y
 
 
-class FlowDataset(Dataset, IFlowTask):
+class FlowDataset(Dataset, IFlowTask, Sized):
 
     def __init__(self, task_flow, prefix=''):
         """

@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Iterable, Optional, Callable, Tuple, List, Union, Dict
 
 import torch
+from dnn_cool.converters import Values
 from torch import nn
 from torch.utils.data import Dataset
 from treelib import Tree
@@ -118,8 +119,9 @@ class BinaryHardcodedTaskForDevelopment(TaskForDevelopment):
 
 class BoundedRegressionTask(Task):
 
-    def __init__(self, name, torch_module, dropout_mc=None):
-        super().__init__(name, torch_module=torch_module, activation=nn.Sigmoid(), decoder=BoundedRegressionDecoder(),
+    def __init__(self, name, torch_module, scale, dropout_mc=None):
+        super().__init__(name, torch_module=torch_module, activation=nn.Sigmoid(),
+                         decoder=BoundedRegressionDecoder(scale=scale),
                          dropout_mc=dropout_mc)
 
 
@@ -254,15 +256,14 @@ class TaskFlowBase:
         self.tasks = {}
         for task in tasks:
             self.tasks[task.get_name()] = task
-        if flow_func is not None:
-            self._flow_func = flow_func
+        self.flow_func = flow_func
         self.ctx = {}
 
     def get_name(self):
         return self.name
 
     def get_flow_func(self):
-        return self._flow_func
+        return self.flow_func
 
     def get_all_children(self, prefix=''):
         tasks = {}
@@ -306,7 +307,7 @@ class TaskFlowForDevelopment(TaskForDevelopment, TaskFlowBase):
                                     metrics=self.get_metrics())
         self.inputs = inputs
 
-    def get_inputs(self):
+    def get_inputs(self) -> Values:
         return self.inputs
 
     def get_per_sample_criterion(self, prefix='', ctx=None):
@@ -320,7 +321,7 @@ class TaskFlowForDevelopment(TaskForDevelopment, TaskFlowBase):
             all_metrics += task.get_metrics()
         return all_metrics
 
-    def get_dataset(self, **kwargs) -> Dataset:
+    def get_dataset(self, **kwargs) -> FlowDataset:
         return FlowDataset(self, **kwargs)
 
     def get_labels(self):

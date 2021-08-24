@@ -1,8 +1,9 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Union, Iterable
 
 import joblib
+import pandas as pd
 
 from dnn_cool.catalyst_utils import TensorboardConverter
 from dnn_cool.verbosity import StatsRegistry, Logger, Verbosity, log
@@ -155,6 +156,8 @@ def assert_col_in_df(df, col):
 
 @dataclass
 class Converters:
+    name: str = 'converters'
+
     type: TypeGuesser = field(default_factory=TypeGuesser)
     values: ValuesConverter = field(default_factory=ValuesConverter)
     task: TaskConverter = field(default_factory=TaskConverter)
@@ -221,3 +224,29 @@ class Converters:
         for col_s in col:
             res.append(self.create_leaf_task(df, col_s))
         return res
+
+    def create_inputs_and_leaf_tasks_from_df(self,
+                                             df: pd.DataFrame,
+                                             input_col: Union[str, Iterable[str]],
+                                             output_col: Union[str, Iterable[str]],
+                                             project_dir: Union[str, Path],
+                                             verbosity: Verbosity = Verbosity.SILENT):
+        converters = self
+        assert_col_in_df(df, input_col)
+        assert_col_in_df(df, output_col)
+        project_dir = Path(project_dir)
+        converters_directory = project_dir / self.name
+        stats_registry = StatsRegistry(project_dir / 'stats_registry.pkl', verbosity)
+        converters.connect_to_stats_registry(stats_registry)
+        if converters_directory.exists():
+            converters.load_state_from_directory(converters_directory)
+
+        inputs = self.read_inputs(df, input_col)
+        leaf_tasks = self.create_leaf_tasks(df, output_col)
+
+        for i in range(len(inputs.keys)):
+            converters.tensorboard_converters.col_to_type_mapping[inputs.keys[i]] = inputs.types[i]
+        if not converters_directory.exists():
+            converters.dump_state_to_directory(converters_directory)
+
+        return inputs, leaf_tasks

@@ -5,7 +5,6 @@ from torch.utils.data import Dataset, TensorDataset, DataLoader
 
 from dnn_cool.decoders import BinaryDecoder
 from dnn_cool.synthetic_dataset import synthetic_dataset_preparation
-from dnn_cool.task_flow import BinaryClassificationTask, TaskFlow, ClassificationTask, Task
 
 
 @pytest.fixture(scope='package')

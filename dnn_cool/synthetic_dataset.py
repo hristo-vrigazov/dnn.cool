@@ -1,21 +1,13 @@
-import time
 from collections import OrderedDict
 from functools import partial
-from pathlib import Path
 
 import cv2
-import numpy as np
-import pandas as pd
-import torch
-from torch import nn
 from torch.utils.data import DataLoader
 
 from dnn_cool.converters import TypeGuesser, ValuesConverter, TaskConverter, Converters
-from dnn_cool.decoders import BoundedRegressionDecoder
-from dnn_cool.task_converters import To
+from dnn_cool.tasks import *
 from dnn_cool.utils import torch_split_dataset
-from dnn_cool.value_converters import binary_value_converter, classification_converter, \
-    ImageCoordinatesValuesConverter, MultiLabelValuesConverter
+from dnn_cool.value_converters import *
 from dnn_cool.verbosity import Verbosity
 
 
@@ -173,8 +165,68 @@ def create_df_and_images_tensor(n=int(1e4), cache_file=Path('dnn_cool_synthetic_
     return res
 
 
+def get_full_flow(n_shirt_types, n_facial_characteristics) -> TaskFlow:
+    camera_blocked = BinaryClassificationTask('camera_blocked', nn.Linear(256, 1))
+    door_open = BinaryClassificationTask('door_open', nn.Linear(256, 1))
+    person_present = BinaryClassificationTask('person_present', nn.Linear(256, 1))
+    face_x1 = BoundedRegressionTask('face_x1', nn.Linear(256, 1), 64)
+    face_y1 = BoundedRegressionTask('face_y1', nn.Linear(256, 1), 64)
+    face_x2 = BoundedRegressionTask('face_x2', nn.Linear(256, 1), 64)
+    face_y2 = BoundedRegressionTask('face_y2', nn.Linear(256, 1), 64)
+    facial_characteristics = MultilabelClassificationTask('facial_characteristics',
+                                                          nn.Linear(256, n_facial_characteristics))
+    body_x1 = BoundedRegressionTask('body_x1', nn.Linear(256, 1), 64)
+    body_y1 = BoundedRegressionTask('body_y1', nn.Linear(256, 1), 64)
+    body_x2 = BoundedRegressionTask('body_x2', nn.Linear(256, 1), 64)
+    body_y2 = BoundedRegressionTask('body_y2', nn.Linear(256, 1), 64)
+    shirt_type = ClassificationTask('shirt_type', nn.Linear(256, n_shirt_types))
+    door_locked = BinaryClassificationTask('door_locked', nn.Linear(256, 1))
+    leaf_tasks = [
+        camera_blocked,
+        door_open,
+        person_present,
+        face_x1, face_y1, face_x2, face_y2,
+        facial_characteristics,
+        body_x1, body_y1, body_x2, body_y2,
+        shirt_type, door_locked
+    ]
+    tasks = Tasks(leaf_tasks)
+
+    @tasks.add_flow
+    def face_regression(flow, x, out):
+        out += flow.face_x1(x.face_localization)
+        out += flow.face_y1(x.face_localization)
+        out += flow.face_w(x.face_localization)
+        out += flow.face_h(x.face_localization)
+        out += flow.facial_characteristics(x.features)
+        return out
+
+    @tasks.add_flow
+    def person_regression(flow, x, out):
+        out += flow.face_regression(x)
+        out += flow.body_regression(x)
+        return out
+
+    @tasks.add_flow
+    def full_flow(flow, x, out):
+        out += flow.camera_blocked(x.features)
+        out += flow.door_open(x.features) | (~out.camera_blocked)
+        out += flow.door_locked(x.features) | (~out.door_open)
+        out += flow.person_present(x.features) | out.door_open
+        out += flow.person_regression(x) | out.person_present
+        return out
+
+    return tasks.get_full_flow()
+
+
 def synthetic_dataset_preparation(n=int(1e4), perform_conversion=True):
     imgs, df = create_df_and_images_tensor(n)
+    multilabel_converter = MultiLabelValuesConverter()
+    n_shirt_types = classification_converter(df['shirt_type']).max().item() + 1
+    n_facial_characteristics = multilabel_converter(df['facial_characteristics']).shape[1]
+
+    full_flow = get_full_flow(n_shirt_types, n_facial_characteristics)
+
     output_col = ['camera_blocked', 'door_open', 'person_present', 'door_locked',
                   'face_x1', 'face_y1', 'face_w', 'face_h',
                   'facial_characteristics',
@@ -207,64 +259,25 @@ def synthetic_dataset_preparation(n=int(1e4), perform_conversion=True):
 
     task_converter = TaskConverter()
 
-    task_converter.type_mapping['binary'] = To(BinaryClassificationTask,
-                                               module_supplier=partial(nn.Linear, in_features=256, out_features=1))
-    task_converter.type_mapping['continuous'] = To(BoundedRegressionTask,
-                                                   module_supplier=partial(nn.Linear, in_features=256, out_features=1),
-                                                   decoder_supplier=partial(BoundedRegressionDecoder, scale=64))
-    n_classes = classification_converter(df['shirt_type']).max().item() + 1
-    task_converter.type_mapping['category'] = To(ClassificationTask,
-                                                 module_supplier=partial(nn.Linear,
-                                                                         in_features=256, out_features=n_classes))
-    n_classes = multilabel_converter(df['facial_characteristics']).shape[1]
-    task_converter.type_mapping['multilabel'] = To(MultilabelClassificationTask,
-                                                   module_supplier=partial(nn.Linear,
-                                                                           in_features=256, out_features=n_classes))
+    task_converter.type_mapping['binary'] = BinaryClassificationTaskForDevelopment
+    task_converter.type_mapping['continuous'] = BoundedRegressionTaskForDevelopment
+    task_converter.type_mapping['category'] = ClassificationTaskForDevelopment
+    task_converter.type_mapping['multilabel'] = MultilabelClassificationTaskForDevelopment
 
     converters = Converters()
     converters.task = task_converter
     converters.type = type_guesser
     converters.values = values_converter
 
-    df = df if perform_conversion else None
-    project = Project(df, input_col='syn_img', output_col=output_col, converters=converters,
-                      project_dir='./security_project',
-                      verbosity=Verbosity.BASIC_STATS)
+    inputs, leaf_tasks = converters.create_inputs_and_leaf_tasks_from_df(df, input_col='syn_img',
+                                                                         output_col=output_col,
+                                                                         project_dir='./security_project')
+    # df = df if perform_conversion else None
+    # project = Project(df, input_col='syn_img', output_col=output_col, converters=converters,
+    #                   project_dir='./security_project',
+    #                   verbosity=Verbosity.BASIC_STATS)
 
-    @project.add_flow
-    def face_regression(flow, x, out):
-        out += flow.face_x1(x.face_localization)
-        out += flow.face_y1(x.face_localization)
-        out += flow.face_w(x.face_localization)
-        out += flow.face_h(x.face_localization)
-        out += flow.facial_characteristics(x.features)
-        return out
-
-    @project.add_flow
-    def body_regression(flow, x, out):
-        out += flow.body_x1(x.body_localization)
-        out += flow.body_y1(x.body_localization)
-        out += flow.body_w(x.body_localization)
-        out += flow.body_h(x.body_localization)
-        out += flow.shirt_type(x.features)
-        return out
-
-    @project.add_flow
-    def person_regression(flow, x, out):
-        out += flow.face_regression(x)
-        out += flow.body_regression(x)
-        return out
-
-    @project.add_flow
-    def full_flow(flow, x, out):
-        out += flow.camera_blocked(x.features)
-        out += flow.door_open(x.features) | (~out.camera_blocked)
-        out += flow.door_locked(x.features) | (~out.door_open)
-        out += flow.person_present(x.features) | out.door_open
-        out += flow.person_regression(x) | out.person_present
-        return out
-
-    dataset = project.get_full_flow().get_dataset()
+    dataset = full_flow.get_dataset()
     if perform_conversion:
         train_dataset, val_dataset = torch_split_dataset(dataset, random_state=42)
         train_loader = DataLoader(train_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=True)
