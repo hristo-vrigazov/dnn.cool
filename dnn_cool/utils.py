@@ -28,7 +28,7 @@ def split_dataset(n: int, test_size=0.2, random_state=None):
 
 def train_test_val_split(n: int, random_state=None):
     train_indices, val_indices = split_dataset(n, test_size=0.2, random_state=random_state)
-    rel_test_indices, rel_val_indices = split_dataset(val_indices, test_size=0.5, random_state=random_state)
+    rel_test_indices, rel_val_indices = split_dataset(len(val_indices), test_size=0.5, random_state=random_state)
     return train_indices, val_indices[rel_test_indices], val_indices[rel_val_indices]
 
 

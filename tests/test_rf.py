@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from torch import nn
 
 from dnn_cool.rf import compute_receptive_field
+from dnn_cool.runner import DnnCoolSupervisedRunner
 from dnn_cool.synthetic_dataset import synthetic_dataset_preparation
 
 
@@ -45,8 +46,13 @@ def test_rf_simple_summing():
 
 
 def test_rf_multi_input():
-    model, nested_loaders, datasets, project = synthetic_dataset_preparation()
-    runner = project.runner(model=model, runner_name='default_experiment', balance_dataparallel_memory=False)
+    model, nested_loaders, datasets, full_flow_for_development, tensorboard_converters = synthetic_dataset_preparation()
+    runner = DnnCoolSupervisedRunner(model=model,
+                                     full_flow=full_flow_for_development,
+                                     project_dir='./security_project',
+                                     runner_name='default_experiment',
+                                     tensoboard_converters=tensorboard_converters,
+                                     balance_dataparallel_memory=True)
     loader = nested_loaders['valid']
     X, y = next(iter(loader))
     X = runner.batch_to_model_device(X)

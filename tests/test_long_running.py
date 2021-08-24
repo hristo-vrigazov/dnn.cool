@@ -1,56 +1,20 @@
-import tempfile
-from collections import OrderedDict
-
-from catalyst.dl import SupervisedRunner
 from catalyst.utils import any2device
 from torch import optim
-from torch.utils.data import DataLoader
 
 from dnn_cool.catalyst_utils import img_publisher, text_publisher
-from dnn_cool.runner import TrainingArguments
+from dnn_cool.runner import TrainingArguments, DnnCoolSupervisedRunner
 from dnn_cool.synthetic_dataset import synthetic_dataset_preparation
-from dnn_cool.utils import torch_split_dataset
-
-
-def test_passenger_example(interior_car_task):
-    model, task_flow = interior_car_task
-
-    dataset = task_flow.get_dataset()
-
-    train_dataset, val_dataset = torch_split_dataset(dataset, random_state=42)
-    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=64, shuffle=False)
-    nested_loaders = OrderedDict({
-        'train': train_loader,
-        'valid': val_loader
-    })
-
-    print(model)
-
-    runner = SupervisedRunner()
-    criterion = task_flow.get_loss()
-    callbacks = criterion.catalyst_callbacks()
-
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        print(tmp_dir)
-        runner.train(
-            model=model,
-            criterion=criterion,
-            optimizer=optim.Adam(model.parameters(), lr=1e-3),
-            loaders=nested_loaders,
-            callbacks=callbacks,
-            logdir=tmp_dir,
-            num_epochs=20,
-        )
-
-    print_any_prediction(criterion, model, nested_loaders, runner)
 
 
 def test_synthetic_dataset():
-    model, nested_loaders, datasets, project = synthetic_dataset_preparation()
-    runner = project.runner(model=model, runner_name='security_logs')
-    flow = project.get_synthetic_full_flow()
-    criterion = flow.get_loss()
+    model, nested_loaders, datasets, full_flow_for_development, tensorboard_converters = synthetic_dataset_preparation()
+    runner = DnnCoolSupervisedRunner(model=model,
+                                     full_flow=full_flow_for_development,
+                                     project_dir='./security_project',
+                                     runner_name='security_logs',
+                                     tensoboard_converters=tensorboard_converters,
+                                     balance_dataparallel_memory=True)
+    criterion = full_flow_for_development.get_criterion()
 
     args = TrainingArguments(
         num_epochs=2,
@@ -61,26 +25,30 @@ def test_synthetic_dataset():
 
     runner.train(**args)
 
-    print_any_prediction(criterion, model, nested_loaders, runner)
+    print_any_prediction(criterion, model, nested_loaders)
 
 
 def test_synthetic_dataset_default_runner():
-    model, nested_loaders, datasets, project = synthetic_dataset_preparation()
-    runner = project.runner(model=model, runner_name='default_experiment', balance_dataparallel_memory=True)
-    flow = project.get_synthetic_full_flow()
-    criterion = flow.get_loss()
+    model, nested_loaders, datasets, full_flow_for_development, tensorboard_converters = synthetic_dataset_preparation()
+    runner = DnnCoolSupervisedRunner(model=model,
+                                     full_flow=full_flow_for_development,
+                                     project_dir='./security_project',
+                                     runner_name='default_experiment',
+                                     tensoboard_converters=tensorboard_converters,
+                                     balance_dataparallel_memory=True)
+    criterion = full_flow_for_development.get_criterion()
     assert len(criterion.get_metrics()) < 100, 'Callbacks are too many!'
 
-    project.converters.tensorboard_converters.type_mapping['img'] = [img_publisher]
-    project.converters.tensorboard_converters.type_mapping['text'] = [text_publisher]
+    tensorboard_converters.type_mapping['img'] = [img_publisher]
+    tensorboard_converters.type_mapping['text'] = [text_publisher]
     runner.train(num_epochs=10)
 
     early_stop_callback = runner.default_callbacks[-1]
     assert early_stop_callback.best_score >= 0, 'Negative loss function!'
-    print_any_prediction(criterion, model, nested_loaders, runner)
+    print_any_prediction(criterion, model, nested_loaders)
 
 
-def print_any_prediction(criterion, model, nested_loaders, runner):
+def print_any_prediction(criterion, model, nested_loaders):
     loader = nested_loaders['valid']
     X, y = next(iter(loader))
     X = any2device(X, next(model.parameters()).device)

@@ -308,12 +308,12 @@ class DeviceReducingDataParallel(DataParallel):
         super().__init__(module)
         tasks_dict = task_flow.get_all_children()
         self.full_paths = []
-        for full_path, task in tasks_dict.items():
-            if task.is_train_only():
+        for full_path, task_for_development in tasks_dict.items():
+            if task_for_development.task.is_train_only():
                 continue
             self.full_paths.append(full_path)
-        criterion = task_flow.get_loss()
-        per_sample_criterion = task_flow.get_per_sample_loss(ctx=criterion.get_device_reduced_ctx())
+        criterion = task_flow.get_criterion()
+        per_sample_criterion = task_flow.get_per_sample_criterion(ctx=criterion.get_device_reduced_ctx())
         leaf_losses = criterion.get_leaf_losses()
         metrics = criterion.get_metrics()
         self._reducing_func = partial(reduce_on_device,

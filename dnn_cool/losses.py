@@ -208,16 +208,17 @@ class TaskFlowCriterion(nn.Module):
         # it with this class. And this class stores Pytorch modules as class attributes
         self.flow = task_flow.get_flow_func()
 
-        for key, task in task_flow.tasks.items():
-            if not task.minimal_task_flow.has_children():
-                instance = TaskCriterionDecorator(task.get_name(),
+        for key, task_flow_for_development in task_flow.tasks.items():
+            task_flow = task_flow_for_development.task
+            if not task_flow.has_children():
+                instance = TaskCriterionDecorator(task_flow_for_development.get_name(),
                                                   prefix,
-                                                  task.get_loss(),
+                                                  task_flow_for_development.get_criterion(),
                                                   'loss',
                                                   self.ctx)
             else:
-                instance = TaskFlowCriterion(task,
-                                             prefix=f'{prefix}{task.get_name()}.',
+                instance = TaskFlowCriterion(task_flow_for_development,
+                                             prefix=f'{prefix}{task_flow_for_development.get_name()}.',
                                              ctx=self.ctx)
             setattr(self, key, instance)
 
@@ -259,9 +260,9 @@ class TaskFlowCriterion(nn.Module):
 
     def get_leaf_losses(self):
         all_losses = {}
-        for key, task in self._task_flow.tasks.items():
+        for key, task_flow_for_development in self._task_flow.tasks.items():
             child_loss = getattr(self, key)
-            if task.has_children():
+            if task_flow_for_development.task.has_children():
                 all_losses.update(child_loss.get_leaf_losses())
             else:
                 path = child_loss.prefix + child_loss.task_name
@@ -270,13 +271,13 @@ class TaskFlowCriterion(nn.Module):
 
     def get_metrics(self):
         all_metrics = []
-        for key, task in self._task_flow.tasks.items():
+        for key, task_for_development in self._task_flow.tasks.items():
             child_loss = getattr(self, key)
-            if task.has_children():
+            if task_for_development.task.has_children():
                 all_metrics += child_loss.get_metrics()
             else:
-                for metric_name, metric in task.get_metrics():
-                    metric_decorator = BaseMetricDecorator(task.get_name(),
+                for metric_name, metric in task_for_development.get_metrics():
+                    metric_decorator = BaseMetricDecorator(task_for_development.get_name(),
                                                            child_loss.prefix,
                                                            metric,
                                                            metric_name,
@@ -361,7 +362,7 @@ class TaskFlowLossPerSample(nn.Module):
                 prefix = path.rsplit('.', 1)[0] + '.'
             all_losses[path] = TaskCriterionDecorator(task.get_name(),
                                                       prefix,
-                                                      task.get_per_sample_loss(ctx=self.ctx),
+                                                      task.get_per_sample_criterion(ctx=self.ctx),
                                                       'loss_per_sample',
                                                       self.ctx)
         return all_losses

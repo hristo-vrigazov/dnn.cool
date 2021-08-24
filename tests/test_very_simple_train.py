@@ -6,58 +6,8 @@ import torch
 
 from dnn_cool.catalyst_utils import InterpretationCallback, TensorboardConverters, TensorboardConverter, \
     ReplaceGatherCallback, img_publisher, text_publisher
-from dnn_cool.converters import Converters
-from dnn_cool.project import Project
-from dnn_cool.runner import InferDictCallback
+from dnn_cool.runner import InferDictCallback, DnnCoolSupervisedRunner, DnnCoolRunnerView
 from dnn_cool.synthetic_dataset import synthetic_dataset_preparation
-from dnn_cool.task_flow import TaskFlow, BinaryClassificationTask, ClassificationTask
-
-
-def test_project_example():
-    df_data = [
-        {'camera_blocked': True, 'door_open': True, 'uniform_type': 0, 'input': 0},
-        {'camera_blocked': False, 'door_open': True, 'uniform_type': 1, 'input': 1},
-        {'camera_blocked': False, 'door_open': True, 'uniform_type': 0, 'input': 2},
-        {'camera_blocked': False, 'door_open': True, 'uniform_type': 2, 'input': 3},
-        {'camera_blocked': True, 'door_open': True, 'uniform_type': 1, 'input': 4},
-        {'camera_blocked': True, 'door_open': True, 'uniform_type': 0, 'input': 0},
-        {'camera_blocked': False, 'door_open': True, 'uniform_type': 1, 'input': 1},
-        {'camera_blocked': False, 'door_open': True, 'uniform_type': 0, 'input': 2},
-        {'camera_blocked': False, 'door_open': True, 'uniform_type': 2, 'input': 3},
-        {'camera_blocked': True, 'door_open': True, 'uniform_type': 1, 'input': 4},
-    ]
-
-    df = pd.DataFrame(df_data)
-
-    converters = Converters()
-    converters.values.type_mapping['category'] = torch.LongTensor
-    converters.values.type_mapping['binary'] = torch.BoolTensor
-
-    converters.task.type_mapping['binary'] = BinaryClassificationTask
-    converters.task.type_mapping['category'] = ClassificationTask
-
-    project = Project(df, input_col='input',
-                      output_col=['camera_blocked', 'door_open', 'uniform_type'],
-                      project_dir='./example_project',
-                      converters=converters)
-
-    @project.add_flow
-    def camera_not_blocked_flow(flow, x, out):
-        out += flow.door_open(x.features)
-        out += flow.uniform_type(x.features) | out.door_open
-        return out
-
-    @project.add_flow
-    def all_pipeline(flow, x, out):
-        out += flow.camera_blocked(x.features)
-        out += flow.camera_not_blocked_flow(x.features) | out.camera_blocked
-        return out
-
-    flow: TaskFlow = project.get_synthetic_full_flow()
-    print(flow)
-
-    dataset = flow.get_dataset()
-    print(dataset[0])
 
 
 def test_inference_synthetic_treelib(treelib_explanation_on_first_batch):
@@ -65,25 +15,28 @@ def test_inference_synthetic_treelib(treelib_explanation_on_first_batch):
 
 
 def test_interpretation_synthetic():
-    model, nested_loaders, datasets, project = synthetic_dataset_preparation()
-    runner = project.runner(model=model, runner_name='default_experiment')
-    flow = project.get_synthetic_full_flow()
-
+    model, nested_loaders, datasets, full_flow_for_development, tensorboard_converters = synthetic_dataset_preparation()
+    runner = DnnCoolSupervisedRunner(model=model,
+                                     full_flow=full_flow_for_development,
+                                     project_dir='./security_project',
+                                     runner_name='default_experiment',
+                                     tensoboard_converters=tensorboard_converters,
+                                     balance_dataparallel_memory=True)
     loaders = OrderedDict({'infer': nested_loaders['valid']})
-
     model = runner.best()
 
     tensorboard_converters = TensorboardConverters(
-        logdir=runner.project_dir / runner.logdir,
+        logdir=runner.project_dir / runner.default_logdir,
         tensorboard_loggers=TensorboardConverter(),
         datasets=datasets
     )
 
     infer_dict_callback = InferDictCallback()
     callbacks = OrderedDict([
-        ("interpretation", InterpretationCallback(flow, tensorboard_converters)),
+        ("interpretation", InterpretationCallback(full_flow_for_development.get_per_sample_criterion(),
+                                                  tensorboard_converters)),
         ("inference", infer_dict_callback),
-        ("reducer", ReplaceGatherCallback(flow, infer_dict_callback))
+        ("reducer", ReplaceGatherCallback(full_flow_for_development, infer_dict_callback))
     ])
     r = runner.infer(loaders=loaders, callbacks=callbacks)
 
@@ -92,40 +45,64 @@ def test_interpretation_synthetic():
 
 
 def test_interpretation_default_runner():
-    model, nested_loaders, datasets, project = synthetic_dataset_preparation()
-    runner = project.runner(model=model, runner_name='default_experiment', balance_dataparallel_memory=True)
+    model, nested_loaders, datasets, full_flow_for_development, tensorboard_converters = synthetic_dataset_preparation()
+    runner = DnnCoolSupervisedRunner(model=model,
+                                     full_flow=full_flow_for_development,
+                                     project_dir='./security_project',
+                                     runner_name='default_experiment',
+                                     tensoboard_converters=tensorboard_converters,
+                                     balance_dataparallel_memory=True)
     model = runner.best()
-    project.converters.tensorboard_converters.type_mapping['img'] = [img_publisher]
-    project.converters.tensorboard_converters.type_mapping['text'] = [text_publisher]
+    tensorboard_converters.type_mapping['img'] = [img_publisher]
+    tensorboard_converters.type_mapping['text'] = [text_publisher]
     r = runner.infer(model=model)
     print(r)
 
 
 def test_tune_pipeline():
-    model, nested_loaders, datasets, project = synthetic_dataset_preparation()
-    runner = project.runner(model=model, runner_name='default_experiment')
+    model, nested_loaders, datasets, full_flow_for_development, tensorboard_converters = synthetic_dataset_preparation()
+    runner = DnnCoolSupervisedRunner(model=model,
+                                     full_flow=full_flow_for_development,
+                                     project_dir='./security_project',
+                                     runner_name='default_experiment',
+                                     tensoboard_converters=tensorboard_converters,
+                                     balance_dataparallel_memory=True)
     tuned_params = runner.tune()
     print(tuned_params)
 
 
 def test_load_tuned_pipeline():
-    model, nested_loaders, datasets, project = synthetic_dataset_preparation()
-    runner = project.runner(model=model, runner_name='default_experiment')
+    model, nested_loaders, datasets, full_flow_for_development, tensorboard_converters = synthetic_dataset_preparation()
+    runner = DnnCoolSupervisedRunner(model=model,
+                                     full_flow=full_flow_for_development,
+                                     project_dir='./security_project',
+                                     runner_name='default_experiment',
+                                     tensoboard_converters=tensorboard_converters,
+                                     balance_dataparallel_memory=True)
     tuned_params = runner.load_tuned()
     print(tuned_params)
 
 
 def test_load_tuned_pipeline_from_decoder():
-    model, nested_loaders, datasets, project = synthetic_dataset_preparation()
-    runner = project.runner(model=model, runner_name='default_experiment')
-    tuned_params = torch.load(runner.project_dir / runner.logdir / 'tuned_params.pkl')
-    flow = project.get_synthetic_full_flow()
-    flow.get_decoder().load_tuned(tuned_params)
+    model, nested_loaders, datasets, full_flow_for_development, tensorboard_converters = synthetic_dataset_preparation()
+    runner = DnnCoolSupervisedRunner(model=model,
+                                     full_flow=full_flow_for_development,
+                                     project_dir='./security_project',
+                                     runner_name='default_experiment',
+                                     tensoboard_converters=tensorboard_converters,
+                                     balance_dataparallel_memory=True)
+    tuned_params = torch.load(runner.project_dir / runner.default_logdir / 'tuned_params.pkl')
+    full_flow_for_development.task.get_decoder().load_tuned(tuned_params)
 
 
 def test_evaluation_is_shown():
-    model, nested_loaders, datasets, project = synthetic_dataset_preparation()
-    runner = project.runner(model=model, runner_name='default_experiment')
+    model, nested_loaders, datasets, full_flow_for_development, tensorboard_converters = synthetic_dataset_preparation()
+    runner = DnnCoolSupervisedRunner(model=model,
+                                     full_flow=full_flow_for_development,
+                                     project_dir='./security_project',
+                                     runner_name='default_experiment',
+                                     tensoboard_converters=tensorboard_converters,
+                                     balance_dataparallel_memory=True)
     evaluation = runner.evaluate()
     accuracy_df = evaluation[evaluation['metric_name'] == 'accuracy']
     assert np.alltrue(accuracy_df['metric_res'] > 0.98)
@@ -135,31 +112,42 @@ def test_evaluation_is_shown():
 
 
 def test_composite_activation():
-    model, nested_loaders, datasets, project = synthetic_dataset_preparation()
-    runner = project.runner(model=model, runner_name='default_experiment')
-    flow = project.get_synthetic_full_flow()
-    activation = flow.get_activation()
+    model, nested_loaders, datasets, full_flow_for_development, tensorboard_converters = synthetic_dataset_preparation()
+    runner = DnnCoolSupervisedRunner(model=model,
+                                     full_flow=full_flow_for_development,
+                                     project_dir='./security_project',
+                                     runner_name='default_experiment',
+                                     tensoboard_converters=tensorboard_converters,
+                                     balance_dataparallel_memory=True)
+    activation = full_flow_for_development.task.get_activation()
     res = runner.load_inference_results()
     activated_predictions = activation(res['logits']['test'])
     print(activated_predictions)
 
 
 def test_composite_decoding():
-    model, nested_loaders, datasets, project = synthetic_dataset_preparation()
-    runner = project.runner(model=model, runner_name='default_experiment')
-    flow = project.get_synthetic_full_flow()
-    decoder = flow.get_decoder()
+    model, nested_loaders, datasets, full_flow_for_development, tensorboard_converters = synthetic_dataset_preparation()
+    runner = DnnCoolSupervisedRunner(model=model,
+                                     full_flow=full_flow_for_development,
+                                     project_dir='./security_project',
+                                     runner_name='default_experiment',
+                                     tensoboard_converters=tensorboard_converters,
+                                     balance_dataparallel_memory=True)
+    decoder = full_flow_for_development.task.get_decoder()
     res = runner.load_inference_results()
     activated_predictions = decoder(res['logits']['test'])
     print(activated_predictions)
 
 
 def test_composite_filtering():
-    model, nested_loaders, datasets, project = synthetic_dataset_preparation()
-    runner = project.runner(model=model, runner_name='default_experiment')
-    flow = project.get_synthetic_full_flow()
-    filter_func = flow.get_filter()
+    model, nested_loaders, datasets, full_flow_for_development, tensorboard_converters = synthetic_dataset_preparation()
+    runner = DnnCoolSupervisedRunner(model=model,
+                                     full_flow=full_flow_for_development,
+                                     project_dir='./security_project',
+                                     runner_name='default_experiment',
+                                     tensoboard_converters=tensorboard_converters,
+                                     balance_dataparallel_memory=True)
+    filter_func = full_flow_for_development.get_filter()
     res = runner.load_inference_results()
     filtered_results = filter_func(res['logits']['test'], res['targets']['test'])
     print(filtered_results)
-

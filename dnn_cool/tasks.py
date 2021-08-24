@@ -92,10 +92,10 @@ class TaskForDevelopment(IMinimal):
     def get_available_func(self):
         return self.available_func
 
-    def get_criterion(self):
+    def get_criterion(self, prefix='', ctx=None):
         return self.criterion
 
-    def get_per_sample_criterion(self):
+    def get_per_sample_criterion(self, prefix='', ctx=None):
         return self.per_sample_criterion
 
     def get_labels(self):
@@ -185,7 +185,7 @@ class ClassificationTask(Task):
         super().__init__(name,
                          torch_module=torch_module,
                          activation=nn.Softmax(dim=-1),
-                         decoder=ClassificationDecoder,
+                         decoder=ClassificationDecoder(),
                          dropout_mc=dropout_mc)
         self.class_names: List[str] = class_names
         self.top_k = top_k

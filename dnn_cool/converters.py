@@ -159,7 +159,7 @@ class Converters:
         }
 
     def dump_state_to_directory(self, converters_directory: Path):
-        converters_directory.mkdir(exist_ok=True)
+        converters_directory.mkdir(exist_ok=True, parents=True)
         self.type.dump_state_to_directory(converters_directory / 'type')
         self.values.dump_state_to_directory(converters_directory / 'values')
         self.task.dump_state_to_directory(converters_directory / 'task')

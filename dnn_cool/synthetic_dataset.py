@@ -2,13 +2,12 @@ from collections import OrderedDict
 from functools import partial
 
 import cv2
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 
 from dnn_cool.converters import TypeGuesser, ValuesConverter, TaskConverter, Converters
 from dnn_cool.tasks import *
-from dnn_cool.utils import torch_split_dataset
+from dnn_cool.utils import split_dataset
 from dnn_cool.value_converters import *
-from dnn_cool.verbosity import Verbosity
 
 
 def add_random_noise(img):
@@ -344,7 +343,9 @@ def synthetic_dataset_preparation(n=int(1e4), perform_conversion=True):
 
     dataset = full_flow_for_development.get_dataset()
     if perform_conversion:
-        train_dataset, val_dataset = torch_split_dataset(len(dataset), random_state=42)
+        train_indices, val_indices = split_dataset(len(dataset), random_state=42)
+        train_dataset = Subset(dataset, train_indices)
+        val_dataset = Subset(dataset, val_indices)
         train_loader = DataLoader(train_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=True)
         val_loader = DataLoader(val_dataset, batch_size=32 * torch.cuda.device_count(), shuffle=False)
         nested_loaders = OrderedDict({
@@ -355,7 +356,6 @@ def synthetic_dataset_preparation(n=int(1e4), perform_conversion=True):
         nested_loaders = None
         train_dataset = None
         val_dataset = None
-
 
     model = SecurityModule(full_flow)
     datasets = {
@@ -368,4 +368,4 @@ def synthetic_dataset_preparation(n=int(1e4), perform_conversion=True):
     shirt_type.top_k = 10
     shirt_type.class_names = ['blue', 'red', 'yellow', 'cyan', 'magenta', 'green', 'black']
     children['person_regression.face_regression.facial_characteristics'].class_names = ['red', 'green', 'blue']
-    return model, nested_loaders, datasets
+    return model, nested_loaders, datasets, full_flow_for_development, converters.tensorboard_converters

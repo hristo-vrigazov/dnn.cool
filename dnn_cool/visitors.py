@@ -52,9 +52,9 @@ def get_visitor_data(*args, **kwargs):
 class LeafVisitor(IFlowTask):
 
     def __init__(self, task, prefix):
-        self.activation = task.get_activation()
-        self.decoder = task.get_decoder()
-        self.task_is_train_only = task.is_train_only()
+        self.activation = task.get_minimal().get_activation()
+        self.decoder = task.get_minimal().get_decoder()
+        self.task_is_train_only = task.get_minimal().is_train_only()
         self.prefix = prefix
         self.path = self.prefix + task.get_name()
 
@@ -93,7 +93,7 @@ class CompositeVisitor(IFlowTask):
         self.visitor_out_cls = visitor_out_cls
 
         for key, task in task_flow.tasks.items():
-            if not task.has_children():
+            if not task.get_minimal().has_children():
                 instance = leaf_visitor_cls(task, prefix)
             else:
                 instance = CompositeVisitor(task, leaf_visitor_cls, visitor_out_cls,
