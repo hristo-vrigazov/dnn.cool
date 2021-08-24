@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader, Dataset
 from dnn_cool.catalyst_utils import InterpretationCallback, TensorboardConverters, ReplaceGatherCallback, \
     TensorboardConverter
 from dnn_cool.tasks import TaskFlow, TaskFlowForDevelopment
-from dnn_cool.utils import TransformedSubset, train_test_val_split
+from dnn_cool.utils import TransformedSubset, train_test_val_split, load_model_from_export
 
 
 @dataclass
@@ -149,14 +149,7 @@ class DnnCoolRunnerView:
         return self.load_model_from_checkpoint(f'train.{i}')
 
     def load_model_from_export(self, out_directory: Union[str, Path]) -> nn.Module:
-        out_directory = Path(out_directory)
-        self.model.load_state_dict(torch.load(out_directory / 'state_dict.pth'))
-        thresholds_path = out_directory / 'tuned_params.pkl'
-        if not thresholds_path.exists():
-            return self.model
-        tuned_params = torch.load(thresholds_path)
-        self.full_flow.get_decoder().load_tuned(tuned_params)
-        return self.model
+        return load_model_from_export(self.model, self.full_flow, out_directory)
 
     def load_model_from_checkpoint(self, checkpoint_name) -> nn.Module:
         model = self.model
@@ -348,7 +341,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         model = self.model
         checkpoint_path = str(self.project_dir / self.default_logdir / 'checkpoints' / 'best_full.pth')
         ckpt = load_checkpoint(checkpoint_path)
-        unpack_checkpoint(ckpt, model, optimizer=self.default_optimizer, scheduler=self.scheduler)
+        unpack_checkpoint(ckpt, model)
 
         thresholds_path = self.project_dir / self.default_logdir / 'tuned_params.pkl'
         if not thresholds_path.exists():

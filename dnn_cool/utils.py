@@ -1,8 +1,10 @@
-from typing import Sized
+from pathlib import Path
+from typing import Sized, Union
 
 import numpy as np
 import torch
 from sklearn.model_selection import train_test_split
+from torch import nn
 from torch.utils.data import Dataset, Subset
 from torchvision import transforms
 
@@ -123,3 +125,14 @@ class Values:
 
     def __len__(self):
         return len(self.values[0])
+
+
+def load_model_from_export(model, full_flow, out_directory: Union[str, Path]) -> nn.Module:
+    out_directory = Path(out_directory)
+    model.load_state_dict(torch.load(out_directory / 'state_dict.pth'))
+    thresholds_path = out_directory / 'tuned_params.pkl'
+    if not thresholds_path.exists():
+        return model
+    tuned_params = torch.load(thresholds_path)
+    full_flow.get_decoder().load_tuned(tuned_params)
+    return model

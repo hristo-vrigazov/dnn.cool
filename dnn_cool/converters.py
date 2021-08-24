@@ -55,8 +55,11 @@ def load_state_from_directory_when_possible(mapping: Dict, directory: Path, stat
         try:
             if (directory / f'{key}.pkl').exists():
                 with Logger(f'Load "{directory}/{key}.pkl"', stats_registry=stats_registry):
-                    state_dict = joblib.load(directory / f'{key}.pkl')
-                    mapping[key].load_state_dict(state_dict)
+                    if hasattr(value, 'load_from_system'):
+                        mapping[key].load_from_system(directory, key)
+                    else:
+                        state_dict = joblib.load(directory / f'{key}.pkl')
+                        mapping[key].load_state_dict(state_dict)
         except AttributeError:
             # It is ok for a converter not to have a state at all.
             pass
@@ -68,7 +71,10 @@ def dump_state_to_directory_when_possible(mapping, directory, stats_registry):
         try:
             directory.mkdir(exist_ok=True)
             with Logger(f'Dump "{directory}/{key}.pkl"', stats_registry=stats_registry):
-                joblib.dump(value.state_dict(), directory / f'{key}.pkl')
+                if hasattr(value, 'dump_to_filesystem'):
+                    value.dump_to_filesystem(directory, key)
+                else:
+                    joblib.dump(value.state_dict(), directory / f'{key}.pkl')
         except AttributeError:
             # It is ok for a converter not to have a state at all.
             pass
