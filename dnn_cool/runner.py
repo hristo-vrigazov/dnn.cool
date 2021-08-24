@@ -181,6 +181,9 @@ class DnnCoolRunnerView:
         logdir = self.project_dir / self.default_logdir_name
         return load_inference_results_from_directory(logdir)
 
+    def load_train_test_val_split(self):
+        return read_split(self.project_dir / self.default_logdir_name)
+
 
 def batch_to_device(batch, device) -> Mapping[str, torch.Tensor]:
     return any2device(batch, device)
@@ -217,7 +220,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         (self.project_dir / self.default_logdir).mkdir(exist_ok=True)
         if train_test_val_indices is None:
             n = len(self.task_flow.get_dataset())
-            train_test_val_indices = project_split(n, self.project_dir / self.default_logdir)
+            train_test_val_indices = runner_split(n, self.project_dir / self.default_logdir)
         else:
             save_split(self.project_dir / self.default_logdir, train_test_val_indices)
         self.train_test_val_indices = train_test_val_indices
@@ -398,10 +401,10 @@ def split_already_done(n: int, project_dir):
     return total_len == n
 
 
-def read_split(project_dir):
+def read_split(runner_dir):
     res = []
     for i, split_name in enumerate(['train', 'test', 'val']):
-        split_path = project_dir / f'{split_name}_indices.npy'
+        split_path = runner_dir / f'{split_name}_indices.npy'
         res.append(np.load(split_path))
     return res
 
@@ -412,9 +415,9 @@ def save_split(project_dir, res):
         np.save(split_path, res[i])
 
 
-def project_split(n: int, project_dir):
-    if split_already_done(n, project_dir):
-        return read_split(project_dir)
+def runner_split(n: int, runner_dir):
+    if split_already_done(n, runner_dir):
+        return read_split(runner_dir)
     res = train_test_val_split(n)
-    save_split(project_dir, res)
+    save_split(runner_dir, res)
     return res
