@@ -118,6 +118,17 @@ class InferDictCallback(InferCallback):
         }
 
 
+def load_inference_results_from_directory(logdir):
+    out_dir = logdir / 'infer'
+    out_dir.mkdir(exist_ok=True)
+    res = {}
+    for key in ['logits', 'targets', 'interpretations']:
+        file_path = out_dir / f'{key}.pkl'
+        if file_path.exists():
+            res[key] = torch.load(out_dir / f'{key}.pkl')
+    return res
+
+
 class DnnCoolRunnerView:
 
     def __init__(self, full_flow: TaskFlow, model: nn.Module,
@@ -137,7 +148,17 @@ class DnnCoolRunnerView:
     def from_epoch(self, i) -> nn.Module:
         return self.load_model_from_checkpoint(f'train.{i}')
 
-    def load_model_from_checkpoint(self, checkpoint_name):
+    def load_model_from_export(self, out_directory: Union[str, Path]) -> nn.Module:
+        out_directory = Path(out_directory)
+        self.model.load_state_dict(torch.load(out_directory / 'state_dict.pth'))
+        thresholds_path = out_directory / 'tuned_params.pkl'
+        if not thresholds_path.exists():
+            return self.model
+        tuned_params = torch.load(thresholds_path)
+        self.full_flow.get_decoder().load_tuned(tuned_params)
+        return self.model
+
+    def load_model_from_checkpoint(self, checkpoint_name) -> nn.Module:
         model = self.model
         logdir = self.project_dir / self.default_logdir_name
         checkpoint_path = str(logdir / 'checkpoints' / f'{checkpoint_name}.pth')
@@ -155,6 +176,10 @@ class DnnCoolRunnerView:
         if not thresholds_path.exists():
             return None
         return torch.load(thresholds_path)
+
+    def load_inference_results(self) -> Dict:
+        logdir = self.project_dir / self.default_logdir_name
+        return load_inference_results_from_directory(logdir)
 
 
 def batch_to_device(batch, device) -> Mapping[str, torch.Tensor]:
@@ -320,7 +345,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         model = self.model
         checkpoint_path = str(self.project_dir / self.default_logdir / 'checkpoints' / 'best_full.pth')
         ckpt = load_checkpoint(checkpoint_path)
-        unpack_checkpoint(ckpt, model)
+        unpack_checkpoint(ckpt, model, optimizer=self.default_optimizer, scheduler=self.scheduler)
 
         thresholds_path = self.project_dir / self.default_logdir / 'tuned_params.pkl'
         if not thresholds_path.exists():
@@ -340,14 +365,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
 
     def load_inference_results(self) -> Dict:
         logdir = self.project_dir / self.default_logdir
-        out_dir = logdir / 'infer'
-        out_dir.mkdir(exist_ok=True)
-        res = {}
-        for key in ['logits', 'targets', 'interpretations']:
-            file_path = out_dir / f'{key}.pkl'
-            if file_path.exists():
-                res[key] = torch.load(out_dir / f'{key}.pkl')
-        return res
+        return load_inference_results_from_directory(logdir)
 
     def load_tuned(self) -> Dict:
         tuned_params = torch.load(self.project_dir / self.default_logdir / 'tuned_params.pkl')
