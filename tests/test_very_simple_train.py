@@ -7,7 +7,7 @@ import torch
 from dnn_cool.catalyst_utils import InterpretationCallback, TensorboardConverters, TensorboardConverter, \
     ReplaceGatherCallback, img_publisher, text_publisher
 from dnn_cool.runner import InferDictCallback, DnnCoolSupervisedRunner, DnnCoolRunnerView
-from dnn_cool.synthetic_dataset import synthetic_dataset_preparation
+from dnn_cool.synthetic_dataset import synthetic_dataset_preparation, get_synthetic_full_flow, SecurityModule
 
 
 def test_inference_synthetic_treelib(treelib_explanation_on_first_batch):
@@ -151,3 +151,18 @@ def test_composite_filtering():
     res = runner.load_inference_results()
     filtered_results = filter_func(res['logits']['test'], res['targets']['test'])
     print(filtered_results)
+
+
+def test_global_indices_conversion():
+    full_flow = get_synthetic_full_flow(n_shirt_types=7, n_facial_characteristics=3)
+    model = SecurityModule(full_flow)
+    runner = DnnCoolRunnerView(full_flow=full_flow, model=model,
+                               project_dir='./security_project', runner_name='default_experiment')
+    global_idx, r = (runner.worst_examples('test', 'person_regression.face_regression.face_y1', 10))
+
+    mae_from_interpretations = (r['activated'] - r['targets']).abs().mean().item()
+    task_mask = runner.evaluation_df['task_path'] == 'person_regression.face_regression.face_y1'
+    metric_mask = runner.evaluation_df['metric_name'] == 'mean_absolute_error'
+    sub_df = runner.evaluation_df[task_mask & metric_mask]
+
+    assert abs(mae_from_interpretations - sub_df.iloc[0]['metric_res']) < 1e6

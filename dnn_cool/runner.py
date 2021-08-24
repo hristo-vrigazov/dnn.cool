@@ -1,6 +1,6 @@
 from collections import OrderedDict
 from dataclasses import dataclass, field
-from functools import partial
+from functools import partial, cached_property
 from pathlib import Path
 from shutil import copyfile
 from time import time
@@ -176,6 +176,53 @@ class DnnCoolRunnerView:
 
     def load_train_test_val_split(self):
         return read_split(self.project_dir / self.default_logdir_name)
+
+    @cached_property
+    def train_test_val_indices(self):
+        return self.load_train_test_val_split()
+
+    @cached_property
+    def inference_results(self):
+        return self.load_inference_results()
+
+    @cached_property
+    def evaluation_df(self):
+        import pandas as pd
+        return pd.read_csv(self.project_dir / self.default_logdir_name / 'evaluation.csv')
+
+    def summarize_loss_values(self, loader_name, task_name):
+        interpretations = self.inference_results['interpretations'][loader_name]
+        loss_values = interpretations[task_name]
+        loss_local_indices = interpretations[f'indices|{task_name}']
+        loader_idx = ['infer', 'test', 'valid'].index(loader_name)
+        global_loader_indices = self.train_test_val_indices[loader_idx]
+        mask = loss_local_indices >= 0
+        logits = self.inference_results['logits'][loader_name][task_name][loss_local_indices[mask]]
+        task = self.full_flow.get_all_children()[task_name]
+        logits = torch.tensor(logits)
+        activated = task.get_activation()(logits) if task.get_activation() is not None else logits
+        decoded = task.get_decoder()(activated) if task.get_decoder() is not None else activated
+        return {
+            'global_idx': global_loader_indices[loss_local_indices[mask]],
+            'loss_values': loss_values[mask],
+            'targets': self.inference_results['targets'][loader_name][task_name][loss_local_indices[mask]],
+            'activated': activated,
+            'decoded': decoded.numpy(),
+            'logits': logits.numpy(),
+            'task': task
+        }
+
+    def worst_examples(self, loader_name, task_name, n):
+        return self.extremal_examples(loader_name, task_name, n, -1)
+
+    def best_examples(self, loader_name, task_name, n):
+        return self.extremal_examples(loader_name, task_name, n, 1)
+
+    def extremal_examples(self, loader_name, task_name, n, mult):
+        res = self.summarize_loss_values(loader_name, task_name)
+        sorter = (mult * res['loss_values']).argsort()
+        top_n_idx = res['global_idx'][sorter[:n]]
+        return top_n_idx, res
 
 
 def batch_to_device(batch, device) -> Mapping[str, torch.Tensor]:
