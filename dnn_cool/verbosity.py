@@ -1,7 +1,7 @@
 import time
 from enum import IntEnum
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Optional
 
 import joblib
 

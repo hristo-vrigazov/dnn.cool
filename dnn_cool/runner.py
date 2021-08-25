@@ -3,8 +3,7 @@ from dataclasses import dataclass, field
 from functools import partial, cached_property
 from pathlib import Path
 from shutil import copyfile
-from time import time
-from typing import Dict, Tuple, Callable, Optional, Any, Union, List, Sized
+from typing import Dict, Tuple, Callable, Optional, Any, Union, List
 from typing import Iterator, Mapping
 
 import numpy as np

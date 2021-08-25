@@ -336,10 +336,6 @@ def synthetic_dataset_preparation(n=int(1e4), perform_conversion=True):
     full_flow_for_development = converters.create_task_flow_for_development(df, input_col='syn_img',
                                                                             output_col=output_col,
                                                                             task_flow=full_flow)
-    # df = df if perform_conversion else None
-    # project = Project(df, input_col='syn_img', output_col=output_col, converters=converters,
-    #                   project_dir='./security_project',
-    #                   verbosity=Verbosity.BASIC_STATS)
 
     dataset = full_flow_for_development.get_dataset()
     if perform_conversion:

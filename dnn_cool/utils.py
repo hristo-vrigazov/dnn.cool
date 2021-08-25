@@ -1,12 +1,11 @@
 from pathlib import Path
-from typing import Sized, Union
+from typing import Union
 
 import numpy as np
 import torch
 from sklearn.model_selection import train_test_split
 from torch import nn
 from torch.utils.data import Dataset, Subset
-from torchvision import transforms
 
 
 def any_value(outputs):
@@ -90,6 +89,7 @@ def check_if_should_transpose(sample):
 class ImageNetNormalizer:
 
     def __init__(self, should_divide_by_255=None, should_transpose=None):
+        from torchvision import transforms
         self.should_divide_by_255 = should_divide_by_255
         self.should_transpose = should_transpose
         self.normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
