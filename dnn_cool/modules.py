@@ -90,7 +90,7 @@ class ModuleDecorator(nn.Module):
 
 class Condition(ICondition):
 
-    def get_precondition(self, data):
+    def get_precondition(self):
         raise NotImplementedError()
 
     def to_mask(self, data):
@@ -107,7 +107,7 @@ class Condition(ICondition):
 class OnesCondition(Condition):
     path: str
 
-    def get_precondition(self, data):
+    def get_precondition(self):
         return OnesCondition(self.path)
 
     def to_mask(self, data):
@@ -120,12 +120,12 @@ class OnesCondition(Condition):
 class NegatedCondition(Condition):
     precondition: Condition
 
-    def get_precondition(self, data):
-        return self.precondition.get_precondition(data)
+    def get_precondition(self):
+        return self.precondition.get_precondition()
 
     def to_mask(self, data):
         mask = self.precondition.to_mask(data)
-        precondition = self.get_precondition(data).to_mask(data)
+        precondition = self.get_precondition().to_mask(data)
         mask[~precondition] = False
         mask[precondition] = ~mask[precondition]
         return mask
@@ -135,7 +135,7 @@ class NegatedCondition(Condition):
 class LeafCondition(Condition):
     path: str
 
-    def get_precondition(self, data):
+    def get_precondition(self):
         return OnesCondition(self.path)
 
     def to_mask(self, data):
@@ -147,12 +147,12 @@ class NestedCondition(Condition):
     path: str
     parent: Condition
 
-    def get_precondition(self, data):
+    def get_precondition(self):
         return self.parent
 
     def to_mask(self, data):
         mask = data[self.path].clone()
-        precondition = self.get_precondition(data).to_mask(data)
+        precondition = self.get_precondition().to_mask(data)
         mask[~precondition] = False
         return mask
 
@@ -162,8 +162,8 @@ class AndCondition(Condition):
     condition_one: Condition
     condition_two: Condition
 
-    def get_precondition(self, data):
-        return self.condition_one.get_precondition(data) & self.condition_two.get_precondition(data)
+    def get_precondition(self):
+        return self.condition_one.get_precondition() & self.condition_two.get_precondition()
 
     def to_mask(self, data):
         mask_one = self.condition_one.to_mask(data)
