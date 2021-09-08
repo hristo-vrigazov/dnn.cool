@@ -76,9 +76,6 @@ class LeafVisitor(IFlowTask):
         preconditioned_targets = targets[precondition] if targets is not None else None
         return self.preconditioned_result(preds[precondition], preconditioned_targets)
 
-    def full_result(self, preds, targets):
-        raise NotImplementedError()
-
     def empty_result(self):
         raise NotImplementedError()
 

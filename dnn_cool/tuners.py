@@ -10,9 +10,6 @@ class TuningVisitor(LeafVisitor):
     def __init__(self, task, prefix):
         super().__init__(task, prefix)
 
-    def full_result(self, preds, targets):
-        return TunedParams(self.decoder.tune(preds, targets))
-
     def empty_result(self):
         return TunedParams({self.path: {}})
 

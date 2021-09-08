@@ -10,9 +10,6 @@ class FilterVisitor(LeafVisitor):
     def __init__(self, task, prefix):
         super().__init__(task, prefix)
 
-    def full_result(self, preds, targets):
-        return FilterParams(predictions={self.path: preds}, targets={self.path: targets})
-
     def empty_result(self):
         return FilterParams(predictions={}, targets={})
 

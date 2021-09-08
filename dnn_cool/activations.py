@@ -9,9 +9,6 @@ class ActivationVisitor(LeafVisitor):
     def __init__(self, task, prefix):
         super().__init__(task, prefix)
 
-    def full_result(self, preds, targets):
-        return ActivationsFiltered({self.path: preds})
-
     def empty_result(self):
         return ActivationsFiltered({self.path: {}})
 

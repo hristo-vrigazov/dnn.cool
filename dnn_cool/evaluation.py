@@ -13,9 +13,6 @@ class EvaluationVisitor(LeafVisitor):
         super().__init__(task, prefix)
         self.metrics = task.get_metrics()
 
-    def full_result(self, preds, targets):
-        return self.compute_metrics(preds, targets)
-
     def empty_result(self):
         return EvaluationResults([])
 

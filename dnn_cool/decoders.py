@@ -95,9 +95,6 @@ class DecodingVisitor(LeafVisitor):
     def __init__(self, task, prefix):
         super().__init__(task, prefix)
 
-    def full_result(self, preds, targets):
-        return DecodedData({self.path: self.decoder(preds)})
-
     def empty_result(self):
         return DecodedData({self.path: {}})
 
