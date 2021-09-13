@@ -1,5 +1,7 @@
 ## `dnn_cool`: Deep Neural Networks for Conditional objective oriented learning
 
+WARNING: API is not yet stable, expect breaking changes in 0.x versions!
+
 To install, just do:
 
 ```bash
