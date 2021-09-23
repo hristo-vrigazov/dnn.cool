@@ -137,3 +137,4 @@ tests/example_project
 ./TODO.md
 
 TODO.md
+tests/test_data/*

@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Union
+from typing import Union, List
 
 import numpy as np
 import torch
@@ -41,6 +41,7 @@ class TransformedSubset(Dataset):
         dataset (Dataset): The whole Dataset
         indices (sequence): Indices in the whole set selected for subset
     """
+
     def __init__(self, dataset, indices, sample_transforms=None):
         self.dataset = dataset
         self.indices = indices
@@ -136,3 +137,112 @@ def load_model_from_export(model, full_flow, out_directory: Union[str, Path]) ->
     tuned_params = torch.load(thresholds_path)
     full_flow.get_decoder().load_tuned(tuned_params)
     return model
+
+
+class RaggedMemoryMapView:
+
+    def __init__(self, ragged_memory_map, subset_selector):
+        self.ragged_memory_map = ragged_memory_map
+        self.subset_selector = subset_selector
+
+    def __getitem__(self, item):
+        indices = self.ragged_memory_map.range[self.subset_selector]
+        return RaggedMemoryMapView(self.ragged_memory_map, indices[item])
+
+    def to_list(self):
+        indices = self.ragged_memory_map.range[self.subset_selector]
+        res = [self.ragged_memory_map[int(idx)] for idx in indices]
+        return res
+
+
+class RaggedMemoryMap:
+
+    def __init__(self, path: Union[str, Path], shapes, dtype, mode='r+', initialization_data=None):
+        self.path = Path(path)
+        self.shapes = shapes
+        self.dtype = dtype
+        self.mode = mode
+        self.flattened_shapes = np.array([self.reduce_shape(shape) for shape in shapes])
+        self.ends = self.flattened_shapes.cumsum()
+        self.starts = np.roll(self.ends, 1)
+        self.starts[0] = 0
+        self.shape = self.flattened_shapes.sum()
+        self.n = len(self.shapes)
+        self.range = np.arange(self.n)
+
+        self.memmap = np.memmap(str(self.path), dtype=self.dtype, mode=self.mode, shape=self.shape)
+        if initialization_data is not None:
+            assert len(initialization_data) == len(shapes), \
+                'The initialization data must of the same length as the shapes array!'
+            for i in range(len(initialization_data)):
+                self[i] = initialization_data[i]
+
+    def reduce_shape(self, shape):
+        if isinstance(shape, int):
+            return shape
+        from operator import mul
+        from functools import reduce
+        return reduce(mul, shape, 1)
+
+    def __setitem__(self, key, value):
+        if isinstance(key, slice):
+            indices = self.range[key]
+            for i, idx in enumerate(indices):
+                self[int(idx)] = value[i]
+            return
+        if isinstance(key, int):
+            self.set_single_index(key, value)
+            return
+        raise ValueError(f'Unsupported key: {key}')
+
+    def __getitem__(self, item):
+        if isinstance(item, slice):
+            return RaggedMemoryMapView(self, item)
+        if isinstance(item, np.ndarray) and item.dtype == np.bool:
+            return RaggedMemoryMapView(self, item)
+        if isinstance(item, int):
+            return self.get_single_index(item)
+
+    def get_single_index(self, item):
+        start = self.starts[item]
+        end = self.ends[item]
+        shape = self.shapes[item]
+        return self.memmap[start:end].reshape(shape)
+
+    def set_single_index(self, key, value):
+        start = self.starts[key]
+        end = self.ends[key]
+        self.memmap[start:end] = value.ravel()
+
+    def __len__(self):
+        return self.n
+
+
+class StringsMemmap(RaggedMemoryMap):
+
+    def __init__(self, path: Union[str, Path], shapes, dtype=np.int64, mode='r+', initialization_data=None):
+        super().__init__(path, shapes, dtype, mode=mode, initialization_data=initialization_data)
+
+    @classmethod
+    def from_list_of_strings(cls, path, list_of_strings, dtype=np.int64):
+        list_of_unicode_ints = []
+        shapes = []
+        for string in list_of_strings:
+            unicode_list = [ord(c) for c in string]
+            list_of_unicode_ints.append(unicode_list)
+            shapes.append(len(unicode_list))
+        return cls(path=path,
+                   shapes=shapes,
+                   dtype=dtype,
+                   mode='w+',
+                   initialization_data=list_of_strings)
+
+    def set_single_index(self, key, value):
+        super().set_single_index(key, np.array([ord(c) for c in value]))
+
+    def get_single_index(self, item):
+        unicode_result = super(StringsMemmap, self).get_single_index(item)
+        return ''.join([chr(i) for i in unicode_result])
+
+
+
