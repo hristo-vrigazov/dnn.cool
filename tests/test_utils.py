@@ -61,3 +61,6 @@ def test_strings_memmap():
     ]
     memmap = StringsMemmap.from_list_of_strings('./test_data/ragged_str.data', strings)
     assert memmap[1] == strings[1]
+
+    new_memmap = StringsMemmap.open_existing('./test_data/ragged_str.data')
+    assert (new_memmap[2] == strings[2])

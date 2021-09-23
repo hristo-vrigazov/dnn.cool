@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Union, List
 
+import joblib
 import numpy as np
 import torch
 from sklearn.model_selection import train_test_split
@@ -155,14 +156,27 @@ class RaggedMemoryMapView:
         return res
 
 
+def reduce_shape(shape):
+    if isinstance(shape, int):
+        return shape
+    from operator import mul
+    from functools import reduce
+    return reduce(mul, shape, 1)
+
+
 class RaggedMemoryMap:
 
-    def __init__(self, path: Union[str, Path], shapes, dtype, mode='r+', initialization_data=None):
+    def __init__(self, path: Union[str, Path], shapes, dtype, mode,
+                 save_metadata=True, initialization_data=None):
         self.path = Path(path)
+        path_str = str(self.path)
+        self.shapes_path = path_str + '.metadata'
         self.shapes = shapes
         self.dtype = dtype
+        if save_metadata:
+            self.save_metadata()
         self.mode = mode
-        self.flattened_shapes = np.array([self.reduce_shape(shape) for shape in shapes])
+        self.flattened_shapes = np.array([reduce_shape(shape) for shape in shapes])
         self.ends = self.flattened_shapes.cumsum()
         self.starts = np.roll(self.ends, 1)
         self.starts[0] = 0
@@ -170,19 +184,19 @@ class RaggedMemoryMap:
         self.n = len(self.shapes)
         self.range = np.arange(self.n)
 
-        self.memmap = np.memmap(str(self.path), dtype=self.dtype, mode=self.mode, shape=self.shape)
+        self.memmap = np.memmap(path_str, dtype=self.dtype, mode=self.mode, shape=self.shape)
         if initialization_data is not None:
             assert len(initialization_data) == len(shapes), \
                 'The initialization data must of the same length as the shapes array!'
             for i in range(len(initialization_data)):
                 self[i] = initialization_data[i]
 
-    def reduce_shape(self, shape):
-        if isinstance(shape, int):
-            return shape
-        from operator import mul
-        from functools import reduce
-        return reduce(mul, shape, 1)
+    def save_metadata(self):
+        joblib.dump({
+            'path': self.path,
+            'shapes': self.shapes,
+            'dtype': self.dtype
+        }, self.shapes_path)
 
     def __setitem__(self, key, value):
         if isinstance(key, slice):
@@ -217,11 +231,36 @@ class RaggedMemoryMap:
     def __len__(self):
         return self.n
 
+    @classmethod
+    def open_existing(cls, path, mode='r+'):
+        metadata_path = str(path) + '.metadata'
+        metadata = joblib.load(metadata_path)
+        return cls(
+            path=path,
+            shapes=metadata['shapes'],
+            dtype=metadata['dtype'],
+            mode=mode,
+            save_metadata=False,
+            initialization_data=None
+        )
+
+    @classmethod
+    def from_lists_of_int(cls, path, lists_of_int, dtype=np.int64):
+        shapes = [len(sample) for sample in lists_of_int]
+        return cls(path=path,
+                   shapes=shapes,
+                   dtype=dtype,
+                   mode='w+',
+                   initialization_data=lists_of_int)
+
 
 class StringsMemmap(RaggedMemoryMap):
 
-    def __init__(self, path: Union[str, Path], shapes, dtype=np.int64, mode='r+', initialization_data=None):
-        super().__init__(path, shapes, dtype, mode=mode, initialization_data=initialization_data)
+    def __init__(self, path: Union[str, Path], shapes, dtype=np.int64, mode='r+',
+                 save_metadata=True, initialization_data=None):
+        super().__init__(path, shapes, dtype, mode=mode,
+                         save_metadata=save_metadata,
+                         initialization_data=initialization_data)
 
     @classmethod
     def from_list_of_strings(cls, path, list_of_strings, dtype=np.int64):
