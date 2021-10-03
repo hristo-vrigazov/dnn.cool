@@ -5,12 +5,12 @@ from torch import nn
 from treelib import Tree
 
 from dnn_cool.activations import CompositeActivation
-from dnn_cool.utils import Values
 from dnn_cool.datasets import FlowDataset
 from dnn_cool.decoders import BinaryDecoder, TaskFlowDecoder, Decoder, ClassificationDecoder, \
     MultilabelClassificationDecoder, NoOpDecoder, BoundedRegressionDecoder
 from dnn_cool.evaluation import EvaluationCompositeVisitor, EvaluationVisitor
 from dnn_cool.filter import FilterCompositeVisitor, FilterVisitor
+from dnn_cool.help import helper
 from dnn_cool.losses import TaskFlowCriterion, ReducedPerSample, TaskFlowLossPerSample
 from dnn_cool.metrics import TorchMetric, get_default_binary_metrics, \
     get_default_bounded_regression_metrics, get_default_classification_metrics, \
@@ -18,6 +18,7 @@ from dnn_cool.metrics import TorchMetric, get_default_binary_metrics, \
 from dnn_cool.missing_values import positive_values
 from dnn_cool.modules import SigmoidAndMSELoss, TaskFlowModule
 from dnn_cool.treelib import TreeExplainer, default_leaf_tree_explainer
+from dnn_cool.utils import Values
 
 
 class IMinimal:
@@ -28,6 +29,7 @@ class IMinimal:
 
 class Task(IMinimal):
 
+    @helper
     def __init__(self, name, torch_module, activation, decoder, dropout_mc, treelib_explainer=None):
         self.name = name
         self.activation = activation

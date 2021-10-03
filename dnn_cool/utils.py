@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Union, List
+from typing import Union
 
 import joblib
 import numpy as np
@@ -288,6 +288,4 @@ class StringsMemmap(RaggedMemoryMap):
     def get_single_index(self, item):
         unicode_result = super(StringsMemmap, self).get_single_index(item)
         return ''.join([chr(i) for i in unicode_result])
-
-
 
