@@ -220,6 +220,8 @@ class RaggedMemoryMap:
             return self.get_single_index(int(item))
         if isinstance(item, np.ndarray) and np.issubdtype(item.dtype, np.integer):
             return RaggedMemoryMapView(self, item)
+        if np.isscalar(item):
+            return self.get_single_index(int(item))
         raise NotImplementedError(f'Have not yet implemented __getitem__ with {type(item)}.')
 
     def get_single_index(self, item):
