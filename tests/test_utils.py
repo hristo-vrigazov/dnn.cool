@@ -64,3 +64,14 @@ def test_strings_memmap():
 
     new_memmap = StringsMemmap.open_existing('./test_data/ragged_str.data')
     assert (new_memmap[2] == strings[2])
+
+
+def test_ragged_equality_zero_shaped():
+    memmap = RaggedMemoryMap.from_lists_of_int('./test_data/ragged.data', [[1, 2], [3], [4, 5, 6], [5]])
+    r = memmap[np.array(1)]
+    assert r is not None
+
+def test_ragged_equality_int_indices():
+    memmap = RaggedMemoryMap.from_lists_of_int('./test_data/ragged.data', [[1, 2], [3], [4, 5, 6], [5]])
+    r = memmap[np.array([1, 2])]
+    assert r is not None

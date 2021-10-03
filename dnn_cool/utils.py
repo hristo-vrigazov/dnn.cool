@@ -216,6 +216,11 @@ class RaggedMemoryMap:
             return RaggedMemoryMapView(self, item)
         if isinstance(item, int):
             return self.get_single_index(item)
+        if isinstance(item, np.ndarray) and len(item.shape) <= 0:
+            return self.get_single_index(int(item))
+        if isinstance(item, np.ndarray) and np.issubdtype(item.dtype, np.integer):
+            return RaggedMemoryMapView(self, item)
+        raise NotImplementedError(f'Have not yet implemented __getitem__ with {type(item)}.')
 
     def get_single_index(self, item):
         start = self.starts[item]
@@ -226,6 +231,7 @@ class RaggedMemoryMap:
     def set_single_index(self, key, value):
         start = self.starts[key]
         end = self.ends[key]
+        value = np.asarray(value)
         self.memmap[start:end] = value.ravel()
 
     def __len__(self):
