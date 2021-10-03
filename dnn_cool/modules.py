@@ -113,7 +113,11 @@ class OnesCondition(Condition):
     def to_mask(self, data):
         if '_availability' in data:
             return data['_availability'][self.path]
-        return torch.ones_like(data[self.path]).bool()
+        t = data.get(self.path)
+        if t is None:
+            raise ValueError(f'Path "{self.path}" leads to a None object.\n'
+                             f'If you are trying to get treelib explanations, your model must be in eval mode.')
+        return torch.ones_like(t).bool()
 
 
 @dataclass()
