@@ -29,7 +29,7 @@ class IMinimal:
 
 class Task(IMinimal):
 
-    @helper
+    @helper(before_message='Creating a task!')
     def __init__(self, name, torch_module, activation, decoder, dropout_mc, treelib_explainer=None):
         self.name = name
         self.activation = activation
