@@ -13,7 +13,7 @@ class Verbosity(IntEnum):
 
 
 def log(messsage):
-    print(f'[dnn_cool] {messsage}.')
+    print(f'[dnn_cool] {messsage}')
 
 
 class StatsRegistry:

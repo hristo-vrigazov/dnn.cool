@@ -29,7 +29,7 @@ class IMinimal:
 
 class Task(IMinimal):
 
-    @helper(before_message='Creating a task!')
+    @helper(after_type='task')
     def __init__(self, name, torch_module, activation, decoder, dropout_mc, treelib_explainer=None):
         self.name = name
         self.activation = activation
@@ -395,6 +395,7 @@ class Tasks:
     Represents a collections of related tasks and task flows.
     """
 
+    @helper(after_type='tasks')
     def __init__(self, leaf_tasks: List[Task]):
         self.leaf_tasks = leaf_tasks
         self.flow_tasks = []
