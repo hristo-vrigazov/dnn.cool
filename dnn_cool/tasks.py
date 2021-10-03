@@ -408,6 +408,7 @@ class Tasks:
         self.task_dict[task_flow.get_name()] = task_flow
         return task_flow
 
+    @helper(after_type='tasks.add_flow')
     def add_flow(self, func, flow_name=None, dropout_mc=None) -> TaskFlow:
         flow_name = func.__name__ if flow_name is None else flow_name
         flow = self.create_flow(func, flow_name, dropout_mc)

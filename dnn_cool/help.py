@@ -56,6 +56,11 @@ def localize_flow(flow, x, out):
     return out
 """
             print(flow_str)
+            return
+        if after_type == 'tasks.add_flow':
+            log('You added a task flow! You can add more task flows in the same way.')
+            log('A task flow is a task itself, so you can use your currently registered task flows in new task flows!')
+            return
 
 
 helper = Helper()
