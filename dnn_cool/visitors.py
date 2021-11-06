@@ -86,7 +86,7 @@ class LeafVisitor(IFlowTask):
 
 class CompositeVisitor(IFlowTask):
 
-    def __init__(self, task_flow, leaf_visitor_cls, visitor_out_cls, autograd: IAutoGrad, prefix=''):
+    def __init__(self, task_flow, leaf_visitor_cls, visitor_out_cls, prefix: str, autograd: IAutoGrad):
         self.flow = task_flow.get_flow_func()
         self.visitor_out_cls = visitor_out_cls
 
@@ -95,8 +95,8 @@ class CompositeVisitor(IFlowTask):
                 instance = leaf_visitor_cls(task, prefix, autograd)
             else:
                 instance = CompositeVisitor(task, leaf_visitor_cls, visitor_out_cls,
-                                            autograd,
-                                            prefix=f'{prefix}{task.get_name()}.', )
+                                            prefix=f'{prefix}{task.get_name()}.',
+                                            autograd=autograd)
             setattr(self, key, instance)
 
     def __call__(self, data) -> VisitorOut:
@@ -106,11 +106,14 @@ class CompositeVisitor(IFlowTask):
 
 class RootCompositeVisitor(IFlowTask):
 
-    def __init__(self, task_flow, leaf_visitor_cls, visitor_out_cls, autograd, prefix=''):
+    def __init__(self, task_flow, leaf_visitor_cls, visitor_out_cls, prefix, autograd):
         self.prefix = prefix
         self.task_flow = task_flow
-        self.composite_visitor = CompositeVisitor(task_flow, leaf_visitor_cls, visitor_out_cls,
-                                                  autograd, prefix)
+        self.composite_visitor = CompositeVisitor(task_flow=task_flow,
+                                                  leaf_visitor_cls=leaf_visitor_cls,
+                                                  visitor_out_cls=visitor_out_cls,
+                                                  prefix=prefix,
+                                                  autograd=autograd)
 
     def __call__(self, predictions, targets=None):
         flow_result = self.composite_visitor(VisitorData(predictions, targets))

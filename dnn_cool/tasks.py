@@ -9,6 +9,7 @@ from dnn_cool.datasets import FlowDataset
 from dnn_cool.decoders import BinaryDecoder, TaskFlowDecoder, Decoder, ClassificationDecoder, \
     MultilabelClassificationDecoder, NoOpDecoder, BoundedRegressionDecoder
 from dnn_cool.evaluation import EvaluationCompositeVisitor, EvaluationVisitor
+from dnn_cool.external.torch import TorchAutoGrad
 from dnn_cool.filter import FilterCompositeVisitor, FilterVisitor
 from dnn_cool.help import helper
 from dnn_cool.losses import TaskFlowCriterion, ReducedPerSample, TaskFlowLossPerSample
@@ -296,8 +297,8 @@ class TaskFlow(Task, TaskFlowBase):
         Task.__init__(self,
                       name=name,
                       torch_module=TaskFlowModule(self),
-                      activation=CompositeActivation(self, autograd),
-                      decoder=TaskFlowDecoder(self),
+                      activation=CompositeActivation(self, prefix='', autograd=autograd),
+                      decoder=TaskFlowDecoder(self, prefix='', autograd=autograd),
                       dropout_mc=dropout_mc)
 
     def has_children(self):
@@ -320,6 +321,7 @@ class TaskFlowForDevelopment(TaskForDevelopment, TaskFlowBase):
                                     available_func=None,
                                     metrics=self.get_metrics())
         self.inputs = inputs
+        self.autograd = TorchAutoGrad()
 
     def get_inputs(self) -> Values:
         return self.inputs
@@ -350,10 +352,10 @@ class TaskFlowForDevelopment(TaskForDevelopment, TaskFlowBase):
         return all_labels
 
     def get_filter(self):
-        return FilterCompositeVisitor(self, prefix='')
+        return FilterCompositeVisitor(self, prefix='', autograd=self.autograd)
 
     def get_evaluator(self):
-        return EvaluationCompositeVisitor(self, prefix='')
+        return EvaluationCompositeVisitor(self, prefix='', autograd=self.autograd)
 
 
 class UsedTasksTracer:

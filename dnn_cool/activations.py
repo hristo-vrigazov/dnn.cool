@@ -30,6 +30,6 @@ class ActivationsFiltered(VisitorOut):
 
 class CompositeActivation(RootCompositeVisitor):
 
-    def __init__(self, task_flow, autograd):
-        super().__init__(task_flow, ActivationVisitor, ActivationsFiltered, autograd)
+    def __init__(self, task_flow, prefix, autograd):
+        super().__init__(task_flow, ActivationVisitor, ActivationsFiltered, prefix, autograd)
 

@@ -92,8 +92,8 @@ class ClassificationDecoder(Decoder):
 
 class DecodingVisitor(LeafVisitor):
 
-    def __init__(self, task, prefix):
-        super().__init__(task, prefix)
+    def __init__(self, task, prefix, autograd):
+        super().__init__(task, prefix, autograd)
 
     def empty_result(self):
         return DecodedData({self.path: {}})
@@ -116,15 +116,15 @@ class DecodedData(VisitorOut):
 
 class CompositeDecoder(RootCompositeVisitor):
 
-    def __init__(self, task_flow, prefix):
-        super().__init__(task_flow, DecodingVisitor, DecodedData, prefix)
+    def __init__(self, task_flow, prefix, autograd):
+        super().__init__(task_flow, DecodingVisitor, DecodedData, prefix, autograd)
 
 
 class TaskFlowDecoder(Decoder):
 
-    def __init__(self, task_flow, prefix=''):
-        self.tuner = TunerVisitor(task_flow, prefix=prefix)
-        self.composite_decoder = CompositeDecoder(task_flow, prefix)
+    def __init__(self, task_flow, prefix, autograd):
+        self.tuner = TunerVisitor(task_flow, prefix=prefix, autograd=autograd)
+        self.composite_decoder = CompositeDecoder(task_flow, prefix, autograd)
 
     def __call__(self, *args, **kwargs):
         return self.composite_decoder(*args, **kwargs)

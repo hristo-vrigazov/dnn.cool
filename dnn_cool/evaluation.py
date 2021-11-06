@@ -9,8 +9,8 @@ from dnn_cool.visitors import LeafVisitor, VisitorOut, RootCompositeVisitor
 
 class EvaluationVisitor(LeafVisitor):
 
-    def __init__(self, task, prefix):
-        super().__init__(task, prefix)
+    def __init__(self, task, prefix, autograd):
+        super().__init__(task, prefix, autograd)
         self.metrics = task.get_metrics()
 
     def empty_result(self):
@@ -56,8 +56,8 @@ class EvaluationResults(VisitorOut):
 
 class EvaluationCompositeVisitor(RootCompositeVisitor):
 
-    def __init__(self, task_flow, prefix):
-        super().__init__(task_flow, EvaluationVisitor, EvaluationResults, prefix=prefix)
+    def __init__(self, task_flow, prefix, autograd):
+        super().__init__(task_flow, EvaluationVisitor, EvaluationResults, prefix=prefix, autograd=autograd)
 
     def load_tuned(self, tuned_params):
         tasks = self.task_flow.get_all_children()
