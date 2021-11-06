@@ -1,7 +1,8 @@
 import torch
 import numpy as np
 
-from dnn_cool.utils import ImageNetNormalizer, RaggedMemoryMap, StringsMemmap
+from dnn_cool.utils import ImageNetNormalizer
+from dnn_cool.memmap import RaggedMemoryMap, StringsMemmap
 
 
 def test_imagenet_normalizer_tensor_input():

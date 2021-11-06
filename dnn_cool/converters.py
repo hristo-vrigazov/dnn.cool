@@ -18,7 +18,6 @@ class TypeGuesser:
     def guess(self, df, output_col):
         if output_col in self.type_mapping:
             return self.type_mapping[output_col]
-
         if str(df[output_col].dtype) == 'bool':
             return 'binary'
 
