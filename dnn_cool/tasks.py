@@ -6,8 +6,11 @@ from treelib import Tree
 
 from dnn_cool.activations import CompositeActivation
 from dnn_cool.datasets import FlowDataset
-from dnn_cool.decoders import BinaryDecoder, TaskFlowDecoder, Decoder, ClassificationDecoder, \
-    MultilabelClassificationDecoder, NoOpDecoder, BoundedRegressionDecoder
+from dnn_cool.decoders.binary import BinaryDecoder
+from dnn_cool.decoders.base import TaskFlowDecoder, Decoder, NoOpDecoder
+from dnn_cool.decoders.classification import ClassificationDecoder
+from dnn_cool.decoders.bounded_regression import BoundedRegressionDecoder
+from dnn_cool.decoders.multilabel_classification import MultilabelClassificationDecoder
 from dnn_cool.evaluation import EvaluationCompositeVisitor, EvaluationVisitor
 from dnn_cool.external.torch import TorchAutoGrad
 from dnn_cool.filter import FilterCompositeVisitor, FilterVisitor
