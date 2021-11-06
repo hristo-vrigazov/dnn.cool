@@ -1,13 +1,13 @@
 from dataclasses import dataclass, field
 from typing import Dict
 
-from dnn_cool.visitors import LeafVisitor, VisitorOut, RootCompositeVisitor
+from dnn_cool.visitors import VisitorOut, LeafVisitor, RootCompositeVisitor
 
 
 class ActivationVisitor(LeafVisitor):
 
-    def __init__(self, task, prefix):
-        super().__init__(task, prefix)
+    def __init__(self, task, prefix, autograd):
+        super().__init__(task, prefix, autograd)
 
     def empty_result(self):
         return ActivationsFiltered({self.path: {}})
@@ -30,6 +30,6 @@ class ActivationsFiltered(VisitorOut):
 
 class CompositeActivation(RootCompositeVisitor):
 
-    def __init__(self, task_flow):
-        super().__init__(task_flow, ActivationVisitor, ActivationsFiltered)
+    def __init__(self, task_flow, autograd):
+        super().__init__(task_flow, ActivationVisitor, ActivationsFiltered, autograd)
 

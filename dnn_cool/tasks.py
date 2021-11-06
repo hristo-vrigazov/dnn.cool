@@ -291,12 +291,12 @@ class TaskFlowBase:
 
 class TaskFlow(Task, TaskFlowBase):
 
-    def __init__(self, name, tasks: Iterable[Task], flow_func, dropout_mc=None):
+    def __init__(self, name, tasks: Iterable[Task], flow_func, autograd, dropout_mc=None):
         TaskFlowBase.__init__(self, name, tasks, flow_func)
         Task.__init__(self,
                       name=name,
                       torch_module=TaskFlowModule(self),
-                      activation=CompositeActivation(self),
+                      activation=CompositeActivation(self, autograd),
                       decoder=TaskFlowDecoder(self),
                       dropout_mc=dropout_mc)
 
@@ -396,12 +396,13 @@ class Tasks:
     """
 
     @helper(after_type='tasks')
-    def __init__(self, leaf_tasks: List[Task]):
+    def __init__(self, leaf_tasks: List[Task], autograd):
         self.leaf_tasks = leaf_tasks
         self.flow_tasks = []
         self.task_dict = {}
         for leaf_task in self.leaf_tasks:
             self.task_dict[leaf_task.get_name()] = leaf_task
+        self.autograd = autograd
 
     def add_task_flow(self, task_flow: TaskFlow) -> TaskFlow:
         self.flow_tasks.append(task_flow)
@@ -420,7 +421,8 @@ class Tasks:
         return TaskFlow(name=flow_name,
                         tasks=used_tasks,
                         flow_func=flow_func,
-                        dropout_mc=dropout_mc)
+                        dropout_mc=dropout_mc,
+                        autograd=self.autograd)
 
     def get_all_tasks(self) -> Dict[str, Task]:
         return self.task_dict

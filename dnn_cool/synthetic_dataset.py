@@ -5,6 +5,7 @@ import cv2
 from torch.utils.data import DataLoader, Subset
 
 from dnn_cool.converters import TypeGuesser, ValuesConverter, TaskConverter, Converters
+from dnn_cool.external.torch import TorchAutoGrad
 from dnn_cool.tasks import *
 from dnn_cool.utils import split_dataset
 from dnn_cool.value_converters import *
@@ -189,7 +190,7 @@ def get_synthetic_full_flow(n_shirt_types, n_facial_characteristics) -> TaskFlow
         body_x1, body_y1, body_w, body_h,
         shirt_type, door_locked
     ]
-    tasks = Tasks(leaf_tasks)
+    tasks = Tasks(leaf_tasks, TorchAutoGrad())
 
     @tasks.add_flow
     def body_regression(flow, x, out):

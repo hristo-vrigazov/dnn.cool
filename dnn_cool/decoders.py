@@ -8,7 +8,7 @@ from sklearn.metrics import accuracy_score
 from tqdm import tqdm
 
 from dnn_cool.tuners import TunerVisitor
-from dnn_cool.visitors import RootCompositeVisitor, VisitorOut, LeafVisitor
+from dnn_cool.visitors import VisitorOut, LeafVisitor, RootCompositeVisitor
 
 
 class Decoder:
