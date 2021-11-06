@@ -1,11 +1,11 @@
 from typing import Dict, Tuple, Sized
 
-import torch
 
 from dataclasses import dataclass
-from torch.utils.data.dataset import Dataset
 
 from dnn_cool.dsl import IFeaturesDict, IOut, ICondition, IFlowTask
+from dnn_cool.external import autograd
+from dnn_cool.external.autograd import Dataset
 
 
 def discover_index_holder(*args, **kwargs):
@@ -49,7 +49,7 @@ class IndexHolder(IFeaturesDict):
 class FlowDatasetPrecondition(ICondition):
     prefix: str
     path: str
-    precondition: torch.Tensor
+    precondition: autograd.Tensor
 
     def __invert__(self):
         return self
