@@ -4,7 +4,7 @@ from torch import nn
 
 from dnn_cool.dsl import IFeaturesDict, IOut, ICondition, IFlowTaskResult
 from dnn_cool.external.autograd import squeeze_if_needed
-from dnn_cool.utils_p.base import any_value
+from dnn_cool.utils.base import any_value
 
 
 class ReducedPerSample(nn.Module):

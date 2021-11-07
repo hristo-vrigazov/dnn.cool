@@ -14,7 +14,7 @@ from torch import nn
 from torch.nn import DataParallel
 from torch.utils.data import Dataset, SequentialSampler
 
-from dnn_cool.utils_p.base import any_value
+from dnn_cool.utils.base import any_value
 
 
 def publish_all(prefix: str,

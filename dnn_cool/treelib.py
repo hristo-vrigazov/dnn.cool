@@ -5,7 +5,7 @@ import numpy as np
 from treelib import Tree, Node
 
 from dnn_cool.modules.torch import CompositeModuleOutput
-from dnn_cool.utils_p.base import any_value
+from dnn_cool.utils.base import any_value
 
 
 def find_results_for_treelib(*args, **kwargs):

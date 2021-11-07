@@ -5,7 +5,7 @@ import torch
 from torch import nn
 from torch.utils.data import Subset, Dataset
 
-from dnn_cool.utils_p.base import split_dataset
+from dnn_cool.utils.base import split_dataset
 
 
 def torch_split_dataset(dataset, test_size=0.2, random_state=None):

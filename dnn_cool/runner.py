@@ -20,8 +20,8 @@ from dnn_cool.catalyst_utils import InterpretationCallback, TensorboardConverter
     TensorboardConverter
 from dnn_cool.tasks.task_flow import TaskFlow
 from dnn_cool.tasks.development.task_flow import TaskFlowForDevelopment
-from dnn_cool.utils_p.torch import TransformedSubset, load_model_from_export
-from dnn_cool.utils_p.base import train_test_val_split
+from dnn_cool.utils.torch import TransformedSubset, load_model_from_export
+from dnn_cool.utils.base import train_test_val_split
 
 
 @dataclass
