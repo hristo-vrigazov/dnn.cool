@@ -24,6 +24,7 @@ class TaskFlowForDevelopment(TaskForDevelopment, TaskFlowBase):
                                     metrics=self.get_metrics())
         self.inputs = inputs
         self.autograd = TorchAutoGrad()
+        self.precondition_funcs = None
 
     def get_inputs(self) -> Values:
         return self.inputs
@@ -44,8 +45,8 @@ class TaskFlowForDevelopment(TaskForDevelopment, TaskFlowBase):
             all_metrics += task.get_metrics()
         return all_metrics
 
-    def get_dataset(self, **kwargs) -> FlowDataset:
-        return FlowDataset(self, **kwargs)
+    def get_dataset(self) -> FlowDataset:
+        return FlowDataset(self, precondition_funcs=self.precondition_funcs)
 
     def get_labels(self):
         all_labels = []

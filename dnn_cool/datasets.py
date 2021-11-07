@@ -1,5 +1,4 @@
-from typing import Dict, Tuple, Sized
-
+from typing import Dict, Tuple, Sized, Optional, Callable
 
 from dataclasses import dataclass
 
@@ -18,11 +17,12 @@ def discover_index_holder(*args, **kwargs):
 
 class FlowDatasetDecorator:
 
-    def __init__(self, task, prefix, labels):
+    def __init__(self, task, prefix, labels, precondition_funcs):
         self.task_name = task.get_name()
         self.available = task.get_available_func()(labels) if labels is not None else None
         self.prefix = prefix
         self.arr = labels
+        self.precondition_funcs = precondition_funcs
 
     def __call__(self, *args, **kwargs):
         index_holder = discover_index_holder(*args, **kwargs)
@@ -33,7 +33,10 @@ class FlowDatasetDecorator:
         available = {
             key: self.available[index_holder.item]
         }
-        return FlowDatasetDict(self.prefix, data, available)
+        return FlowDatasetDict(self.prefix,
+                               precondition_funcs=self.precondition_funcs,
+                               data=data,
+                               available=available)
 
 
 class IndexHolder(IFeaturesDict):
@@ -49,13 +52,19 @@ class IndexHolder(IFeaturesDict):
 class FlowDatasetPrecondition(ICondition):
     prefix: str
     path: str
-    precondition: autograd.Tensor
+    data: autograd.Tensor
+    precondition_func: Optional[Callable] = None
 
     def __invert__(self):
         return self
 
     def __and__(self, other):
         return self
+
+    def as_precondition(self):
+        if self.precondition_func is None:
+            return self.data.bool()
+        return self.precondition_func(self.data)
 
 
 class TensorDict(dict):
@@ -69,8 +78,9 @@ class TensorDict(dict):
 
 class FlowDatasetDict(IOut):
 
-    def __init__(self, prefix, data=None, available=None):
+    def __init__(self, prefix, precondition_funcs=None, data=None, available=None):
         self.prefix = prefix
+        self.precondition_funcs = precondition_funcs if precondition_funcs is not None else {}
         self.data = data if data is not None else {}
         self.available = available if available is not None else {}
         self.gt = {}
@@ -85,10 +95,11 @@ class FlowDatasetDict(IOut):
     def __getattr__(self, item):
         return FlowDatasetPrecondition(prefix=self.prefix,
                                        path=self.prefix + item,
-                                       precondition=self.data[self.prefix + item])
+                                       data=self.data[self.prefix + item],
+                                       precondition_func=self.precondition_funcs.get(self.prefix + item))
 
     def __or__(self, other: FlowDatasetPrecondition):
-        self.gt.update({other.path: other.precondition.bool()})
+        self.gt.update({other.path: other.as_precondition()})
         return self
 
     def to_dict(self, X):
@@ -104,7 +115,7 @@ class FlowDatasetDict(IOut):
 
 class FlowDataset(Dataset, IFlowTask, Sized):
 
-    def __init__(self, task_flow, prefix=''):
+    def __init__(self, task_flow, precondition_funcs, prefix=''):
         """
         Creates a dataset object for a given task flow.
 
@@ -123,13 +134,19 @@ class FlowDataset(Dataset, IFlowTask, Sized):
         for key, task_for_development in task_flow.tasks.items():
             task = task_for_development.task
             if not task.has_children():
-                labels_instance = FlowDatasetDecorator(task_for_development, prefix, task_for_development.get_labels())
+                labels_instance = FlowDatasetDecorator(task=task_for_development,
+                                                       prefix=prefix,
+                                                       labels=task_for_development.get_labels(),
+                                                       precondition_funcs=precondition_funcs)
                 self.n = len(labels_instance.arr) if labels_instance.available is not None else None
                 setattr(self, key, labels_instance)
             else:
-                instance = FlowDataset(task_for_development, prefix=f'{prefix}{task.get_name()}.')
+                instance = FlowDataset(task_for_development,
+                                       prefix=f'{prefix}{task.get_name()}.',
+                                       precondition_funcs=precondition_funcs)
                 setattr(self, key, instance)
         self.prefix = prefix
+        self.precondition_funcs = precondition_funcs
 
     def __getitem__(self, item: int) -> Tuple[Dict, Dict]:
         """
@@ -140,7 +157,8 @@ class FlowDataset(Dataset, IFlowTask, Sized):
 
         :return: A tuple X, y of two dictionaries
         """
-        flow_dataset_dict = self.flow(self, IndexHolder(item), FlowDatasetDict(self.prefix, {}))
+        out = FlowDatasetDict(self.prefix, precondition_funcs=self.precondition_funcs, data={})
+        flow_dataset_dict = self.flow(self, IndexHolder(item), out)
         inputs = self._task_flow.get_inputs()
         if inputs is None:
             raise ValueError(f'Cannot build a dataset, since the inputs are not provided. You have to provide them'
