@@ -9,6 +9,9 @@ class IAutoGrad:
     def as_float(self, x):
         raise NotImplementedError()
 
+    def get_single_float(self, x):
+        raise NotImplementedError()
+
 
 class Tensor:
     def bool(self):
@@ -30,3 +33,6 @@ def squeeze_if_needed(tensor):
     if len(tensor.shape) == 2:
         return tensor[:, 0]
     return tensor
+
+
+

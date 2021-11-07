@@ -2,7 +2,6 @@ from dataclasses import dataclass, field
 from typing import List
 
 import pandas as pd
-import torch
 
 from dnn_cool.visitors import LeafVisitor, VisitorOut, RootCompositeVisitor
 
@@ -32,8 +31,7 @@ class EvaluationVisitor(LeafVisitor):
         return EvaluationResults(res)
 
     def create_evaluation_record(self, metric_name, metric_res, targets):
-        if isinstance(metric_res, torch.Tensor):
-            metric_res = metric_res.item()
+        metric_res = self.autograd.get_single_float(metric_res)
         return {
             'task_path': self.path,
             'metric_name': metric_name,

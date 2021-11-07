@@ -10,3 +10,9 @@ class TorchAutoGrad(IAutoGrad):
 
     def to_numpy(self, x):
         return x.detach().cpu().numpy()
+
+    def get_single_float(self, x):
+        if isinstance(x, torch.Tensor):
+            return x.item()
+        return x
+
