@@ -1,6 +1,7 @@
 import dnn_cool
 from dnn_cool.external.torch import TorchAutoGrad
-from dnn_cool.tasks import BinaryClassificationTask, Tasks
+from dnn_cool.tasks.binary import BinaryClassificationTask
+from dnn_cool.tasks.task_flow import Tasks
 from dnn_cool.help import helper
 
 

@@ -18,7 +18,8 @@ from torch.utils.data import DataLoader, Dataset
 
 from dnn_cool.catalyst_utils import InterpretationCallback, TensorboardConverters, ReplaceGatherCallback, \
     TensorboardConverter
-from dnn_cool.tasks import TaskFlow, TaskFlowForDevelopment
+from dnn_cool.tasks.task_flow import TaskFlow
+from dnn_cool.tasks.development.task_flow import TaskFlowForDevelopment
 from dnn_cool.utils import TransformedSubset, train_test_val_split, load_model_from_export
 
 

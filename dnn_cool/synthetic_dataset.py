@@ -3,10 +3,18 @@ from functools import partial
 
 import cv2
 from torch.utils.data import DataLoader, Subset
-
+from torch import nn
 from dnn_cool.converters import TypeGuesser, ValuesConverter, TaskConverter, Converters
 from dnn_cool.external.torch import TorchAutoGrad
-from dnn_cool.tasks import *
+from dnn_cool.tasks.binary import BinaryClassificationTask
+from dnn_cool.tasks.bounded_regression import BoundedRegressionTask
+from dnn_cool.tasks.classification import ClassificationTask
+from dnn_cool.tasks.development.binary import BinaryClassificationTaskForDevelopment
+from dnn_cool.tasks.development.bounded_regression import BoundedRegressionTaskForDevelopment
+from dnn_cool.tasks.development.classification import ClassificationTaskForDevelopment
+from dnn_cool.tasks.development.multilabel_classification import MultilabelClassificationTaskForDevelopment
+from dnn_cool.tasks.multilabel_classification import MultilabelClassificationTask
+from dnn_cool.tasks.task_flow import TaskFlow, Tasks
 from dnn_cool.utils import split_dataset
 from dnn_cool.value_converters import *
 

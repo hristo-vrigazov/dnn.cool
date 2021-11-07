@@ -6,7 +6,8 @@ import joblib
 import pandas as pd
 
 from dnn_cool.catalyst_utils import TensorboardConverter
-from dnn_cool.tasks import TaskFlow, TaskFlowForDevelopment, convert_task_flow_for_development
+from dnn_cool.tasks.task_flow import TaskFlow
+from dnn_cool.tasks.development.task_flow import TaskFlowForDevelopment, convert_task_flow_for_development
 from dnn_cool.utils import Values
 from dnn_cool.verbosity import StatsRegistry, Logger, Verbosity, log
 
