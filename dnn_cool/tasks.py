@@ -4,70 +4,20 @@ import torch
 from torch import nn
 from treelib import Tree
 
-from dnn_cool.activations import CompositeActivation
 from dnn_cool.datasets import FlowDataset
-from dnn_cool.decoders.binary import BinaryDecoder
-from dnn_cool.decoders.base import TaskFlowDecoder, Decoder, NoOpDecoder
-from dnn_cool.decoders.classification import ClassificationDecoder
-from dnn_cool.decoders.bounded_regression import BoundedRegressionDecoder
 from dnn_cool.decoders.multilabel_classification import MultilabelClassificationDecoder
 from dnn_cool.evaluation import EvaluationCompositeVisitor, EvaluationVisitor
 from dnn_cool.external.torch import TorchAutoGrad
 from dnn_cool.filter import FilterCompositeVisitor, FilterVisitor
-from dnn_cool.help import helper
 from dnn_cool.losses import TaskFlowCriterion, ReducedPerSample, TaskFlowLossPerSample
 from dnn_cool.metrics import TorchMetric, get_default_binary_metrics, \
     get_default_bounded_regression_metrics, get_default_classification_metrics, \
     get_default_multilabel_classification_metrics
 from dnn_cool.missing_values import positive_values
-from dnn_cool.modules import SigmoidAndMSELoss, TaskFlowModule
-from dnn_cool.treelib import TreeExplainer, default_leaf_tree_explainer
+from dnn_cool.modules import SigmoidAndMSELoss
+from dnn_cool.tasks.base import IMinimal, Task
+from dnn_cool.tasks.task_flow import TaskFlowBase, TaskFlow
 from dnn_cool.utils import Values
-
-
-class IMinimal:
-
-    def get_minimal(self):
-        raise NotImplementedError()
-
-
-class Task(IMinimal):
-
-    @helper(after_type='task')
-    def __init__(self, name, torch_module, activation, decoder, dropout_mc, treelib_explainer=None):
-        self.name = name
-        self.activation = activation
-        self.decoder = decoder
-        self.torch_module = torch_module
-        self.dropout_mc = dropout_mc
-        self.treelib_explainer = treelib_explainer
-
-    def get_name(self) -> str:
-        return self.name
-
-    def get_activation(self) -> Optional[nn.Module]:
-        return self.activation
-
-    def get_decoder(self) -> Decoder:
-        return self.decoder
-
-    def has_children(self) -> bool:
-        return False
-
-    def is_train_only(self) -> bool:
-        return False
-
-    def torch(self):
-        return self.torch_module
-
-    def get_dropout_mc(self):
-        return self.dropout_mc
-
-    def get_treelib_explainer(self) -> Callable:
-        return default_leaf_tree_explainer if self.treelib_explainer is None else self.treelib_explainer
-
-    def get_minimal(self):
-        return self
 
 
 class TaskForDevelopment(IMinimal):
@@ -117,12 +67,6 @@ class TaskForDevelopment(IMinimal):
         return self.task
 
 
-class BinaryHardcodedTask(Task):
-
-    def __init__(self, name):
-        super().__init__(name, torch_module=None, activation=None, decoder=NoOpDecoder(), dropout_mc=None)
-
-
 class BinaryHardcodedTaskForDevelopment(TaskForDevelopment):
 
     def __init__(self, name: str, labels):
@@ -132,14 +76,6 @@ class BinaryHardcodedTaskForDevelopment(TaskForDevelopment):
                          per_sample_criterion=None,
                          available_func=positive_values,
                          metrics=[])
-
-
-class BoundedRegressionTask(Task):
-
-    def __init__(self, name, torch_module, scale, dropout_mc=None):
-        super().__init__(name, torch_module=torch_module, activation=nn.Sigmoid(),
-                         decoder=BoundedRegressionDecoder(scale=scale),
-                         dropout_mc=dropout_mc)
 
 
 class BoundedRegressionTaskForDevelopment(TaskForDevelopment):
@@ -160,16 +96,6 @@ class BoundedRegressionTaskForDevelopment(TaskForDevelopment):
                          metrics=get_default_bounded_regression_metrics())
 
 
-class BinaryClassificationTask(Task):
-
-    def __init__(self, name, torch_module, dropout_mc=None):
-        super().__init__(name,
-                         torch_module=torch_module,
-                         activation=nn.Sigmoid(),
-                         decoder=BinaryDecoder(),
-                         dropout_mc=dropout_mc)
-
-
 class BinaryClassificationTaskForDevelopment(TaskForDevelopment):
 
     def __init__(self, name: str, labels):
@@ -180,37 +106,6 @@ class BinaryClassificationTaskForDevelopment(TaskForDevelopment):
                          per_sample_criterion=reduced_per_sample,
                          available_func=positive_values,
                          metrics=get_default_binary_metrics())
-
-
-class ClassificationTask(Task):
-
-    def __init__(self, name, torch_module,
-                 class_names: Optional[List[str]] = None,
-                 top_k: Optional[int] = 5,
-                 dropout_mc=None):
-        super().__init__(name,
-                         torch_module=torch_module,
-                         activation=nn.Softmax(dim=-1),
-                         decoder=ClassificationDecoder(),
-                         dropout_mc=dropout_mc)
-        self.class_names: List[str] = class_names
-        self.top_k = top_k
-
-    def get_treelib_explainer(self) -> Callable:
-        return self.generate_tree
-
-    def generate_tree(self, task_name: str,
-                      decoded: torch.Tensor,
-                      activated: torch.Tensor,
-                      logits: torch.Tensor,
-                      node_identifier: str):
-        tree = Tree()
-        start_node = tree.create_node(task_name, node_identifier)
-        for i, idx in enumerate(decoded[:self.top_k]):
-            name = idx if self.class_names is None else self.class_names[idx]
-            description = f'{i}: {name} | activated: {activated[idx]:.4f}, logits: {logits[idx]:.4f}'
-            tree.create_node(description, f'{node_identifier}.{idx}', parent=start_node)
-        return tree, start_node
 
 
 class ClassificationTaskForDevelopment(TaskForDevelopment):
@@ -266,51 +161,6 @@ class MultilabelClassificationTaskForDevelopment(TaskForDevelopment):
                          metrics=get_default_multilabel_classification_metrics())
 
 
-class TaskFlowBase:
-
-    def __init__(self, name, tasks, flow_func):
-        self.name = name
-        self.tasks = {}
-        for task in tasks:
-            self.tasks[task.get_name()] = task
-        self.flow_func = flow_func
-        self.ctx = {}
-
-    def get_name(self):
-        return self.name
-
-    def get_flow_func(self):
-        return self.flow_func
-
-    def get_all_children(self, prefix=''):
-        tasks = {}
-        for task_name, task in self.tasks.items():
-            if task.get_minimal().has_children():
-                assert isinstance(task, TaskFlowBase)
-                tasks.update(task.get_all_children(prefix=f'{prefix}{task.get_name()}.'))
-            else:
-                tasks[prefix + task_name] = task
-        return tasks
-
-
-class TaskFlow(Task, TaskFlowBase):
-
-    def __init__(self, name, tasks: Iterable[Task], flow_func, autograd, dropout_mc=None):
-        TaskFlowBase.__init__(self, name, tasks, flow_func)
-        Task.__init__(self,
-                      name=name,
-                      torch_module=TaskFlowModule(self),
-                      activation=CompositeActivation(self, prefix='', autograd=autograd),
-                      decoder=TaskFlowDecoder(self, prefix='', autograd=autograd),
-                      dropout_mc=dropout_mc)
-
-    def has_children(self):
-        return True
-
-    def get_treelib_explainer(self):
-        return TreeExplainer(self.get_name(), self.get_flow_func(), self.tasks)
-
-
 class TaskFlowForDevelopment(TaskForDevelopment, TaskFlowBase):
 
     def __init__(self, name: str, inputs: Values, tasks: Iterable[TaskForDevelopment], flow_func: Callable,
@@ -359,81 +209,6 @@ class TaskFlowForDevelopment(TaskForDevelopment, TaskFlowBase):
 
     def get_evaluator(self):
         return EvaluationCompositeVisitor(self, prefix='', autograd=self.autograd)
-
-
-class UsedTasksTracer:
-
-    def __init__(self):
-        self.used_tasks = []
-
-    def __getattr__(self, item):
-        self.used_tasks.append(item)
-        return self
-
-    def __call__(self, *args, **kwargs):
-        return self
-
-    def __add__(self, other):
-        return self
-
-    def __invert__(self):
-        return self
-
-    def __or__(self, other):
-        return self
-
-
-def trace_used_tasks(flow_func, flow_name, name_to_task_dict):
-    flow_name = flow_func.__name__ if flow_name is None else flow_name
-    used_tasks_tracer = UsedTasksTracer()
-    flow_func(used_tasks_tracer, UsedTasksTracer(), UsedTasksTracer())
-    used_tasks = []
-    for used_task_name in used_tasks_tracer.used_tasks:
-        task = name_to_task_dict.get(used_task_name, None)
-        if task is not None:
-            used_tasks.append(task)
-    return flow_name, used_tasks
-
-
-class Tasks:
-    """
-    Represents a collections of related tasks and task flows.
-    """
-
-    @helper(after_type='tasks')
-    def __init__(self, leaf_tasks: List[Task], autograd):
-        self.leaf_tasks = leaf_tasks
-        self.flow_tasks = []
-        self.task_dict = {}
-        for leaf_task in self.leaf_tasks:
-            self.task_dict[leaf_task.get_name()] = leaf_task
-        self.autograd = autograd
-
-    def add_task_flow(self, task_flow: TaskFlow) -> TaskFlow:
-        self.flow_tasks.append(task_flow)
-        self.task_dict[task_flow.get_name()] = task_flow
-        return task_flow
-
-    @helper(after_type='tasks.add_flow')
-    def add_flow(self, func, flow_name=None, dropout_mc=None) -> TaskFlow:
-        flow_name = func.__name__ if flow_name is None else flow_name
-        flow = self.create_flow(func, flow_name, dropout_mc)
-        return self.add_task_flow(flow)
-
-    def create_flow(self, flow_func, flow_name=None, dropout_mc=None) -> TaskFlow:
-        name_to_task_dict = self.task_dict
-        flow_name, used_tasks = trace_used_tasks(flow_func, flow_name, name_to_task_dict)
-        return TaskFlow(name=flow_name,
-                        tasks=used_tasks,
-                        flow_func=flow_func,
-                        dropout_mc=dropout_mc,
-                        autograd=self.autograd)
-
-    def get_all_tasks(self) -> Dict[str, Task]:
-        return self.task_dict
-
-    def get_full_flow(self) -> TaskFlow:
-        return self.flow_tasks[-1]
 
 
 def create_task_for_development(child: str,

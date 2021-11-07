@@ -3,7 +3,7 @@ from typing import Optional, Tuple, Callable, Union
 
 from torch import nn
 
-from dnn_cool.decoders import Decoder
+from dnn_cool.decoders.base import Decoder
 from dnn_cool.metrics import TorchMetric
 
 
