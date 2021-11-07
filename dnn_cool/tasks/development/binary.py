@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 
+from dnn_cool.external.torch import TorchAutoGrad
 from dnn_cool.losses.torch import ReducedPerSample
 from dnn_cool.metrics import get_default_binary_metrics
 from dnn_cool.missing_values import positive_values
@@ -15,7 +16,8 @@ class BinaryHardcodedTaskForDevelopment(TaskForDevelopment):
                          criterion=None,
                          per_sample_criterion=None,
                          available_func=positive_values,
-                         metrics=[])
+                         metrics=[],
+                         autograd=TorchAutoGrad())
 
 
 class BinaryClassificationTaskForDevelopment(TaskForDevelopment):
@@ -27,4 +29,5 @@ class BinaryClassificationTaskForDevelopment(TaskForDevelopment):
                          criterion=nn.BCEWithLogitsLoss(reduction='mean'),
                          per_sample_criterion=reduced_per_sample,
                          available_func=positive_values,
-                         metrics=get_default_binary_metrics())
+                         metrics=get_default_binary_metrics(),
+                         autograd=TorchAutoGrad())

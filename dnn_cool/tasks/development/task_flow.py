@@ -13,6 +13,8 @@ from dnn_cool.utils.base import Values
 class TaskFlowForDevelopment(TaskForDevelopment, TaskFlowBase):
 
     def __init__(self, name: str, inputs: Values, tasks: Iterable[TaskForDevelopment], flow_func: Callable,
+                 autograd=TorchAutoGrad(),
+                 precondition_func=None,
                  labels=None):
         TaskFlowBase.__init__(self, name, tasks, flow_func)
         TaskForDevelopment.__init__(self,
@@ -21,10 +23,12 @@ class TaskFlowForDevelopment(TaskForDevelopment, TaskFlowBase):
                                     criterion=None,
                                     per_sample_criterion=None,
                                     available_func=None,
-                                    metrics=self.get_metrics())
+                                    metrics=self.get_metrics(),
+                                    autograd=autograd,
+                                    precondition_func=precondition_func)
         self.inputs = inputs
         self.autograd = TorchAutoGrad()
-        self.precondition_funcs = None
+        self.precondition_funcs = precondition_func
 
     def get_inputs(self) -> Values:
         return self.inputs

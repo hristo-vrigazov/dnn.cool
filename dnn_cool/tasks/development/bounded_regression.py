@@ -1,5 +1,6 @@
 import torch
 
+from dnn_cool.external.torch import TorchAutoGrad
 from dnn_cool.losses.torch import ReducedPerSample
 from dnn_cool.metrics import get_default_bounded_regression_metrics
 from dnn_cool.missing_values import positive_values
@@ -22,4 +23,5 @@ class BoundedRegressionTaskForDevelopment(TaskForDevelopment):
                          per_sample_criterion=ReducedPerSample(SigmoidAndMSELoss(reduction='none'),
                                                                reduction=torch.sum),
                          available_func=positive_values,
-                         metrics=get_default_bounded_regression_metrics())
+                         metrics=get_default_bounded_regression_metrics(),
+                         autograd=TorchAutoGrad())

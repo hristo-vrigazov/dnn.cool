@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 
+from dnn_cool.external.torch import TorchAutoGrad
 from dnn_cool.losses.torch import ReducedPerSample
 from dnn_cool.metrics import get_default_classification_metrics
 from dnn_cool.missing_values import positive_values
@@ -16,4 +17,5 @@ class ClassificationTaskForDevelopment(TaskForDevelopment):
                          criterion=nn.CrossEntropyLoss(reduction='mean'),
                          per_sample_criterion=ReducedPerSample(nn.CrossEntropyLoss(reduction='none'), torch.mean),
                          available_func=positive_values,
-                         metrics=get_default_classification_metrics())
+                         metrics=get_default_classification_metrics(),
+                         autograd=TorchAutoGrad())
