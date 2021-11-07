@@ -4,7 +4,10 @@ from functools import partial
 import cv2
 from torch.utils.data import DataLoader, Subset
 from torch import nn
-from dnn_cool.converters import TypeGuesser, ValuesConverter, TaskConverter, Converters
+from dnn_cool.converters.base import TypeGuesser
+from dnn_cool.converters.values.base import ValuesConverter
+from dnn_cool.converters.task.base import TaskConverter
+from dnn_cool.converters.full import Converters
 from dnn_cool.external.torch import TorchAutoGrad
 from dnn_cool.tasks.binary import BinaryClassificationTask
 from dnn_cool.tasks.bounded_regression import BoundedRegressionTask
