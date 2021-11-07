@@ -4,6 +4,8 @@ from typing import Union
 import joblib
 import numpy as np
 
+from dnn_cool.utils.base import reduce_shape
+
 
 class RaggedMemoryMapView:
 
@@ -19,14 +21,6 @@ class RaggedMemoryMapView:
         indices = self.ragged_memory_map.range[self.subset_selector]
         res = [self.ragged_memory_map[int(idx)] for idx in indices]
         return res
-
-
-def reduce_shape(shape):
-    if isinstance(shape, int):
-        return shape
-    from operator import mul
-    from functools import reduce
-    return reduce(mul, shape, 1)
 
 
 class RaggedMemoryMap:
