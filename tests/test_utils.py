@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-from dnn_cool.utils import ImageNetNormalizer
+from dnn_cool.cv.imagenet import ImageNetNormalizer
 from dnn_cool.memmap import RaggedMemoryMap, StringsMemmap
 
 

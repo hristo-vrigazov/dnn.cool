@@ -18,7 +18,7 @@ from dnn_cool.tasks.development.classification import ClassificationTaskForDevel
 from dnn_cool.tasks.development.multilabel_classification import MultilabelClassificationTaskForDevelopment
 from dnn_cool.tasks.multilabel_classification import MultilabelClassificationTask
 from dnn_cool.tasks.task_flow import TaskFlow, Tasks
-from dnn_cool.utils import split_dataset
+from dnn_cool.utils_p.base import split_dataset
 from dnn_cool.value_converters import *
 
 

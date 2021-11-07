@@ -7,7 +7,7 @@ from torch import nn
 
 from dnn_cool.dsl import ICondition, IFlowTaskResult
 from dnn_cool.modules.base import _copy_to_self, FeaturesDict
-from dnn_cool.utils import to_broadcastable_shape
+from dnn_cool.utils_p.torch import to_broadcastable_shape
 
 
 class SigmoidAndMSELoss(nn.Module):

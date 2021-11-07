@@ -10,7 +10,7 @@ from dnn_cool.converters.task.base import TaskConverter
 from dnn_cool.converters.values.base import ValuesConverter
 from dnn_cool.tasks.development.task_flow import TaskFlowForDevelopment, convert_task_flow_for_development
 from dnn_cool.tasks.task_flow import TaskFlow
-from dnn_cool.utils import Values
+from dnn_cool.utils_p.base import Values
 from dnn_cool.verbosity import StatsRegistry, log, Verbosity
 
 

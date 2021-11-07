@@ -7,7 +7,7 @@ from dnn_cool.filter import FilterCompositeVisitor
 from dnn_cool.losses import TaskFlowCriterion, TaskFlowLossPerSample
 from dnn_cool.tasks.development.base import TaskForDevelopment
 from dnn_cool.tasks.task_flow import TaskFlowBase, TaskFlow
-from dnn_cool.utils import Values
+from dnn_cool.utils_p.base import Values
 
 
 class TaskFlowForDevelopment(TaskForDevelopment, TaskFlowBase):

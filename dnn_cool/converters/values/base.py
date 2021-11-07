@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from dnn_cool.converters.base import StatefulConverter
-from dnn_cool.utils import Values
+from dnn_cool.utils_p.base import Values
 
 
 @dataclass()
