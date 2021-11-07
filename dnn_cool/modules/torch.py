@@ -1,11 +1,12 @@
 from abc import ABC
 from dataclasses import dataclass, field
-from typing import Dict, Optional
+from typing import Optional, Dict
 
 import torch
 from torch import nn
 
-from dnn_cool.dsl import IFeaturesDict, IFlowTaskResult, ICondition
+from dnn_cool.dsl import ICondition, IFlowTaskResult
+from dnn_cool.modules.base import _copy_to_self, FeaturesDict
 from dnn_cool.utils import to_broadcastable_shape
 
 
@@ -27,37 +28,6 @@ class Identity(nn.Module):
 
     def forward(self, x):
         return x
-
-
-# noinspection PyBroadException
-def find_arg_with_gt(args, is_kwargs):
-    new_args = {} if is_kwargs else []
-    gt = None
-    for arg in args:
-        if is_kwargs:
-            arg = args[arg]
-        try:
-            gt = arg['gt']
-            new_args.append(arg['value'])
-        except:
-            new_args.append(arg)
-    return gt, new_args
-
-
-def select_gt(a_gt, k_gt):
-    if a_gt is None and k_gt is None:
-        return {}
-
-    if a_gt is None:
-        return k_gt
-
-    return a_gt
-
-
-def find_gt_and_process_args_when_training(*args, **kwargs):
-    a_gt, args = find_arg_with_gt(args, is_kwargs=False)
-    k_gt, kwargs = find_arg_with_gt(kwargs, is_kwargs=True)
-    return args, kwargs, select_gt(a_gt, k_gt)
 
 
 class ModuleDecorator(nn.Module):
@@ -206,12 +176,6 @@ class LeafModuleOutput(IModuleOutput):
         return self
 
 
-def _copy_to_self(self_arr, other_arr):
-    for key, value in self_arr.items():
-        assert key not in other_arr, f'The key {key} has been added twice in the same workflow!.'
-        other_arr[key] = value
-
-
 @dataclass
 class CompositeModuleOutput(IModuleOutput):
     training: bool
@@ -274,17 +238,6 @@ class CompositeModuleOutput(IModuleOutput):
         if not inference_without_gt:
             res['gt'] = self.gt
         return res
-
-
-@dataclass
-class FeaturesDict(IFeaturesDict):
-    data: Dict
-
-    def __init__(self, data):
-        self.data = data
-
-    def __getattr__(self, item):
-        return self.data[item]
 
 
 class TaskFlowModule(nn.Module):

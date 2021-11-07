@@ -3,7 +3,7 @@ from typing import Iterable, List, Dict
 from dnn_cool.activations import CompositeActivation
 from dnn_cool.decoders.base import TaskFlowDecoder
 from dnn_cool.help import helper
-from dnn_cool.modules import TaskFlowModule
+from dnn_cool.modules.torch import TaskFlowModule
 from dnn_cool.tasks.base import Task
 from dnn_cool.treelib import TreeExplainer
 

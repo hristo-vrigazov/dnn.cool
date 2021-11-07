@@ -4,7 +4,7 @@ from typing import Callable, Union, Tuple
 import numpy as np
 from treelib import Tree, Node
 
-from dnn_cool.modules import CompositeModuleOutput
+from dnn_cool.modules.torch import CompositeModuleOutput
 from dnn_cool.utils import any_value
 
 

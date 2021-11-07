@@ -1,6 +1,6 @@
 import torch
 
-from dnn_cool.modules import OnesCondition, LeafModuleOutput
+from dnn_cool.modules.torch import OnesCondition, LeafModuleOutput
 
 
 def test_precondition_and_missing():
