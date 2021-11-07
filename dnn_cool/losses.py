@@ -3,6 +3,7 @@ from catalyst.callbacks import BatchMetricCallback
 from torch import nn
 
 from dnn_cool.dsl import IFeaturesDict, IOut, ICondition, IFlowTaskResult
+from dnn_cool.external.autograd import squeeze_if_needed
 from dnn_cool.utils import any_value
 
 
@@ -71,14 +72,6 @@ class LossItems(IOut, IFlowTaskResult, ICondition):
 
 def args_are_dicts(args):
     return len(args) == 2 and isinstance(args[0], dict) and isinstance(args[1], dict)
-
-
-def squeeze_if_needed(tensor):
-    if len(tensor.shape) > 2:
-        raise ValueError(f'Trying to squeeze the second dimension out of a tensor with shape: {tensor.shape}')
-    if len(tensor.shape) == 2:
-        return tensor[:, 0]
-    return tensor
 
 
 def _already_reduced_per_device(outputs):

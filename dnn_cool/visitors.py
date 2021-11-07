@@ -2,8 +2,7 @@ from dataclasses import dataclass
 from typing import Dict
 
 from dnn_cool.dsl import IFeaturesDict, IOut, IFlowTaskResult, ICondition, IFlowTask
-from dnn_cool.external.autograd import IAutoGrad
-from dnn_cool.losses import squeeze_if_needed
+from dnn_cool.external.autograd import IAutoGrad, squeeze_if_needed
 
 
 def get_visitor_data(*args, **kwargs):

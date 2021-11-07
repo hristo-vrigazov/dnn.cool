@@ -23,3 +23,10 @@ class Dataset:
     def __len__(self):
         raise NotImplementedError()
 
+
+def squeeze_if_needed(tensor):
+    if len(tensor.shape) > 2:
+        raise ValueError(f'Trying to squeeze the second dimension out of a tensor with shape: {tensor.shape}')
+    if len(tensor.shape) == 2:
+        return tensor[:, 0]
+    return tensor
