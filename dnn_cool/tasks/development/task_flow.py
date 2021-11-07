@@ -4,7 +4,7 @@ from dnn_cool.datasets import FlowDataset
 from dnn_cool.evaluation import EvaluationCompositeVisitor
 from dnn_cool.external.torch import TorchAutoGrad
 from dnn_cool.filter import FilterCompositeVisitor
-from dnn_cool.losses import TaskFlowCriterion, TaskFlowLossPerSample
+from dnn_cool.losses.torch import TaskFlowCriterion, TaskFlowLossPerSample
 from dnn_cool.tasks.development.base import TaskForDevelopment
 from dnn_cool.tasks.task_flow import TaskFlowBase, TaskFlow
 from dnn_cool.utils.base import Values

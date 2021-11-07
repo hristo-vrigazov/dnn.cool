@@ -1,7 +1,7 @@
 import torch
 from transformers.modeling_bert import BertOnlyMLMHead
 
-from dnn_cool.losses import LanguageModelCrossEntropyLoss, ReducedPerSample
+from dnn_cool.losses.torch import ReducedPerSample, LanguageModelCrossEntropyLoss
 from dnn_cool.missing_values import all_correct
 from dnn_cool.tasks import Task, TaskForDevelopment
 

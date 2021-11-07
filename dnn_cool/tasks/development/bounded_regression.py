@@ -1,6 +1,6 @@
 import torch
 
-from dnn_cool.losses import ReducedPerSample
+from dnn_cool.losses.torch import ReducedPerSample
 from dnn_cool.metrics import get_default_bounded_regression_metrics
 from dnn_cool.missing_values import positive_values
 from dnn_cool.modules.torch import SigmoidAndMSELoss
