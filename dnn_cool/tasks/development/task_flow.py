@@ -27,7 +27,7 @@ class TaskFlowForDevelopment(TaskForDevelopment, TaskFlowBase):
                                     autograd=autograd,
                                     precondition_func=precondition_func)
         self.inputs = inputs
-        self.autograd = TorchAutoGrad()
+        self.autograd = autograd
         self.precondition_funcs = None
 
     def get_inputs(self) -> Values:
