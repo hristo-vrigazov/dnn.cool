@@ -339,15 +339,27 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
 
     def get_default_loaders(self, shuffle_train=True,
                             collator=None,
-                            batch_size_per_gpu=32) -> Tuple[Dict[str, Dataset], Dict[str, DataLoader]]:
+                            batch_size_per_gpu=32,
+                            batch_sampler=None,
+                            drop_last=False) -> Tuple[Dict[str, Dataset], Dict[str, DataLoader]]:
         datasets = self.get_default_datasets()
         train_dataset = datasets['train']
         val_dataset = datasets['valid']
         test_dataset = datasets['test']
         bs = max(batch_size_per_gpu, batch_size_per_gpu * torch.cuda.device_count())
-        train_loader = DataLoader(train_dataset, batch_size=bs, shuffle=shuffle_train, collate_fn=collator)
-        val_loader = DataLoader(val_dataset, batch_size=bs, shuffle=False, collate_fn=collator)
-        test_loader = DataLoader(test_dataset, batch_size=batch_size_per_gpu * torch.cuda.device_count(), shuffle=False,
+        train_loader = DataLoader(train_dataset,
+                                  batch_size=bs,
+                                  shuffle=shuffle_train,
+                                  collate_fn=collator,
+                                  batch_sampler=batch_sampler,
+                                  drop_last=drop_last)
+        val_loader = DataLoader(val_dataset,
+                                batch_size=bs,
+                                shuffle=False,
+                                collate_fn=collator)
+        test_loader = DataLoader(test_dataset,
+                                 batch_size=bs,
+                                 shuffle=False,
                                  collate_fn=collator)
         loaders = OrderedDict({
             'train': train_loader,
