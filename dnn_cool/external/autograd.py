@@ -27,11 +27,9 @@ class Dataset:
         raise NotImplementedError()
 
 
-def squeeze_if_needed(tensor):
-    if len(tensor.shape) > 2:
-        return tensor
-    if len(tensor.shape) == 2:
-        return tensor[:, 0]
+def squeeze_last_dim_if_needed(tensor):
+    if tensor.shape[-1] == 1:
+        return tensor.squeeze(-1)
     return tensor
 
 

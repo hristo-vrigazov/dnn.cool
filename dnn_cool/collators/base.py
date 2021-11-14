@@ -17,8 +17,8 @@ def initialize_dict_structure(dct):
 
 
 def find_padding_shape_of_nested_list(ll):
+    res = [len(ll)]
     if isinstance(ll[0], list):
-        res = [len(ll)]
         for l in ll:
             child_max_lens = find_padding_shape_of_nested_list(l)
             for i, child_max_len in enumerate(child_max_lens):
@@ -27,7 +27,8 @@ def find_padding_shape_of_nested_list(ll):
                 else:
                     res.append(child_max_len)
         return res
-    return [len(ll), max(len(l) for l in ll)]
+    res.extend(np.max(np.array([l.shape for l in ll]), axis=0).tolist())
+    return res
 
 
 def append_example_to_dict(dct, ex):

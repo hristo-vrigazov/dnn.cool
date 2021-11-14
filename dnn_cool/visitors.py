@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Dict
 
 from dnn_cool.dsl import IFeaturesDict, IOut, IFlowTaskResult, ICondition, IFlowTask
-from dnn_cool.external.autograd import IAutoGrad, squeeze_if_needed
+from dnn_cool.external.autograd import IAutoGrad, squeeze_last_dim_if_needed
 
 
 def get_visitor_data(*args, **kwargs):
@@ -72,7 +72,7 @@ class LeafVisitor(IFlowTask):
         precondition = visitor_data.predictions[f'precondition|{self.path}']
         if precondition.sum() == 0:
             return self.empty_result()
-        precondition = squeeze_if_needed(precondition)
+        precondition = squeeze_last_dim_if_needed(precondition)
         preconditioned_targets = targets[precondition] if targets is not None else None
         return self.preconditioned_result(preds[precondition], preconditioned_targets)
 

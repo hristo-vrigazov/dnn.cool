@@ -2,7 +2,7 @@ import torch
 from catalyst.callbacks import BatchMetricCallback
 from torch import nn
 
-from dnn_cool.external.autograd import squeeze_if_needed
+from dnn_cool.external.autograd import squeeze_last_dim_if_needed
 from dnn_cool.losses.base import DeviceReducingCache, CriterionFlowData, LossItems, args_are_dicts
 from dnn_cool.utils.base import any_value
 
@@ -52,7 +52,7 @@ class BaseMetricDecorator(nn.Module):
         targets = loss_flow_data.targets[key]
         if precondition.sum() == 0:
             return self.handle_empty_precondition(outputs)
-        precondition = squeeze_if_needed(precondition)
+        precondition = squeeze_last_dim_if_needed(precondition)
         metric_res = self.metric(outputs[precondition], targets[precondition])
         return metric_res
 

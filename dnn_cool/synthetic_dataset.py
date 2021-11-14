@@ -531,11 +531,11 @@ def collate_token_classification(samples):
     data.y_batch['is_less_than_100'] = collate_nested_dict(data.y_batch,
                                                            path=['is_less_than_100'],
                                                            shapes=data.y_shapes,
-                                                           dtype=torch.long,
+                                                           dtype=torch.float32,
                                                            padding_value=-1)
     data.y_batch['is_more_than_150'] = collate_nested_dict(data.y_batch,
                                                            path=['is_more_than_150'],
                                                            shapes=data.y_shapes,
-                                                           dtype=torch.long,
+                                                           dtype=torch.float32,
                                                            padding_value=-1)
     return data.X_batch, data.y_batch
