@@ -15,16 +15,21 @@ class ReducedPerSample(nn.Module):
         self.from_dim = from_dim
 
     def forward(self, outputs, targets, precondition):
-        loss_results = torch.zeros_like(outputs)
+        loss_results = torch.zeros_like(targets, dtype=outputs.dtype)
         loss_results[precondition] = self.loss(outputs[precondition], targets[precondition])
         n_dims = len(loss_results.shape)
         if n_dims > 1:
             dims = tuple(range(self.from_dim, n_dims))
             total = loss_results.sum(dim=dims, keepdim=False)
             dims = tuple(range(self.from_dim,  len(precondition.shape)))
-            precondition_sum = precondition.sum(dim=dims, keepdim=False)
-            return total / precondition_sum
-        return loss_results
+            if len(dims) > 1:
+                precondition_sum = precondition.sum(dim=dims, keepdim=False)
+                precondition = precondition_sum > 0
+            else:
+                precondition_sum = precondition.type(total.dtype)
+            res = total / precondition_sum
+            return res[precondition]
+        return loss_results[precondition]
 
 
 class BaseMetricDecorator(nn.Module):
