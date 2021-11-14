@@ -423,7 +423,7 @@ def synthetic_dataset_preparation(n=int(1e4), perform_conversion=True):
 def get_synthetic_token_classification_dataset(n):
     samples = defaultdict(list)
     for i in range(n):
-        len_t = np.random.randint(20)
+        len_t = np.random.randint(2, 20)
         a = np.random.randint(0, 3, size=len_t)
         n0 = (a == 0).sum()
         n1 = (a == 1).sum()
@@ -457,12 +457,13 @@ def get_synthetic_token_classification_flow():
 def synthetic_token_classification():
     samples = get_synthetic_token_classification_dataset(100)
     full_flow = get_synthetic_token_classification_flow()
-    is_less_than_100 = BinaryClassificationTaskForDevelopment('is_less_than_100', samples['is_less_than_100'])
-    is_more_than_150 = BinaryClassificationTaskForDevelopment('is_more_than_150', samples['is_more_than_150'])
+    is_less_than_100 = BinaryClassificationTaskForDevelopment(full_flow.get('is_less_than_100'),
+                                                              samples['is_less_than_100'])
+    is_more_than_150 = BinaryClassificationTaskForDevelopment(full_flow.get('is_more_than_150'),
+                                                              samples['is_more_than_150'])
 
     values = Values(keys=['tokens'], types=['tokens'], values=[samples['tokens']])
-    development_flow = TaskFlowForDevelopment('full_flow',
+    development_flow = TaskFlowForDevelopment(full_flow,
                                               inputs=values,
-                                              tasks=[is_less_than_100, is_more_than_150],
-                                              flow_func=full_flow.flow_func)
+                                              tasks=[is_less_than_100, is_more_than_150])
     return development_flow

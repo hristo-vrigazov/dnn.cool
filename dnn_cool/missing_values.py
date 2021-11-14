@@ -1,7 +1,10 @@
 import torch
 
 
-def positive_values(tensor):
+def positive_values(values):
+    if isinstance(values, list):
+        return [positive_values(v) for v in values]
+    tensor = values
     mask = tensor >= 0.
     axes = tuple(range(1, len(mask.shape)))
     if len(axes) > 0:

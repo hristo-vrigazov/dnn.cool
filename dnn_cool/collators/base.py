@@ -40,7 +40,7 @@ def create_shapes_dict(dct):
     res = {}
     for key, value in dct.items():
         if isinstance(value, dict):
-            res[key] = initialize_dict_structure(value)
+            res[key] = create_shapes_dict(value)
             continue
         res[key] = find_padding_shape_of_nested_list(value)
     return res
