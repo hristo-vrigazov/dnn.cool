@@ -441,8 +441,8 @@ def get_synthetic_token_classification_dataset(n):
             r[a == 2] = np.random.randint(150, 200, size=n2)
 
             ss['tokens'].append(torch.tensor(r))
-            ss['is_less_than_100'].append(torch.tensor(a == 0).float())
-            ss['is_more_than_150'].append(torch.tensor(a == 2).float())
+            ss['is_less_than_100'].append(torch.tensor(a == 0).float().unsqueeze(-1))
+            ss['is_more_than_150'].append(torch.tensor(a == 2).float().unsqueeze(-1))
         samples['tokens'].append(ss['tokens'])
         samples['is_less_than_100'].append(ss['is_less_than_100'])
         samples['is_more_than_150'].append(ss['is_more_than_150'])
