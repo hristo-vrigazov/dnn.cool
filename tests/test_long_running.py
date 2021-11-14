@@ -74,3 +74,15 @@ def test_token_classification_training():
                  verbose=True)
     print(loaders)
 
+
+def test_token_classification_inference():
+    full_flow_for_development = synthetic_token_classification()
+    model = TokenClassificationModel(full_flow_for_development.get_minimal().torch())
+    runner = DnnCoolSupervisedRunner(model=model,
+                                     full_flow=full_flow_for_development,
+                                     project_dir='./token_classification',
+                                     runner_name='example_run')
+    datasets, loaders = runner.get_default_loaders(collator=collate_token_classification, shuffle_train=False)
+    runner.infer(loaders=loaders, verbose=True)
+    print(loaders)
+
