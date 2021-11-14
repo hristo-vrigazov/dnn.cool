@@ -16,19 +16,18 @@ def initialize_dict_structure(dct):
     return res
 
 
-def find_max_len_of_list_of_lists(ll):
-    r = [max(len(l) for l in ll)]
-    tmp = ll
-    child = tmp[0]
-    while isinstance(child, list):
-        r.append(max(len(l) for l in child))
-        tmp = child
-        child = tmp[0]
-    return r
-
-
 def find_padding_shape_of_nested_list(ll):
-    return [len(ll)] + find_max_len_of_list_of_lists(ll)
+    if isinstance(ll[0], list):
+        res = [len(ll)]
+        for l in ll:
+            child_max_lens = find_padding_shape_of_nested_list(l)
+            for i, child_max_len in enumerate(child_max_lens):
+                if (i + 1) < len(res):
+                    res[i + 1] = max(res[i + 1], child_max_len)
+                else:
+                    res.append(child_max_len)
+        return res
+    return [len(ll), max(len(l) for l in ll)]
 
 
 def append_example_to_dict(dct, ex):

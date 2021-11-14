@@ -483,11 +483,12 @@ class TokenClassificationModel(nn.Module):
     def __init__(self, flow_module):
         super().__init__()
         self.flow_module = flow_module
-        self.emb = nn.Embedding(num_embeddings=200, embedding_dim=32)
+        self.emb = nn.Embedding(num_embeddings=200, embedding_dim=64)
 
     def forward(self, x):
         return self.flow_module({
-            'features': self.emb(x['tokens'])
+            'features': self.emb(x['tokens']),
+            'gt': x.get('gt')
         })
 
 
@@ -505,6 +506,12 @@ def collate_token_classification(samples):
     data.X_batch['gt']['_availability']['is_less_than_100'] = collate_nested_dict(data.X_batch,
                                                                                   path=['gt', '_availability',
                                                                                         'is_less_than_100'],
+                                                                                  shapes=data.X_shapes,
+                                                                                  dtype=torch.long,
+                                                                                  padding_value=-1)
+    data.X_batch['gt']['_availability']['is_more_than_150'] = collate_nested_dict(data.X_batch,
+                                                                                  path=['gt', '_availability',
+                                                                                        'is_more_than_150'],
                                                                                   shapes=data.X_shapes,
                                                                                   dtype=torch.long,
                                                                                   padding_value=-1)
