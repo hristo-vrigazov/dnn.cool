@@ -176,6 +176,39 @@ def create_df_and_images_tensor(n=int(1e4), cache_file=Path('dnn_cool_synthetic_
     return res
 
 
+def body_regression(flow, x, out):
+    out += flow.body_x1(x.body_localization)
+    out += flow.body_y1(x.body_localization)
+    out += flow.body_w(x.body_localization)
+    out += flow.body_h(x.body_localization)
+    out += flow.shirt_type(x.features)
+    return out
+
+
+def face_regression(flow, x, out):
+    out += flow.face_x1(x.face_localization)
+    out += flow.face_y1(x.face_localization)
+    out += flow.face_w(x.face_localization)
+    out += flow.face_h(x.face_localization)
+    out += flow.facial_characteristics(x.features)
+    return out
+
+
+def person_regression(flow, x, out):
+    out += flow.face_regression(x)
+    out += flow.body_regression(x)
+    return out
+
+
+def full_flow(flow, x, out):
+    out += flow.camera_blocked(x.features)
+    out += flow.door_open(x.features) | (~out.camera_blocked)
+    out += flow.door_locked(x.features) | (~out.door_open)
+    out += flow.person_present(x.features) | out.door_open
+    out += flow.person_regression(x) | out.person_present
+    return out
+
+
 def get_synthetic_full_flow(n_shirt_types, n_facial_characteristics) -> TaskFlow:
     camera_blocked = BinaryClassificationTask('camera_blocked', nn.Linear(256, 1))
     door_open = BinaryClassificationTask('door_open', nn.Linear(256, 1))
@@ -203,38 +236,10 @@ def get_synthetic_full_flow(n_shirt_types, n_facial_characteristics) -> TaskFlow
     ]
     tasks = Tasks(leaf_tasks, TorchAutoGrad())
 
-    @tasks.add_flow
-    def body_regression(flow, x, out):
-        out += flow.body_x1(x.body_localization)
-        out += flow.body_y1(x.body_localization)
-        out += flow.body_w(x.body_localization)
-        out += flow.body_h(x.body_localization)
-        out += flow.shirt_type(x.features)
-        return out
-
-    @tasks.add_flow
-    def face_regression(flow, x, out):
-        out += flow.face_x1(x.face_localization)
-        out += flow.face_y1(x.face_localization)
-        out += flow.face_w(x.face_localization)
-        out += flow.face_h(x.face_localization)
-        out += flow.facial_characteristics(x.features)
-        return out
-
-    @tasks.add_flow
-    def person_regression(flow, x, out):
-        out += flow.face_regression(x)
-        out += flow.body_regression(x)
-        return out
-
-    @tasks.add_flow
-    def full_flow(flow, x, out):
-        out += flow.camera_blocked(x.features)
-        out += flow.door_open(x.features) | (~out.camera_blocked)
-        out += flow.door_locked(x.features) | (~out.door_open)
-        out += flow.person_present(x.features) | out.door_open
-        out += flow.person_regression(x) | out.person_present
-        return out
+    tasks.add_flow(body_regression)
+    tasks.add_flow(face_regression)
+    tasks.add_flow(person_regression)
+    tasks.add_flow(full_flow)
 
     return tasks.get_full_flow()
 
@@ -293,6 +298,34 @@ class SecurityModule(nn.Module):
         res['body_localization'] = self.body_localization_seq(common)
         res['gt'] = x.get('gt')
         return self.flow_module(res)
+
+
+def synthetic_dataset_preparation_without_converters(n=int(1e4)):
+    imgs, df = create_df_and_images_tensor(n)
+    full_flow = get_synthetic_full_flow(n_shirt_types=7, n_facial_characteristics=3)
+
+    binary_classification_tasks = ['camera_blocked', 'door_open', 'person_present', 'door_locked']
+    tasks_for_development = []
+    for task_name in binary_classification_tasks:
+        labels = binary_value_converter(df[task_name])
+        tasks_for_development.append(BinaryClassificationTaskForDevelopment(task_name, labels))
+
+    regression_tasks = [
+        'face_x1', 'face_y1', 'face_w', 'face_h',
+        'body_x1', 'body_y1', 'body_w', 'body_h'
+    ]
+    for task_name in regression_tasks:
+        converter = ImageCoordinatesValuesConverter(dim=64)
+        labels = converter(df[task_name])
+        tasks_for_development.append(BoundedRegressionTaskForDevelopment(task_name, labels))
+
+    labels = classification_converter(df['shirt_type'])
+    tasks_for_development.append(ClassificationTaskForDevelopment('shirt_type', labels))
+
+    multilabel_converter = MultiLabelValuesConverter()
+    labels = multilabel_converter(df['facial_characteristics'])
+    tasks_for_development.append(MultilabelClassificationTaskForDevelopment('facial_characteristics', labels))
+    raise NotImplementedError()
 
 
 def synthetic_dataset_preparation(n=int(1e4), perform_conversion=True):
