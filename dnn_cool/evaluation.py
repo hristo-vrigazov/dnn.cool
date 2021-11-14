@@ -2,15 +2,14 @@ from dataclasses import dataclass, field
 from typing import List
 
 import pandas as pd
-import torch
 
 from dnn_cool.visitors import LeafVisitor, VisitorOut, RootCompositeVisitor
 
 
 class EvaluationVisitor(LeafVisitor):
 
-    def __init__(self, task, prefix):
-        super().__init__(task, prefix)
+    def __init__(self, task, prefix, autograd):
+        super().__init__(task, prefix, autograd)
         self.metrics = task.get_metrics()
 
     def empty_result(self):
@@ -32,8 +31,7 @@ class EvaluationVisitor(LeafVisitor):
         return EvaluationResults(res)
 
     def create_evaluation_record(self, metric_name, metric_res, targets):
-        if isinstance(metric_res, torch.Tensor):
-            metric_res = metric_res.item()
+        metric_res = self.autograd.get_single_float(metric_res)
         return {
             'task_path': self.path,
             'metric_name': metric_name,
@@ -56,8 +54,8 @@ class EvaluationResults(VisitorOut):
 
 class EvaluationCompositeVisitor(RootCompositeVisitor):
 
-    def __init__(self, task_flow, prefix):
-        super().__init__(task_flow, EvaluationVisitor, EvaluationResults, prefix=prefix)
+    def __init__(self, task_flow, prefix, autograd):
+        super().__init__(task_flow, EvaluationVisitor, EvaluationResults, prefix=prefix, autograd=autograd)
 
     def load_tuned(self, tuned_params):
         tasks = self.task_flow.get_all_children()

@@ -1,9 +1,11 @@
 import torch
 from transformers.modeling_bert import BertOnlyMLMHead
 
-from dnn_cool.losses import LanguageModelCrossEntropyLoss, ReducedPerSample
+from dnn_cool.external.torch import TorchAutoGrad
+from dnn_cool.losses.torch import ReducedPerSample, LanguageModelCrossEntropyLoss
 from dnn_cool.missing_values import all_correct
-from dnn_cool.tasks import Task, TaskForDevelopment
+from dnn_cool.tasks.base import Task
+from dnn_cool.tasks.development.task_flow import TaskForDevelopment
 
 
 class MaskedLanguageModelingTask(Task):
@@ -19,10 +21,11 @@ class MaskedLanguageModelingTask(Task):
 class MaskedLanguageModelingTaskForDevelopment(TaskForDevelopment):
 
     def __init__(self, name: str, labels):
-        per_sample = ReducedPerSample(LanguageModelCrossEntropyLoss(reduction='none'), reduction=torch.mean)
+        per_sample = ReducedPerSample(LanguageModelCrossEntropyLoss(reduction='none'))
         super().__init__(name, labels,
                          criterion=LanguageModelCrossEntropyLoss(),
                          per_sample_criterion=per_sample,
                          available_func=all_correct,
-                         metrics=[])
+                         metrics=[],
+                         autograd=TorchAutoGrad())
 

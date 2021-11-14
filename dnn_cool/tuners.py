@@ -7,8 +7,8 @@ from dnn_cool.visitors import LeafVisitor, VisitorOut, RootCompositeVisitor
 
 class TuningVisitor(LeafVisitor):
 
-    def __init__(self, task, prefix):
-        super().__init__(task, prefix)
+    def __init__(self, task, prefix, autograd):
+        super().__init__(task, prefix, autograd)
 
     def empty_result(self):
         return TunedParams({self.path: {}})
@@ -32,8 +32,8 @@ class TunedParams(VisitorOut):
 
 class TunerVisitor(RootCompositeVisitor):
 
-    def __init__(self, task_flow, prefix):
-        super().__init__(task_flow, TuningVisitor, TunedParams, prefix=prefix)
+    def __init__(self, task_flow, prefix, autograd):
+        super().__init__(task_flow, TuningVisitor, TunedParams, prefix=prefix, autograd=autograd)
 
     def load_tuned(self, tuned_params):
         tasks = self.task_flow.get_all_children()

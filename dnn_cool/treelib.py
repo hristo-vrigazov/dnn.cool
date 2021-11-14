@@ -4,8 +4,8 @@ from typing import Callable, Union, Tuple
 import numpy as np
 from treelib import Tree, Node
 
-from dnn_cool.modules import CompositeModuleOutput
-from dnn_cool.utils import any_value
+from dnn_cool.modules.torch import CompositeModuleOutput
+from dnn_cool.utils.base import any_value
 
 
 def find_results_for_treelib(*args, **kwargs):
@@ -93,7 +93,7 @@ class LeafExplainer:
         logits = results.module_output.logits[path][results.idx].detach().cpu().numpy()
         precondition = results.module_output.preconditions.get(path)
         if precondition is not None:
-            precondition = precondition[results.idx][0].item()
+            precondition = precondition[results.idx].item()
 
         should_create_node = (precondition is None) or (precondition is True)
         tree, start_node = Tree(), None

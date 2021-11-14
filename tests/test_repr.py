@@ -1,8 +1,7 @@
-import torch
+from torch import nn
 
 from dnn_cool.synthetic_dataset import synthetic_dataset_preparation
-from dnn_cool.tasks import BinaryClassificationTask
-from torch import nn
+from dnn_cool.tasks.binary import BinaryClassificationTask
 
 
 def test_repr_binary_task():

@@ -1,7 +1,8 @@
 import torch
 from torch import nn
 
-from dnn_cool.losses import ReducedPerSample, CriterionFlowData
+from dnn_cool.losses.torch import ReducedPerSample
+from dnn_cool.losses.base import CriterionFlowData
 
 
 def test_loss_flow_data_creation():

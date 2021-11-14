@@ -1,10 +1,16 @@
-import torch
-
 from dataclasses import dataclass
 from typing import Dict
 
-from dnn_cool.dsl import ICondition, IOut, IFlowTaskResult, IFlowTask, IFeaturesDict
-from dnn_cool.losses import squeeze_if_needed
+from dnn_cool.dsl import IFeaturesDict, IOut, IFlowTaskResult, ICondition, IFlowTask
+from dnn_cool.external.autograd import IAutoGrad, squeeze_last_dim_if_needed
+
+
+def get_visitor_data(*args, **kwargs):
+    all_args = [*args, *kwargs.values()]
+
+    for arg in all_args:
+        if isinstance(arg, VisitorData):
+            return arg
 
 
 @dataclass
@@ -41,22 +47,15 @@ class VisitorOut(IOut, IFlowTaskResult, ICondition):
         raise NotImplementedError()
 
 
-def get_visitor_data(*args, **kwargs):
-    all_args = [*args, *kwargs.values()]
-
-    for arg in all_args:
-        if isinstance(arg, VisitorData):
-            return arg
-
-
 class LeafVisitor(IFlowTask):
 
-    def __init__(self, task, prefix):
+    def __init__(self, task, prefix, autograd: IAutoGrad):
         self.activation = task.get_minimal().get_activation()
         self.decoder = task.get_minimal().get_decoder()
         self.task_is_train_only = task.get_minimal().is_train_only()
         self.prefix = prefix
         self.path = self.prefix + task.get_name()
+        self.autograd = autograd
 
     def __call__(self, *args, **kwargs):
         visitor_data = get_visitor_data(*args, **kwargs)
@@ -66,13 +65,14 @@ class LeafVisitor(IFlowTask):
                 raise ValueError(f'The task {self.path} has no predictions, but it is not marked as train only.')
             return self.empty_result()
         if self.activation is not None:
-            preds = self.activation(torch.tensor(preds).float()).detach().cpu().numpy()
+            preds = self.activation(self.autograd.as_float(preds))
+            preds = self.autograd.to_numpy(preds)
         targets = visitor_data.targets[self.path] if visitor_data.targets is not None else None
 
         precondition = visitor_data.predictions[f'precondition|{self.path}']
         if precondition.sum() == 0:
             return self.empty_result()
-        precondition = squeeze_if_needed(precondition)
+        precondition = squeeze_last_dim_if_needed(precondition)
         preconditioned_targets = targets[precondition] if targets is not None else None
         return self.preconditioned_result(preds[precondition], preconditioned_targets)
 
@@ -85,16 +85,17 @@ class LeafVisitor(IFlowTask):
 
 class CompositeVisitor(IFlowTask):
 
-    def __init__(self, task_flow, leaf_visitor_cls, visitor_out_cls, prefix=''):
+    def __init__(self, task_flow, leaf_visitor_cls, visitor_out_cls, prefix: str, autograd: IAutoGrad):
         self.flow = task_flow.get_flow_func()
         self.visitor_out_cls = visitor_out_cls
 
         for key, task in task_flow.tasks.items():
             if not task.get_minimal().has_children():
-                instance = leaf_visitor_cls(task, prefix)
+                instance = leaf_visitor_cls(task, prefix, autograd)
             else:
                 instance = CompositeVisitor(task, leaf_visitor_cls, visitor_out_cls,
-                                            prefix=f'{prefix}{task.get_name()}.')
+                                            prefix=f'{prefix}{task.get_name()}.',
+                                            autograd=autograd)
             setattr(self, key, instance)
 
     def __call__(self, data) -> VisitorOut:
@@ -104,10 +105,14 @@ class CompositeVisitor(IFlowTask):
 
 class RootCompositeVisitor(IFlowTask):
 
-    def __init__(self, task_flow, leaf_visitor_cls, visitor_out_cls, prefix=''):
+    def __init__(self, task_flow, leaf_visitor_cls, visitor_out_cls, prefix, autograd):
         self.prefix = prefix
         self.task_flow = task_flow
-        self.composite_visitor = CompositeVisitor(task_flow, leaf_visitor_cls, visitor_out_cls, prefix)
+        self.composite_visitor = CompositeVisitor(task_flow=task_flow,
+                                                  leaf_visitor_cls=leaf_visitor_cls,
+                                                  visitor_out_cls=visitor_out_cls,
+                                                  prefix=prefix,
+                                                  autograd=autograd)
 
     def __call__(self, predictions, targets=None):
         flow_result = self.composite_visitor(VisitorData(predictions, targets))

@@ -1,12 +1,13 @@
 from abc import ABC
 from dataclasses import dataclass, field
-from typing import Dict, Optional
+from typing import Optional, Dict
 
 import torch
 from torch import nn
 
-from dnn_cool.dsl import IFeaturesDict, IFlowTaskResult, ICondition
-from dnn_cool.utils import to_broadcastable_shape
+from dnn_cool.dsl import ICondition, IFlowTaskResult
+from dnn_cool.modules.base import _copy_to_self, FeaturesDict
+from dnn_cool.utils.torch import to_broadcastable_shape
 
 
 class SigmoidAndMSELoss(nn.Module):
@@ -29,37 +30,6 @@ class Identity(nn.Module):
         return x
 
 
-# noinspection PyBroadException
-def find_arg_with_gt(args, is_kwargs):
-    new_args = {} if is_kwargs else []
-    gt = None
-    for arg in args:
-        if is_kwargs:
-            arg = args[arg]
-        try:
-            gt = arg['gt']
-            new_args.append(arg['value'])
-        except:
-            new_args.append(arg)
-    return gt, new_args
-
-
-def select_gt(a_gt, k_gt):
-    if a_gt is None and k_gt is None:
-        return {}
-
-    if a_gt is None:
-        return k_gt
-
-    return a_gt
-
-
-def find_gt_and_process_args_when_training(*args, **kwargs):
-    a_gt, args = find_arg_with_gt(args, is_kwargs=False)
-    k_gt, kwargs = find_arg_with_gt(kwargs, is_kwargs=True)
-    return args, kwargs, select_gt(a_gt, k_gt)
-
-
 class ModuleDecorator(nn.Module):
 
     def __init__(self, task, prefix):
@@ -74,13 +44,13 @@ class ModuleDecorator(nn.Module):
     def forward(self, *args, **kwargs):
         key = self.prefix + self.task_name
         logits = self.module(*args, **kwargs)
-        condition = OnesCondition(key)
+        condition = LabelsAvailableCondition(key)
         if self.training:
             return LeafModuleOutput(path=key, logits=logits, precondition=condition,
                                     activated=None, decoded=None, dropout_samples=None)
         activated_logits = self.activation(logits) if self.activation is not None else logits
         decoded_logits = self.decoder(activated_logits) if self.decoder is not None else activated_logits
-        condition = OnesCondition(key)
+        condition = LabelsAvailableCondition(key)
         dropout_samples = None if self.dropout_mc is None else self.dropout_mc.create_samples(self.module,
                                                                                               self.activation,
                                                                                               *args, **kwargs)
@@ -93,7 +63,7 @@ class Condition(ICondition):
     def get_precondition(self):
         raise NotImplementedError()
 
-    def to_mask(self, data):
+    def to_mask(self, data, shape):
         raise NotImplementedError()
 
     def __invert__(self):
@@ -104,20 +74,20 @@ class Condition(ICondition):
 
 
 @dataclass
-class OnesCondition(Condition):
+class LabelsAvailableCondition(Condition):
     path: str
 
     def get_precondition(self):
-        return OnesCondition(self.path)
+        return LabelsAvailableCondition(self.path)
 
-    def to_mask(self, data):
+    def to_mask(self, data, shape):
         if '_availability' in data:
             return data['_availability'][self.path]
         t = data.get(self.path)
         if t is None:
             raise ValueError(f'Path "{self.path}" leads to a None object.\n'
                              f'If you are trying to get treelib explanations, your model must be in eval mode.')
-        return torch.ones_like(t).bool()
+        return torch.ones(*shape).bool()
 
 
 @dataclass()
@@ -127,9 +97,9 @@ class NegatedCondition(Condition):
     def get_precondition(self):
         return self.precondition.get_precondition()
 
-    def to_mask(self, data):
-        mask = self.precondition.to_mask(data)
-        precondition = self.get_precondition().to_mask(data)
+    def to_mask(self, data, shape):
+        mask = self.precondition.to_mask(data, shape)
+        precondition = self.get_precondition().to_mask(data, shape)
         mask[~precondition] = False
         mask[precondition] = ~mask[precondition]
         return mask
@@ -140,9 +110,9 @@ class LeafCondition(Condition):
     path: str
 
     def get_precondition(self):
-        return OnesCondition(self.path)
+        return LabelsAvailableCondition(self.path)
 
-    def to_mask(self, data):
+    def to_mask(self, data, shape):
         return data[self.path].clone()
 
 
@@ -154,9 +124,9 @@ class NestedCondition(Condition):
     def get_precondition(self):
         return self.parent
 
-    def to_mask(self, data):
+    def to_mask(self, data, shape):
         mask = data[self.path].clone()
-        precondition = self.get_precondition().to_mask(data)
+        precondition = self.get_precondition().to_mask(data, shape)
         mask[~precondition] = False
         return mask
 
@@ -169,9 +139,9 @@ class AndCondition(Condition):
     def get_precondition(self):
         return self.condition_one.get_precondition() & self.condition_two.get_precondition()
 
-    def to_mask(self, data):
-        mask_one = self.condition_one.to_mask(data)
-        mask_two = self.condition_two.to_mask(data)
+    def to_mask(self, data, shape):
+        mask_one = self.condition_one.to_mask(data, shape)
+        mask_two = self.condition_two.to_mask(data, shape)
         mask_one, mask_two = to_broadcastable_shape(mask_one, mask_two)
         return mask_one & mask_two
 
@@ -204,12 +174,6 @@ class LeafModuleOutput(IModuleOutput):
         """
         self.precondition &= precondition
         return self
-
-
-def _copy_to_self(self_arr, other_arr):
-    for key, value in self_arr.items():
-        assert key not in other_arr, f'The key {key} has been added twice in the same workflow!.'
-        other_arr[key] = value
 
 
 @dataclass
@@ -266,25 +230,16 @@ class CompositeModuleOutput(IModuleOutput):
         if inference_without_gt and not self.training:
             for key, value in self.preconditions.items():
                 if value is not None:
-                    self.preconditions[key] = value.to_mask(preconditions_source)
+                    default_shape = self.logits[key].shape[:-1]
+                    self.preconditions[key] = value.to_mask(preconditions_source, default_shape)
             return self
         for key, value in self.preconditions.items():
             if value is not None:
-                res[f'precondition|{key}'] = value.to_mask(preconditions_source)
+                default_shape = self.logits[key].shape[:-1]
+                res[f'precondition|{key}'] = value.to_mask(preconditions_source, default_shape)
         if not inference_without_gt:
             res['gt'] = self.gt
         return res
-
-
-@dataclass
-class FeaturesDict(IFeaturesDict):
-    data: Dict
-
-    def __init__(self, data):
-        self.data = data
-
-    def __getattr__(self, item):
-        return self.data[item]
 
 
 class TaskFlowModule(nn.Module):

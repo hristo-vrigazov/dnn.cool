@@ -2,146 +2,34 @@ import torch
 from catalyst.callbacks import BatchMetricCallback
 from torch import nn
 
-from dnn_cool.dsl import IFeaturesDict, IOut, ICondition, IFlowTaskResult
-from dnn_cool.utils import any_value
+from dnn_cool.external.autograd import squeeze_last_dim_if_needed
+from dnn_cool.losses.base import DeviceReducingCache, CriterionFlowData, LossItems, args_are_dicts
+from dnn_cool.utils.base import any_value
 
 
 class ReducedPerSample(nn.Module):
 
-    def __init__(self, loss, reduction):
+    def __init__(self, loss, from_dim=1):
         super().__init__()
         self.loss = loss
-        self.reduction = reduction
+        self.from_dim = from_dim
 
-    def forward(self, *args, **kwargs):
-        loss_results = self.loss(*args, **kwargs)
+    def forward(self, outputs, targets, precondition):
+        loss_results = torch.zeros_like(targets, dtype=outputs.dtype)
+        loss_results[precondition] = self.loss(outputs[precondition], targets[precondition])
         n_dims = len(loss_results.shape)
         if n_dims > 1:
-            dims_to_reduce = tuple(range(1, n_dims))
-            return self.reduction(loss_results, dim=dims_to_reduce, keepdim=True)
-        return loss_results
-
-
-class CriterionFlowData(IFeaturesDict):
-
-    def __init__(self, outputs, targets):
-        self.outputs = outputs
-        self.targets = targets
-
-    # To be compatible with the pipeline
-    def __getattr__(self, item):
-        return self
-
-    @classmethod
-    def from_args(cls, *args, **kwargs):
-        for arg in args:
-            if isinstance(arg, CriterionFlowData):
-                return arg
-
-        for arg in kwargs.values():
-            if isinstance(arg, CriterionFlowData):
-                return arg
-
-        if args_are_dicts(args):
-            return cls(*args)
-
-
-class LossItems(IOut, IFlowTaskResult, ICondition):
-
-    def __init__(self, loss_items):
-        self.loss_items = loss_items
-
-    def __iadd__(self, other):
-        return LossItems(self.loss_items + other.loss_items)
-
-    # None of the methods below modify the state. They are here
-    # to be compatible with the pipeline
-    def __getattr__(self, item):
-        return self
-
-    def __or__(self, result):
-        return self
-
-    def __invert__(self):
-        return self
-
-    def __and__(self, other):
-        return self
-
-
-def args_are_dicts(args):
-    return len(args) == 2 and isinstance(args[0], dict) and isinstance(args[1], dict)
-
-
-def squeeze_if_needed(tensor):
-    if len(tensor.shape) > 2:
-        return tensor
-    if len(tensor.shape) == 2:
-        return tensor[:, 0]
-    return tensor
-
-
-def _already_reduced_per_device(outputs):
-    keys = list(outputs.keys())
-    if len(keys) == 0:
-        return False
-    return '_device' in keys[0]
-
-
-class DeviceReducingCache:
-
-    def __init__(self, task_name, prefix, metric, metric_name, ctx):
-        self.metric = metric
-        self.metric_name = metric_name
-        self.prefix = prefix
-        self.task_name = task_name
-        self.ctx = ctx
-
-    def __call__(self, key, outputs):
-        result_from_device_reducing = self._compute_device_reduced(key, outputs)
-        if result_from_device_reducing is not None:
-            return result_from_device_reducing
-        result_from_device_reducing = self._compute_device_reduced(key, self.ctx)
-        if result_from_device_reducing is not None:
-            return result_from_device_reducing
-
-    def _compute_device_reduced(self, key, outputs):
-        already_reduced_per_device = _already_reduced_per_device(outputs)
-        if already_reduced_per_device:
-            device_metric_key = f'_device|{key}|{self.metric_name}'
-            if device_metric_key in outputs:
-                # This means that the loss function has already been computed inside the nn.DataParallel model.
-                return self.aggregate_device_result(outputs, device_metric_key)
-            # Checks the same for multi-metrics
-            device_metric_keys = self.discover_metric_keys(device_metric_key)
-            if len(device_metric_keys) > 0:
-                return self.aggregate_device_results(outputs, device_metric_keys)
-        return None
-
-    def discover_metric_keys(self, device_metric_key):
-        if not hasattr(self.metric, 'empty_precondition_result'):
-            return []
-        metric_args = self.metric.empty_precondition_result().keys()
-        return [f'{device_metric_key}_{metric_arg}' for metric_arg in metric_args]
-
-    def aggregate_device_result(self, loss_flow_data_outputs, out_key):
-        if self.metric_name == 'loss_per_sample':
-            metric_per_gpu_results = loss_flow_data_outputs[out_key]
-            return metric_per_gpu_results
-        if out_key not in loss_flow_data_outputs:
-            return None
-        metric_per_gpu_results = loss_flow_data_outputs[out_key]
-        metric_per_gpu_counts = loss_flow_data_outputs[f'_device|{self.prefix}{self.task_name}|_n']
-        return (metric_per_gpu_results * metric_per_gpu_counts).sum() / metric_per_gpu_counts.sum()
-
-    def aggregate_device_results(self, loss_flow_data_outputs, out_keys):
-        res = {}
-        for out_key in out_keys:
-            metric_name, metric_arg = out_key.split('|')[-1].split('_')
-            res[metric_arg] = self.aggregate_device_result(loss_flow_data_outputs, out_key)
-            if res[metric_arg] is None:
-                return None
-        return res
+            dims = tuple(range(self.from_dim, n_dims))
+            total = loss_results.sum(dim=dims, keepdim=False)
+            dims = tuple(range(self.from_dim,  len(precondition.shape)))
+            if len(dims) > 1:
+                precondition_sum = precondition.sum(dim=dims, keepdim=False)
+                precondition = precondition_sum > 0
+            else:
+                precondition_sum = precondition.type(total.dtype)
+            res = total / precondition_sum
+            return res[precondition]
+        return loss_results[precondition]
 
 
 class BaseMetricDecorator(nn.Module):
@@ -173,8 +61,11 @@ class BaseMetricDecorator(nn.Module):
         targets = loss_flow_data.targets[key]
         if precondition.sum() == 0:
             return self.handle_empty_precondition(outputs)
-        precondition = squeeze_if_needed(precondition)
-        metric_res = self.metric(outputs[precondition], targets[precondition])
+        precondition = squeeze_last_dim_if_needed(precondition)
+        if '_per_' in self.metric_name:
+            metric_res = self.metric(outputs, targets, precondition)
+        else:
+            metric_res = self.metric(outputs[precondition], targets[precondition])
         return metric_res
 
     def handle_empty_precondition(self, outputs):
@@ -325,7 +216,7 @@ class TaskFlowLossPerSample(nn.Module):
         overall_loss_items = torch.zeros(bs, dtype=value.dtype)
         for path, loss in self._all_losses.items():
             loss_items = loss(outputs, targets).loss_items
-            res[path] = loss_items.squeeze(dim=-1)
+            res[path] = loss_items
             device_key = f'_device|indices|{path}|loss_per_sample'
             if device_key in self.ctx:
                 indices = self.ctx[device_key].detach().cpu()

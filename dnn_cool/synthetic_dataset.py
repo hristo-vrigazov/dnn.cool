@@ -1,12 +1,29 @@
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from functools import partial
 
 import cv2
+import torch
 from torch.utils.data import DataLoader, Subset
+from torch import nn
 
-from dnn_cool.converters import TypeGuesser, ValuesConverter, TaskConverter, Converters
-from dnn_cool.tasks import *
-from dnn_cool.utils import split_dataset
+from dnn_cool.collators.base import samples_to_dict_of_nested_lists, collate_to_shape, apply_to_nested_dict, \
+    collate_nested_dict
+from dnn_cool.converters.base import TypeGuesser
+from dnn_cool.converters.values.base import ValuesConverter
+from dnn_cool.converters.task.base import TaskConverter
+from dnn_cool.converters.full import Converters
+from dnn_cool.external.torch import TorchAutoGrad
+from dnn_cool.tasks.binary import BinaryClassificationTask
+from dnn_cool.tasks.bounded_regression import BoundedRegressionTask
+from dnn_cool.tasks.classification import ClassificationTask
+from dnn_cool.tasks.development.binary import BinaryClassificationTaskForDevelopment
+from dnn_cool.tasks.development.bounded_regression import BoundedRegressionTaskForDevelopment
+from dnn_cool.tasks.development.classification import ClassificationTaskForDevelopment
+from dnn_cool.tasks.development.multilabel_classification import MultilabelClassificationTaskForDevelopment
+from dnn_cool.tasks.development.task_flow import TaskFlowForDevelopment
+from dnn_cool.tasks.multilabel_classification import MultilabelClassificationTask
+from dnn_cool.tasks.task_flow import TaskFlow, Tasks
+from dnn_cool.utils.base import split_dataset, Values
 from dnn_cool.value_converters import *
 
 
@@ -76,11 +93,11 @@ def draw_person(img, res, shirt_type='blue'):
     img = cv2.circle(img, head, head_radius, color=color, thickness=-1)
 
     res['person_present'] = True
-    res['face_x1'] = head[0] - head_radius
-    res['face_y1'] = head[1] - head_radius
-    res['face_w'] = 2 * head_radius
-    res['face_h'] = 2 * head_radius
-    res['facial_characteristics'] = ','.join(map(str, face_characteristics))
+    res['person_regression.face_regression.face_x1'] = head[0] - head_radius
+    res['person_regression.face_regression.face_y1'] = head[1] - head_radius
+    res['person_regression.face_regression.face_w'] = 2 * head_radius
+    res['person_regression.face_regression.face_h'] = 2 * head_radius
+    res['person_regression.face_regression.facial_characteristics'] = ','.join(map(str, face_characteristics))
 
     offsets = np.random.randint(-2, 2, size=4)
     d = head_radius * 2
@@ -112,11 +129,11 @@ def draw_person(img, res, shirt_type='blue'):
 
     cv2.rectangle(img, rec_start, rec_end, color=color, thickness=-1)
 
-    res['body_x1'] = rec_start[0]
-    res['body_y1'] = rec_start[1]
-    res['body_w'] = rec_end[0] - rec_start[0]
-    res['body_h'] = rec_end[1] - rec_start[1]
-    res['shirt_type'] = shirt_label
+    res['person_regression.body_regression.body_x1'] = rec_start[0]
+    res['person_regression.body_regression.body_y1'] = rec_start[1]
+    res['person_regression.body_regression.body_w'] = rec_end[0] - rec_start[0]
+    res['person_regression.body_regression.body_h'] = rec_end[1] - rec_start[1]
+    res['person_regression.body_regression.shirt_type'] = shirt_label
 
     return img, res
 
@@ -164,6 +181,39 @@ def create_df_and_images_tensor(n=int(1e4), cache_file=Path('dnn_cool_synthetic_
     return res
 
 
+def body_regression(flow, x, out):
+    out += flow.body_x1(x.body_localization)
+    out += flow.body_y1(x.body_localization)
+    out += flow.body_w(x.body_localization)
+    out += flow.body_h(x.body_localization)
+    out += flow.shirt_type(x.features)
+    return out
+
+
+def face_regression(flow, x, out):
+    out += flow.face_x1(x.face_localization)
+    out += flow.face_y1(x.face_localization)
+    out += flow.face_w(x.face_localization)
+    out += flow.face_h(x.face_localization)
+    out += flow.facial_characteristics(x.features)
+    return out
+
+
+def person_regression(flow, x, out):
+    out += flow.face_regression(x)
+    out += flow.body_regression(x)
+    return out
+
+
+def full_flow(flow, x, out):
+    out += flow.camera_blocked(x.features)
+    out += flow.door_open(x.features) | (~out.camera_blocked)
+    out += flow.door_locked(x.features) | (~out.door_open)
+    out += flow.person_present(x.features) | out.door_open
+    out += flow.person_regression(x) | out.person_present
+    return out
+
+
 def get_synthetic_full_flow(n_shirt_types, n_facial_characteristics) -> TaskFlow:
     camera_blocked = BinaryClassificationTask('camera_blocked', nn.Linear(256, 1))
     door_open = BinaryClassificationTask('door_open', nn.Linear(256, 1))
@@ -189,40 +239,12 @@ def get_synthetic_full_flow(n_shirt_types, n_facial_characteristics) -> TaskFlow
         body_x1, body_y1, body_w, body_h,
         shirt_type, door_locked
     ]
-    tasks = Tasks(leaf_tasks)
+    tasks = Tasks(leaf_tasks, TorchAutoGrad())
 
-    @tasks.add_flow
-    def body_regression(flow, x, out):
-        out += flow.body_x1(x.body_localization)
-        out += flow.body_y1(x.body_localization)
-        out += flow.body_w(x.body_localization)
-        out += flow.body_h(x.body_localization)
-        out += flow.shirt_type(x.features)
-        return out
-
-    @tasks.add_flow
-    def face_regression(flow, x, out):
-        out += flow.face_x1(x.face_localization)
-        out += flow.face_y1(x.face_localization)
-        out += flow.face_w(x.face_localization)
-        out += flow.face_h(x.face_localization)
-        out += flow.facial_characteristics(x.features)
-        return out
-
-    @tasks.add_flow
-    def person_regression(flow, x, out):
-        out += flow.face_regression(x)
-        out += flow.body_regression(x)
-        return out
-
-    @tasks.add_flow
-    def full_flow(flow, x, out):
-        out += flow.camera_blocked(x.features)
-        out += flow.door_open(x.features) | (~out.camera_blocked)
-        out += flow.door_locked(x.features) | (~out.door_open)
-        out += flow.person_present(x.features) | out.door_open
-        out += flow.person_regression(x) | out.person_present
-        return out
+    tasks.add_flow(body_regression)
+    tasks.add_flow(face_regression)
+    tasks.add_flow(person_regression)
+    tasks.add_flow(full_flow)
 
     return tasks.get_full_flow()
 
@@ -283,34 +305,70 @@ class SecurityModule(nn.Module):
         return self.flow_module(res)
 
 
+def synthetic_dataset_preparation_without_converters(n=int(1e4)):
+    imgs, df = create_df_and_images_tensor(n)
+    full_flow = get_synthetic_full_flow(n_shirt_types=7, n_facial_characteristics=3)
+
+    binary_classification_tasks = ['camera_blocked', 'door_open', 'person_present', 'door_locked']
+    tasks_for_development = []
+    for task_name in binary_classification_tasks:
+        labels = binary_value_converter(df[task_name])
+        tasks_for_development.append(BinaryClassificationTaskForDevelopment(task_name, labels))
+
+    regression_tasks = [
+        'face_x1', 'face_y1', 'face_w', 'face_h',
+        'body_x1', 'body_y1', 'body_w', 'body_h'
+    ]
+    for task_name in regression_tasks:
+        converter = ImageCoordinatesValuesConverter(dim=64)
+        labels = converter(df[task_name])
+        tasks_for_development.append(BoundedRegressionTaskForDevelopment(task_name, labels))
+
+    labels = classification_converter(df['shirt_type'])
+    tasks_for_development.append(ClassificationTaskForDevelopment('shirt_type', labels))
+
+    multilabel_converter = MultiLabelValuesConverter()
+    labels = multilabel_converter(df['facial_characteristics'])
+    tasks_for_development.append(MultilabelClassificationTaskForDevelopment('facial_characteristics', labels))
+    raise NotImplementedError()
+
+
 def synthetic_dataset_preparation(n=int(1e4), perform_conversion=True):
     imgs, df = create_df_and_images_tensor(n)
     multilabel_converter = MultiLabelValuesConverter()
-    n_shirt_types = classification_converter(df['shirt_type']).max().item() + 1
-    n_facial_characteristics = multilabel_converter(df['facial_characteristics']).shape[1]
+    n_shirt_types = classification_converter(df['person_regression.body_regression.shirt_type']).max().item() + 1
+    n_facial_characteristics = \
+        multilabel_converter(df['person_regression.face_regression.facial_characteristics']).shape[1]
 
     full_flow = get_synthetic_full_flow(n_shirt_types, n_facial_characteristics)
 
     output_col = ['camera_blocked', 'door_open', 'person_present', 'door_locked',
-                  'face_x1', 'face_y1', 'face_w', 'face_h',
-                  'facial_characteristics',
-                  'body_x1', 'body_y1', 'body_w', 'body_h', 'shirt_type']
+                  'person_regression.face_regression.face_x1',
+                  'person_regression.face_regression.face_y1',
+                  'person_regression.face_regression.face_w',
+                  'person_regression.face_regression.face_h',
+                  'person_regression.face_regression.facial_characteristics',
+                  'person_regression.body_regression.body_x1',
+                  'person_regression.body_regression.body_y1',
+                  'person_regression.body_regression.body_w',
+                  'person_regression.body_regression.body_h',
+                  'person_regression.body_regression.shirt_type']
     type_guesser = TypeGuesser()
     type_guesser.type_mapping['camera_blocked'] = 'binary'
     type_guesser.type_mapping['door_open'] = 'binary'
     type_guesser.type_mapping['person_present'] = 'binary'
     type_guesser.type_mapping['door_locked'] = 'binary'
-    type_guesser.type_mapping['face_x1'] = 'continuous'
-    type_guesser.type_mapping['face_y1'] = 'continuous'
-    type_guesser.type_mapping['face_w'] = 'continuous'
-    type_guesser.type_mapping['face_h'] = 'continuous'
-    type_guesser.type_mapping['body_x1'] = 'continuous'
-    type_guesser.type_mapping['body_y1'] = 'continuous'
-    type_guesser.type_mapping['body_w'] = 'continuous'
-    type_guesser.type_mapping['body_h'] = 'continuous'
+    type_guesser.type_mapping['person_regression.face_regression.face_x1'] = 'continuous'
+    type_guesser.type_mapping['person_regression.face_regression.face_y1'] = 'continuous'
+    type_guesser.type_mapping['person_regression.face_regression.face_w'] = 'continuous'
+    type_guesser.type_mapping['person_regression.face_regression.face_h'] = 'continuous'
+    type_guesser.type_mapping['person_regression.body_regression.body_x1'] = 'continuous'
+    type_guesser.type_mapping['person_regression.body_regression.body_y1'] = 'continuous'
+    type_guesser.type_mapping['person_regression.body_regression.body_w'] = 'continuous'
+    type_guesser.type_mapping['person_regression.body_regression.body_h'] = 'continuous'
     type_guesser.type_mapping['syn_img'] = 'img'
-    type_guesser.type_mapping['shirt_type'] = 'category'
-    type_guesser.type_mapping['facial_characteristics'] = 'multilabel'
+    type_guesser.type_mapping['person_regression.body_regression.shirt_type'] = 'category'
+    type_guesser.type_mapping['person_regression.face_regression.facial_characteristics'] = 'multilabel'
 
     values_converter = ValuesConverter()
     values_converter.type_mapping['img'] = lambda x: imgs
@@ -365,3 +423,125 @@ def synthetic_dataset_preparation(n=int(1e4), perform_conversion=True):
     shirt_type.class_names = ['blue', 'red', 'yellow', 'cyan', 'magenta', 'green', 'black']
     children['person_regression.face_regression.facial_characteristics'].class_names = ['red', 'green', 'blue']
     return model, nested_loaders, datasets, full_flow_for_development, converters.tensorboard_converters
+
+
+def get_synthetic_token_classification_dataset(n):
+    samples = defaultdict(list)
+    for i in range(n):
+        ss = defaultdict(list)
+        for j in range(10):
+            len_t = np.random.randint(2, 20)
+            a = np.random.randint(0, 3, size=len_t)
+            n0 = (a == 0).sum()
+            n1 = (a == 1).sum()
+            n2 = (a == 2).sum()
+            r = a.copy()
+            r[a == 0] = np.random.randint(0, 2, size=n0)
+            r[a == 1] = np.random.randint(10, 12, size=n1)
+            r[a == 2] = np.random.randint(20, 22, size=n2)
+
+            ss['tokens'].append(torch.tensor(a))
+            ss['is_less_than_100'].append(torch.tensor(a == 0).float().unsqueeze(-1))
+            ss['is_more_than_150'].append(torch.tensor(a == 2).float().unsqueeze(-1))
+        samples['tokens'].append(ss['tokens'])
+        samples['is_less_than_100'].append(ss['is_less_than_100'])
+        samples['is_more_than_150'].append(ss['is_more_than_150'])
+    return samples
+
+
+def get_synthetic_token_classification_flow():
+    is_less_than_100 = BinaryClassificationTask('is_less_than_100', nn.Linear(16, 1))
+    is_more_than_150 = BinaryClassificationTask('is_more_than_150', nn.Linear(16, 1))
+
+    tasks = Tasks([is_less_than_100, is_more_than_150])
+
+    @tasks.add_flow
+    def full_flow(flow, x, out):
+        out += flow.is_less_than_100(x.features)
+        out += flow.is_more_than_150(x.features) | (~out.is_less_than_100)
+        return out
+
+    return tasks.get_full_flow()
+
+
+def synthetic_token_classification():
+    samples = get_synthetic_token_classification_dataset(10_000)
+    full_flow = get_synthetic_token_classification_flow()
+    is_less_than_100 = BinaryClassificationTaskForDevelopment(full_flow.get('is_less_than_100'),
+                                                              samples['is_less_than_100'])
+    is_more_than_150 = BinaryClassificationTaskForDevelopment(full_flow.get('is_more_than_150'),
+                                                              samples['is_more_than_150'])
+
+    values = Values(keys=['tokens'], types=['tokens'], values=[samples['tokens']])
+    development_flow = TaskFlowForDevelopment(full_flow,
+                                              values=values,
+                                              tasks=[is_less_than_100, is_more_than_150])
+    return development_flow
+
+
+class TokenClassificationModel(nn.Module):
+
+    def __init__(self, flow_module):
+        super().__init__()
+        self.flow_module = flow_module
+        self.emb = nn.Sequential(
+            nn.Embedding(num_embeddings=3, embedding_dim=64),
+            nn.Linear(64, 32),
+            nn.ReLU(inplace=True),
+            nn.Linear(32, 16),
+            nn.ReLU(inplace=True)
+        )
+
+    def forward(self, x):
+        return self.flow_module({
+            'features': self.emb(x['tokens']),
+            'gt': x.get('gt')
+        })
+
+
+def collate_token_classification(samples):
+    data = samples_to_dict_of_nested_lists(samples)
+    data.X_batch['tokens'] = collate_nested_dict(data.X_batch, ['tokens'],
+                                                 shapes=data.X_shapes,
+                                                 dtype=torch.long,
+                                                 padding_value=0)
+    data.X_batch['gt']['is_less_than_100'] = collate_nested_dict(data.X_batch,
+                                                                 path=['gt', 'is_less_than_100'],
+                                                                 shapes=data.X_shapes,
+                                                                 dtype=torch.bool,
+                                                                 padding_value=True)
+    data.X_batch['gt']['_availability']['is_less_than_100'] = collate_nested_dict(data.X_batch,
+                                                                                  path=['gt', '_availability',
+                                                                                        'is_less_than_100'],
+                                                                                  shapes=data.X_shapes,
+                                                                                  dtype=torch.bool,
+                                                                                  padding_value=False)
+    data.X_batch['gt']['_availability']['is_more_than_150'] = collate_nested_dict(data.X_batch,
+                                                                                  path=['gt', '_availability',
+                                                                                        'is_more_than_150'],
+                                                                                  shapes=data.X_shapes,
+                                                                                  dtype=torch.bool,
+                                                                                  padding_value=False)
+    data.X_batch['gt']['_targets']['is_less_than_100'] = collate_nested_dict(data.X_batch,
+                                                                             path=['gt', '_targets',
+                                                                                   'is_less_than_100'],
+                                                                             shapes=data.X_shapes,
+                                                                             dtype=torch.bool,
+                                                                             padding_value=False)
+    data.X_batch['gt']['_targets']['is_more_than_150'] = collate_nested_dict(data.X_batch,
+                                                                             path=['gt', '_targets',
+                                                                                   'is_more_than_150'],
+                                                                             shapes=data.X_shapes,
+                                                                             dtype=torch.bool,
+                                                                             padding_value=False)
+    data.y_batch['is_less_than_100'] = collate_nested_dict(data.y_batch,
+                                                           path=['is_less_than_100'],
+                                                           shapes=data.y_shapes,
+                                                           dtype=torch.float32,
+                                                           padding_value=-1)
+    data.y_batch['is_more_than_150'] = collate_nested_dict(data.y_batch,
+                                                           path=['is_more_than_150'],
+                                                           shapes=data.y_shapes,
+                                                           dtype=torch.float32,
+                                                           padding_value=-1)
+    return data.X_batch, data.y_batch

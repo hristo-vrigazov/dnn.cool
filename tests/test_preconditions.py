@@ -1,10 +1,10 @@
 import torch
 
-from dnn_cool.modules import OnesCondition, LeafModuleOutput
+from dnn_cool.modules.torch import LabelsAvailableCondition, LeafModuleOutput
 
 
 def test_precondition_and_missing():
-    is_category = OnesCondition('is_category')
+    is_category = LabelsAvailableCondition('is_category')
     """
     path: str
     logits: torch.Tensor
@@ -13,7 +13,7 @@ def test_precondition_and_missing():
     decoded: Optional[torch.Tensor]
     dropout_samples: Optional[torch.Tensor]
     """
-    availability = OnesCondition('subcategory')
+    availability = LabelsAvailableCondition('subcategory')
     leaf_output = LeafModuleOutput(
         path='subcategory',
         logits=torch.randn(4),
@@ -28,7 +28,7 @@ def test_precondition_and_missing():
         '_availability': {
             'is_category': torch.tensor([True, True, False, True]),
             'subcategory': torch.tensor([False, True, False, True])
-    }})
+        }}, None)
 
     expected = torch.tensor([False, True, False, True])
 
