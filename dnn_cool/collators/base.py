@@ -100,3 +100,13 @@ def collate_to_shape(ll, dtype, shape, padding_value, **kwargs):
             continue
         t[tuple(item)][:len(tmp)] = tmp
     return t
+
+
+def collate_nested_dict(dct, path, shapes, dtype, padding_value):
+    tmp = dct
+    shape = shapes
+    for key in path:
+        tmp = tmp[key]
+        shape = shape[key]
+    tmp = collate_to_shape(tmp, shape=shape, dtype=dtype, padding_value=padding_value)
+    return tmp
