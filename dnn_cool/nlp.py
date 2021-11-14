@@ -21,7 +21,7 @@ class MaskedLanguageModelingTask(Task):
 class MaskedLanguageModelingTaskForDevelopment(TaskForDevelopment):
 
     def __init__(self, name: str, labels):
-        per_sample = ReducedPerSample(LanguageModelCrossEntropyLoss(reduction='none'), reduction=torch.mean)
+        per_sample = ReducedPerSample(LanguageModelCrossEntropyLoss(reduction='none'))
         super().__init__(name, labels,
                          criterion=LanguageModelCrossEntropyLoss(),
                          per_sample_criterion=per_sample,

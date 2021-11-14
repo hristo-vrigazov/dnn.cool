@@ -13,7 +13,7 @@ class MultilabelClassificationTaskForDevelopment(TaskForDevelopment):
         super().__init__(task,
                          labels,
                          criterion=nn.BCEWithLogitsLoss(reduction='mean'),
-                         per_sample_criterion=ReducedPerSample(nn.BCEWithLogitsLoss(reduction='none'), torch.mean),
+                         per_sample_criterion=ReducedPerSample(nn.BCEWithLogitsLoss(reduction='none')),
                          available_func=positive_values,
                          metrics=get_default_multilabel_classification_metrics(),
                          autograd=TorchAutoGrad())

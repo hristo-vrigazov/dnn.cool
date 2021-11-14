@@ -14,7 +14,7 @@ class ClassificationTaskForDevelopment(TaskForDevelopment):
         super().__init__(task,
                          labels,
                          criterion=nn.CrossEntropyLoss(reduction='mean'),
-                         per_sample_criterion=ReducedPerSample(nn.CrossEntropyLoss(reduction='none'), torch.mean),
+                         per_sample_criterion=ReducedPerSample(nn.CrossEntropyLoss(reduction='none')),
                          available_func=positive_values,
                          metrics=get_default_classification_metrics(),
                          autograd=TorchAutoGrad())

@@ -23,7 +23,7 @@ class BinaryHardcodedTaskForDevelopment(TaskForDevelopment):
 class BinaryClassificationTaskForDevelopment(TaskForDevelopment):
 
     def __init__(self, task, labels):
-        reduced_per_sample = ReducedPerSample(nn.BCEWithLogitsLoss(reduction='none'), reduction=torch.mean)
+        reduced_per_sample = ReducedPerSample(nn.BCEWithLogitsLoss(reduction='none'))
         super().__init__(task,
                          labels,
                          criterion=nn.BCEWithLogitsLoss(reduction='mean'),

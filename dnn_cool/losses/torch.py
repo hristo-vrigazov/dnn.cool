@@ -9,17 +9,18 @@ from dnn_cool.utils.base import any_value
 
 class ReducedPerSample(nn.Module):
 
-    def __init__(self, loss, reduction):
+    def __init__(self, loss, from_dim=1):
         super().__init__()
         self.loss = loss
-        self.reduction = reduction
+        self.from_dim = from_dim
 
-    def forward(self, *args, **kwargs):
-        loss_results = self.loss(*args, **kwargs)
+    def forward(self, outputs, targets, precondition):
+        loss_results = torch.zeros_like(outputs)
+        loss_results[precondition] = self.loss(outputs[precondition], targets[precondition])
         n_dims = len(loss_results.shape)
         if n_dims > 1:
-            dims_to_reduce = tuple(range(1, n_dims))
-            return self.reduction(loss_results, dim=dims_to_reduce, keepdim=True)
+            dims = tuple(range(self.from_dim, n_dims))
+            return loss_results.sum(dim=dims, keepdim=True) / precondition.sum(dim=dims, keepdim=True)
         return loss_results
 
 
@@ -53,7 +54,10 @@ class BaseMetricDecorator(nn.Module):
         if precondition.sum() == 0:
             return self.handle_empty_precondition(outputs)
         precondition = squeeze_last_dim_if_needed(precondition)
-        metric_res = self.metric(outputs[precondition], targets[precondition])
+        if '_per_' in self.metric_name:
+            metric_res = self.metric(outputs, targets, precondition)
+        else:
+            metric_res = self.metric(outputs[precondition], targets[precondition])
         return metric_res
 
     def handle_empty_precondition(self, outputs):

@@ -20,8 +20,7 @@ class BoundedRegressionTaskForDevelopment(TaskForDevelopment):
         super().__init__(task,
                          labels,
                          criterion=SigmoidAndMSELoss(reduction='mean'),
-                         per_sample_criterion=ReducedPerSample(SigmoidAndMSELoss(reduction='none'),
-                                                               reduction=torch.sum),
+                         per_sample_criterion=ReducedPerSample(SigmoidAndMSELoss(reduction='none')),
                          available_func=positive_values,
                          metrics=get_default_bounded_regression_metrics(),
                          autograd=TorchAutoGrad())
