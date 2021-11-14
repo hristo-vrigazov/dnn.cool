@@ -10,8 +10,8 @@ from dnn_cool.tasks.development.base import TaskForDevelopment
 
 class BinaryHardcodedTaskForDevelopment(TaskForDevelopment):
 
-    def __init__(self, name: str, labels):
-        super().__init__(name,
+    def __init__(self, task, labels):
+        super().__init__(task,
                          labels=labels,
                          criterion=None,
                          per_sample_criterion=None,
@@ -22,9 +22,9 @@ class BinaryHardcodedTaskForDevelopment(TaskForDevelopment):
 
 class BinaryClassificationTaskForDevelopment(TaskForDevelopment):
 
-    def __init__(self, name: str, labels):
+    def __init__(self, task, labels):
         reduced_per_sample = ReducedPerSample(nn.BCEWithLogitsLoss(reduction='none'), reduction=torch.mean)
-        super().__init__(name,
+        super().__init__(task,
                          labels,
                          criterion=nn.BCEWithLogitsLoss(reduction='mean'),
                          per_sample_criterion=reduced_per_sample,

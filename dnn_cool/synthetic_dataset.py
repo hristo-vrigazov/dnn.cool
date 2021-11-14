@@ -1,4 +1,4 @@
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from functools import partial
 
 import cv2
@@ -16,9 +16,10 @@ from dnn_cool.tasks.development.binary import BinaryClassificationTaskForDevelop
 from dnn_cool.tasks.development.bounded_regression import BoundedRegressionTaskForDevelopment
 from dnn_cool.tasks.development.classification import ClassificationTaskForDevelopment
 from dnn_cool.tasks.development.multilabel_classification import MultilabelClassificationTaskForDevelopment
+from dnn_cool.tasks.development.task_flow import TaskFlowForDevelopment
 from dnn_cool.tasks.multilabel_classification import MultilabelClassificationTask
 from dnn_cool.tasks.task_flow import TaskFlow, Tasks
-from dnn_cool.utils.base import split_dataset
+from dnn_cool.utils.base import split_dataset, Values
 from dnn_cool.value_converters import *
 
 
@@ -88,11 +89,11 @@ def draw_person(img, res, shirt_type='blue'):
     img = cv2.circle(img, head, head_radius, color=color, thickness=-1)
 
     res['person_present'] = True
-    res['face_x1'] = head[0] - head_radius
-    res['face_y1'] = head[1] - head_radius
-    res['face_w'] = 2 * head_radius
-    res['face_h'] = 2 * head_radius
-    res['facial_characteristics'] = ','.join(map(str, face_characteristics))
+    res['person_regression.face_regression.face_x1'] = head[0] - head_radius
+    res['person_regression.face_regression.face_y1'] = head[1] - head_radius
+    res['person_regression.face_regression.face_w'] = 2 * head_radius
+    res['person_regression.face_regression.face_h'] = 2 * head_radius
+    res['person_regression.face_regression.facial_characteristics'] = ','.join(map(str, face_characteristics))
 
     offsets = np.random.randint(-2, 2, size=4)
     d = head_radius * 2
@@ -124,11 +125,11 @@ def draw_person(img, res, shirt_type='blue'):
 
     cv2.rectangle(img, rec_start, rec_end, color=color, thickness=-1)
 
-    res['body_x1'] = rec_start[0]
-    res['body_y1'] = rec_start[1]
-    res['body_w'] = rec_end[0] - rec_start[0]
-    res['body_h'] = rec_end[1] - rec_start[1]
-    res['shirt_type'] = shirt_label
+    res['person_regression.body_regression.body_x1'] = rec_start[0]
+    res['person_regression.body_regression.body_y1'] = rec_start[1]
+    res['person_regression.body_regression.body_w'] = rec_end[0] - rec_start[0]
+    res['person_regression.body_regression.body_h'] = rec_end[1] - rec_start[1]
+    res['person_regression.body_regression.shirt_type'] = shirt_label
 
     return img, res
 
@@ -331,31 +332,38 @@ def synthetic_dataset_preparation_without_converters(n=int(1e4)):
 def synthetic_dataset_preparation(n=int(1e4), perform_conversion=True):
     imgs, df = create_df_and_images_tensor(n)
     multilabel_converter = MultiLabelValuesConverter()
-    n_shirt_types = classification_converter(df['shirt_type']).max().item() + 1
-    n_facial_characteristics = multilabel_converter(df['facial_characteristics']).shape[1]
+    n_shirt_types = classification_converter(df['person_regression.body_regression.shirt_type']).max().item() + 1
+    n_facial_characteristics = multilabel_converter(df['person_regression.face_regression.facial_characteristics']).shape[1]
 
     full_flow = get_synthetic_full_flow(n_shirt_types, n_facial_characteristics)
 
     output_col = ['camera_blocked', 'door_open', 'person_present', 'door_locked',
-                  'face_x1', 'face_y1', 'face_w', 'face_h',
-                  'facial_characteristics',
-                  'body_x1', 'body_y1', 'body_w', 'body_h', 'shirt_type']
+                  'person_regression.face_regression.face_x1',
+                  'person_regression.face_regression.face_y1',
+                  'person_regression.face_regression.face_w',
+                  'person_regression.face_regression.face_h',
+                  'person_regression.face_regression.facial_characteristics',
+                  'person_regression.body_regression.body_x1',
+                  'person_regression.body_regression.body_y1',
+                  'person_regression.body_regression.body_w',
+                  'person_regression.body_regression.body_h',
+                  'person_regression.body_regression.shirt_type']
     type_guesser = TypeGuesser()
     type_guesser.type_mapping['camera_blocked'] = 'binary'
     type_guesser.type_mapping['door_open'] = 'binary'
     type_guesser.type_mapping['person_present'] = 'binary'
     type_guesser.type_mapping['door_locked'] = 'binary'
-    type_guesser.type_mapping['face_x1'] = 'continuous'
-    type_guesser.type_mapping['face_y1'] = 'continuous'
-    type_guesser.type_mapping['face_w'] = 'continuous'
-    type_guesser.type_mapping['face_h'] = 'continuous'
-    type_guesser.type_mapping['body_x1'] = 'continuous'
-    type_guesser.type_mapping['body_y1'] = 'continuous'
-    type_guesser.type_mapping['body_w'] = 'continuous'
-    type_guesser.type_mapping['body_h'] = 'continuous'
+    type_guesser.type_mapping['person_regression.face_regression.face_x1'] = 'continuous'
+    type_guesser.type_mapping['person_regression.face_regression.face_y1'] = 'continuous'
+    type_guesser.type_mapping['person_regression.face_regression.face_w'] = 'continuous'
+    type_guesser.type_mapping['person_regression.face_regression.face_h'] = 'continuous'
+    type_guesser.type_mapping['person_regression.body_regression.body_x1'] = 'continuous'
+    type_guesser.type_mapping['person_regression.body_regression.body_y1'] = 'continuous'
+    type_guesser.type_mapping['person_regression.body_regression.body_w'] = 'continuous'
+    type_guesser.type_mapping['person_regression.body_regression.body_h'] = 'continuous'
     type_guesser.type_mapping['syn_img'] = 'img'
-    type_guesser.type_mapping['shirt_type'] = 'category'
-    type_guesser.type_mapping['facial_characteristics'] = 'multilabel'
+    type_guesser.type_mapping['person_regression.body_regression.shirt_type'] = 'category'
+    type_guesser.type_mapping['person_regression.face_regression.facial_characteristics'] = 'multilabel'
 
     values_converter = ValuesConverter()
     values_converter.type_mapping['img'] = lambda x: imgs
@@ -410,3 +418,51 @@ def synthetic_dataset_preparation(n=int(1e4), perform_conversion=True):
     shirt_type.class_names = ['blue', 'red', 'yellow', 'cyan', 'magenta', 'green', 'black']
     children['person_regression.face_regression.facial_characteristics'].class_names = ['red', 'green', 'blue']
     return model, nested_loaders, datasets, full_flow_for_development, converters.tensorboard_converters
+
+
+def get_synthetic_token_classification_dataset(n):
+    samples = defaultdict(list)
+    for i in range(n):
+        len_t = np.random.randint(20)
+        a = np.random.randint(0, 3, size=len_t)
+        n0 = (a == 0).sum()
+        n1 = (a == 1).sum()
+        n2 = (a == 2).sum()
+        r = a.copy()
+        r[a == 0] = np.random.randint(0, 10, size=n0)
+        r[a == 1] = np.random.randint(100, 150, size=n1)
+        r[a == 2] = np.random.randint(150, 200, size=n2)
+
+        samples['tokens'].append(torch.tensor(r))
+        samples['is_less_than_100'].append(torch.tensor(a == 0).float())
+        samples['is_more_than_150'].append(torch.tensor(a == 2).float())
+    return samples
+
+
+def get_synthetic_token_classification_flow():
+    is_less_than_100 = BinaryClassificationTask('is_less_than_100', nn.Linear(64, 1))
+    is_more_than_150 = BinaryClassificationTask('is_more_than_150', nn.Linear(64, 1))
+
+    tasks = Tasks([is_less_than_100, is_more_than_150])
+
+    @tasks.add_flow
+    def full_flow(flow, x, out):
+        out += flow.is_less_than_100(x.features)
+        out += flow.is_more_than_150(x.features) | (~out.is_less_than_100)
+        return out
+
+    return tasks.get_full_flow()
+
+
+def synthetic_token_classification():
+    samples = get_synthetic_token_classification_dataset(100)
+    full_flow = get_synthetic_token_classification_flow()
+    is_less_than_100 = BinaryClassificationTaskForDevelopment('is_less_than_100', samples['is_less_than_100'])
+    is_more_than_150 = BinaryClassificationTaskForDevelopment('is_more_than_150', samples['is_more_than_150'])
+
+    values = Values(keys=['tokens'], types=['tokens'], values=[samples['tokens']])
+    development_flow = TaskFlowForDevelopment('full_flow',
+                                              inputs=values,
+                                              tasks=[is_less_than_100, is_more_than_150],
+                                              flow_func=full_flow.flow_func)
+    return development_flow

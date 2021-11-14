@@ -16,8 +16,8 @@ class BoundedRegressionTaskForDevelopment(TaskForDevelopment):
     * loss - `SigmoidAndMSELoss` - sigmoid on the logits, then standard mean squared error loss.
     """
 
-    def __init__(self, name: str, labels):
-        super().__init__(name,
+    def __init__(self, task, labels):
+        super().__init__(task,
                          labels,
                          criterion=SigmoidAndMSELoss(reduction='mean'),
                          per_sample_criterion=ReducedPerSample(SigmoidAndMSELoss(reduction='none'),

@@ -12,13 +12,13 @@ from dnn_cool.utils.base import Values
 
 class TaskFlowForDevelopment(TaskForDevelopment, TaskFlowBase):
 
-    def __init__(self, name: str, inputs: Values, tasks: Iterable[TaskForDevelopment], flow_func: Callable,
+    def __init__(self, task, inputs: Values, tasks: Iterable[TaskForDevelopment], flow_func: Callable,
                  autograd=TorchAutoGrad(),
                  precondition_func=None,
                  labels=None):
-        TaskFlowBase.__init__(self, name, tasks, flow_func)
+        TaskFlowBase.__init__(self, task.get_name(), tasks, flow_func)
         TaskForDevelopment.__init__(self,
-                                    name=name,
+                                    task=task,
                                     labels=labels,
                                     criterion=None,
                                     per_sample_criterion=None,
@@ -87,7 +87,7 @@ def convert_task_flow_for_development(inputs: Values,
     for child, child_task in task_flow.tasks.items():
         new_task = create_task_for_development(child, inputs, task_flow.tasks, tasks_for_development)
         child_tasks.append(new_task)
-    res = TaskFlowForDevelopment(name=task_flow.get_name(),
+    res = TaskFlowForDevelopment(task=task_flow,
                                  inputs=inputs,
                                  tasks=child_tasks,
                                  flow_func=task_flow.get_flow_func())

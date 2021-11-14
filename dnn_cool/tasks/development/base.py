@@ -9,7 +9,7 @@ from dnn_cool.tasks.base import IMinimal
 
 class TaskForDevelopment(IMinimal):
 
-    def __init__(self, name: str,
+    def __init__(self, task,
                  labels,
                  criterion,
                  per_sample_criterion,
@@ -17,13 +17,13 @@ class TaskForDevelopment(IMinimal):
                  metrics: List[Tuple[str, TorchMetric]],
                  autograd: IAutoGrad,
                  precondition_func=None):
-        self.name = name
+        self.name = task.get_name()
         self.labels = labels
         self.criterion = criterion
         self.per_sample_criterion = per_sample_criterion
         self.available_func = available_func
         self.metrics = metrics if metrics is not None else []
-        self.task = None
+        self.task = task
         self.autograd = autograd
         self.precondition_func = precondition_func
 
@@ -51,7 +51,7 @@ class TaskForDevelopment(IMinimal):
     def get_metrics(self):
         for i in range(len(self.metrics)):
             metric_name, metric = self.metrics[i]
-            metric.bind_to_task(self.task)
+            metric.bind_to_task(self.get_minimal())
         return self.metrics
 
     def get_minimal(self):

@@ -9,8 +9,8 @@ from dnn_cool.tasks.development.base import TaskForDevelopment
 
 
 class MultilabelClassificationTaskForDevelopment(TaskForDevelopment):
-    def __init__(self, name: str, labels):
-        super().__init__(name,
+    def __init__(self, task, labels):
+        super().__init__(task,
                          labels,
                          criterion=nn.BCEWithLogitsLoss(reduction='mean'),
                          per_sample_criterion=ReducedPerSample(nn.BCEWithLogitsLoss(reduction='none'), torch.mean),

@@ -2,6 +2,7 @@ from typing import Iterable, List, Dict
 
 from dnn_cool.activations import CompositeActivation
 from dnn_cool.decoders.base import TaskFlowDecoder
+from dnn_cool.external.torch import TorchAutoGrad
 from dnn_cool.help import helper
 from dnn_cool.modules.torch import TaskFlowModule
 from dnn_cool.tasks.base import Task
@@ -33,6 +34,13 @@ class TaskFlowBase:
             else:
                 tasks[prefix + task_name] = task
         return tasks
+
+    def get(self, full_path):
+        components = full_path.split('.')
+        tmp = self
+        for i in range(len(components) - 1):
+            tmp = tmp.tasks[components[i]]
+        return tmp.tasks[components[-1]]
 
 
 class TaskFlow(Task, TaskFlowBase):
@@ -93,7 +101,7 @@ class Tasks:
     """
 
     @helper(after_type='tasks')
-    def __init__(self, leaf_tasks: List[Task], autograd):
+    def __init__(self, leaf_tasks: List[Task], autograd=TorchAutoGrad()):
         self.leaf_tasks = leaf_tasks
         self.flow_tasks = []
         self.task_dict = {}
