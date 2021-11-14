@@ -2,6 +2,7 @@ from collections import OrderedDict, defaultdict
 from functools import partial
 
 import cv2
+import torch
 from torch.utils.data import DataLoader, Subset
 from torch import nn
 
@@ -501,32 +502,32 @@ def collate_token_classification(samples):
     data.X_batch['gt']['is_less_than_100'] = collate_nested_dict(data.X_batch,
                                                                  path=['gt', 'is_less_than_100'],
                                                                  shapes=data.X_shapes,
-                                                                 dtype=torch.long,
-                                                                 padding_value=-1)
+                                                                 dtype=torch.bool,
+                                                                 padding_value=True)
     data.X_batch['gt']['_availability']['is_less_than_100'] = collate_nested_dict(data.X_batch,
                                                                                   path=['gt', '_availability',
                                                                                         'is_less_than_100'],
                                                                                   shapes=data.X_shapes,
-                                                                                  dtype=torch.long,
-                                                                                  padding_value=-1)
+                                                                                  dtype=torch.bool,
+                                                                                  padding_value=False)
     data.X_batch['gt']['_availability']['is_more_than_150'] = collate_nested_dict(data.X_batch,
                                                                                   path=['gt', '_availability',
                                                                                         'is_more_than_150'],
                                                                                   shapes=data.X_shapes,
-                                                                                  dtype=torch.long,
-                                                                                  padding_value=-1)
+                                                                                  dtype=torch.bool,
+                                                                                  padding_value=False)
     data.X_batch['gt']['_targets']['is_less_than_100'] = collate_nested_dict(data.X_batch,
                                                                              path=['gt', '_targets',
                                                                                    'is_less_than_100'],
                                                                              shapes=data.X_shapes,
-                                                                             dtype=torch.long,
-                                                                             padding_value=-1)
+                                                                             dtype=torch.bool,
+                                                                             padding_value=False)
     data.X_batch['gt']['_targets']['is_more_than_150'] = collate_nested_dict(data.X_batch,
                                                                              path=['gt', '_targets',
                                                                                    'is_more_than_150'],
                                                                              shapes=data.X_shapes,
-                                                                             dtype=torch.long,
-                                                                             padding_value=-1)
+                                                                             dtype=torch.bool,
+                                                                             padding_value=False)
     data.y_batch['is_less_than_100'] = collate_nested_dict(data.y_batch,
                                                            path=['is_less_than_100'],
                                                            shapes=data.y_shapes,

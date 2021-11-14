@@ -44,13 +44,13 @@ class ModuleDecorator(nn.Module):
     def forward(self, *args, **kwargs):
         key = self.prefix + self.task_name
         logits = self.module(*args, **kwargs)
-        condition = OnesCondition(key)
+        condition = LabelsAvailableCondition(key)
         if self.training:
             return LeafModuleOutput(path=key, logits=logits, precondition=condition,
                                     activated=None, decoded=None, dropout_samples=None)
         activated_logits = self.activation(logits) if self.activation is not None else logits
         decoded_logits = self.decoder(activated_logits) if self.decoder is not None else activated_logits
-        condition = OnesCondition(key)
+        condition = LabelsAvailableCondition(key)
         dropout_samples = None if self.dropout_mc is None else self.dropout_mc.create_samples(self.module,
                                                                                               self.activation,
                                                                                               *args, **kwargs)
@@ -74,11 +74,11 @@ class Condition(ICondition):
 
 
 @dataclass
-class OnesCondition(Condition):
+class LabelsAvailableCondition(Condition):
     path: str
 
     def get_precondition(self):
-        return OnesCondition(self.path)
+        return LabelsAvailableCondition(self.path)
 
     def to_mask(self, data, shape):
         if '_availability' in data:
@@ -110,7 +110,7 @@ class LeafCondition(Condition):
     path: str
 
     def get_precondition(self):
-        return OnesCondition(self.path)
+        return LabelsAvailableCondition(self.path)
 
     def to_mask(self, data, shape):
         return data[self.path].clone()
