@@ -437,8 +437,8 @@ def get_synthetic_token_classification_dataset(n):
             n2 = (a == 2).sum()
             r = a.copy()
             r[a == 0] = np.random.randint(0, 10, size=n0)
-            r[a == 1] = np.random.randint(100, 150, size=n1)
-            r[a == 2] = np.random.randint(150, 200, size=n2)
+            r[a == 1] = np.random.randint(10, 20, size=n1)
+            r[a == 2] = np.random.randint(20, 30, size=n2)
 
             ss['tokens'].append(torch.tensor(r))
             ss['is_less_than_100'].append(torch.tensor(a == 0).float().unsqueeze(-1))
@@ -465,7 +465,7 @@ def get_synthetic_token_classification_flow():
 
 
 def synthetic_token_classification():
-    samples = get_synthetic_token_classification_dataset(100)
+    samples = get_synthetic_token_classification_dataset(10_000)
     full_flow = get_synthetic_token_classification_flow()
     is_less_than_100 = BinaryClassificationTaskForDevelopment(full_flow.get('is_less_than_100'),
                                                               samples['is_less_than_100'])

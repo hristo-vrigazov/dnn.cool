@@ -69,6 +69,8 @@ def test_token_classification_training():
                                      project_dir='./token_classification',
                                      runner_name='example_run')
     datasets, loaders = runner.get_default_loaders(collator=collate_token_classification)
-    runner.train(loaders=loaders, verbose=True)
+    runner.train(num_epochs=10,
+                 loaders=loaders,
+                 verbose=True)
     print(loaders)
 

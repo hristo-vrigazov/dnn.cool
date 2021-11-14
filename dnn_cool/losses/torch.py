@@ -20,7 +20,10 @@ class ReducedPerSample(nn.Module):
         n_dims = len(loss_results.shape)
         if n_dims > 1:
             dims = tuple(range(self.from_dim, n_dims))
-            return loss_results.sum(dim=dims, keepdim=True) / precondition.sum(dim=dims, keepdim=True)
+            total = loss_results.sum(dim=dims, keepdim=False)
+            dims = tuple(range(self.from_dim,  len(precondition.shape)))
+            precondition_sum = precondition.sum(dim=dims, keepdim=False)
+            return total / precondition_sum
         return loss_results
 
 
@@ -208,7 +211,7 @@ class TaskFlowLossPerSample(nn.Module):
         overall_loss_items = torch.zeros(bs, dtype=value.dtype)
         for path, loss in self._all_losses.items():
             loss_items = loss(outputs, targets).loss_items
-            res[path] = loss_items.squeeze(dim=-1)
+            res[path] = loss_items
             device_key = f'_device|indices|{path}|loss_per_sample'
             if device_key in self.ctx:
                 indices = self.ctx[device_key].detach().cpu()
