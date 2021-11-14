@@ -423,19 +423,24 @@ def synthetic_dataset_preparation(n=int(1e4), perform_conversion=True):
 def get_synthetic_token_classification_dataset(n):
     samples = defaultdict(list)
     for i in range(n):
-        len_t = np.random.randint(2, 20)
-        a = np.random.randint(0, 3, size=len_t)
-        n0 = (a == 0).sum()
-        n1 = (a == 1).sum()
-        n2 = (a == 2).sum()
-        r = a.copy()
-        r[a == 0] = np.random.randint(0, 10, size=n0)
-        r[a == 1] = np.random.randint(100, 150, size=n1)
-        r[a == 2] = np.random.randint(150, 200, size=n2)
+        ss = defaultdict(list)
+        for j in range(10):
+            len_t = np.random.randint(2, 20)
+            a = np.random.randint(0, 3, size=len_t)
+            n0 = (a == 0).sum()
+            n1 = (a == 1).sum()
+            n2 = (a == 2).sum()
+            r = a.copy()
+            r[a == 0] = np.random.randint(0, 10, size=n0)
+            r[a == 1] = np.random.randint(100, 150, size=n1)
+            r[a == 2] = np.random.randint(150, 200, size=n2)
 
-        samples['tokens'].append(torch.tensor(r))
-        samples['is_less_than_100'].append(torch.tensor(a == 0).float())
-        samples['is_more_than_150'].append(torch.tensor(a == 2).float())
+            ss['tokens'].append(torch.tensor(r))
+            ss['is_less_than_100'].append(torch.tensor(a == 0).float())
+            ss['is_more_than_150'].append(torch.tensor(a == 2).float())
+        samples['tokens'].append(ss['tokens'])
+        samples['is_less_than_100'].append(ss['is_less_than_100'])
+        samples['is_more_than_150'].append(ss['is_more_than_150'])
     return samples
 
 

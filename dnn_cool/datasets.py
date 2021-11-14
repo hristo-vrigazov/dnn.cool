@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from dnn_cool.dsl import IFeaturesDict, IOut, ICondition, IFlowTask
 from dnn_cool.external import autograd
 from dnn_cool.external.autograd import Dataset
+from dnn_cool.utils.torch import tensors_to_bool
 
 
 def discover_index_holder(*args, **kwargs):
@@ -63,7 +64,7 @@ class FlowDatasetPrecondition(ICondition):
 
     def as_precondition(self):
         if self.precondition_func is None:
-            return self.data.bool()
+            return tensors_to_bool(self.data)
         return self.precondition_func(self.data)
 
 

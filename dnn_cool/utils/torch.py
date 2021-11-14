@@ -64,3 +64,10 @@ def load_model_from_export(model, full_flow, out_directory: Union[str, Path]) ->
     tuned_params = torch.load(thresholds_path)
     full_flow.get_decoder().load_tuned(tuned_params)
     return model
+
+
+def tensors_to_bool(ll):
+    if isinstance(ll, torch.Tensor):
+        return ll.bool()
+    return [tensors_to_bool(l) for l in ll]
+

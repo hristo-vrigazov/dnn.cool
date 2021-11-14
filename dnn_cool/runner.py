@@ -236,7 +236,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
                  full_flow: TaskFlowForDevelopment,
                  project_dir: Union[str, Path],
                  runner_name: str,
-                 tensoboard_converters: TensorboardConverter,
+                 tensoboard_converters: TensorboardConverter = TensorboardConverter(),
                  early_stop: bool = True,
                  balance_dataparallel_memory: bool = False,
                  train_test_val_indices: Tuple[np.ndarray, np.ndarray, np.ndarray] = None):
