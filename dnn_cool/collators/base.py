@@ -68,7 +68,7 @@ class CollatorData:
     y_shapes: Dict
 
 
-def examples_to_nested_list(examples):
+def samples_to_dict_of_nested_lists(examples):
     X_ex, y_ex = examples[0]
     X_batch = initialize_dict_structure(X_ex)
     y_batch = initialize_dict_structure(y_ex)

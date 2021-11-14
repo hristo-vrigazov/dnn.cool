@@ -1,6 +1,6 @@
 import torch
 
-from dnn_cool.collators.base import find_padding_shape_of_nested_list, examples_to_nested_list
+from dnn_cool.collators.base import find_padding_shape_of_nested_list, samples_to_dict_of_nested_lists
 
 
 def test_finds_max_along_every_axis():
@@ -49,4 +49,4 @@ def test_examples_to_nested_list():
     examples = [
         ({'task_name': create_nested_list_test()}, {'label': torch.tensor([5])})
     ]
-    r = examples_to_nested_list(examples)
+    r = samples_to_dict_of_nested_lists(examples)

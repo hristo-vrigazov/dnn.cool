@@ -4,6 +4,8 @@ from functools import partial
 import cv2
 from torch.utils.data import DataLoader, Subset
 from torch import nn
+
+from dnn_cool.collators.base import samples_to_dict_of_nested_lists, collate_to_shape
 from dnn_cool.converters.base import TypeGuesser
 from dnn_cool.converters.values.base import ValuesConverter
 from dnn_cool.converters.task.base import TaskConverter
@@ -472,3 +474,9 @@ def synthetic_token_classification():
                                               values=values,
                                               tasks=[is_less_than_100, is_more_than_150])
     return development_flow
+
+
+def collate_token_classification(samples):
+    data = samples_to_dict_of_nested_lists(samples)
+    tokens = collate_to_shape(data.X_batch['tokens'], shape=data.X_shapes['tokens'], dtype=torch.long, padding_value=-1)
+
