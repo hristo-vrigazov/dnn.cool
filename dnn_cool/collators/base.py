@@ -46,6 +46,16 @@ def create_shapes_dict(dct):
     return res
 
 
+def apply_to_nested_dict(dct, func):
+    res = {}
+    for key, value in dct.items():
+        if isinstance(value, dict):
+            res[key] = apply_to_nested_dict(value, func)
+            continue
+        res[key] = func(key, value)
+    return res
+
+
 @dataclass
 class CollatorData:
     X_batch: Dict

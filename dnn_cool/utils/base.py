@@ -1,3 +1,5 @@
+from typing import Dict, Sequence
+
 import numpy as np
 from sklearn.model_selection import train_test_split
 
@@ -44,3 +46,10 @@ def reduce_shape(shape):
     from operator import mul
     from functools import reduce
     return reduce(mul, shape, 1)
+
+
+def create_values_from_dict(inputs: Dict[str, Sequence]):
+    keys = list(inputs.keys())
+    types = keys.copy()
+    values = list(inputs.values())
+    return Values(keys=keys, types=types, values=values)

@@ -1,18 +1,22 @@
-from typing import Iterable, Callable, Dict
+from typing import Iterable, Dict, Sequence
 
 from dnn_cool.datasets import FlowDataset
 from dnn_cool.evaluation import EvaluationCompositeVisitor
+from dnn_cool.external.autograd import Tensor
 from dnn_cool.external.torch import TorchAutoGrad
 from dnn_cool.filter import FilterCompositeVisitor
 from dnn_cool.losses.torch import TaskFlowCriterion, TaskFlowLossPerSample
 from dnn_cool.tasks.development.base import TaskForDevelopment
 from dnn_cool.tasks.task_flow import TaskFlowBase, TaskFlow
-from dnn_cool.utils.base import Values
+from dnn_cool.utils.base import Values, create_values_from_dict
 
 
 class TaskFlowForDevelopment(TaskForDevelopment, TaskFlowBase):
 
-    def __init__(self, task: TaskFlow, inputs: Values, tasks: Iterable[TaskForDevelopment],
+    def __init__(self, task: TaskFlow,
+                 tasks: Iterable[TaskForDevelopment],
+                 inputs: Dict[str, Sequence[Tensor]] = None,
+                 values: Values = None,
                  autograd=TorchAutoGrad(),
                  precondition_func=None,
                  labels=None):
@@ -26,7 +30,7 @@ class TaskFlowForDevelopment(TaskForDevelopment, TaskFlowBase):
                                     metrics=self.get_metrics(),
                                     autograd=autograd,
                                     precondition_func=precondition_func)
-        self.inputs = inputs
+        self.inputs = values if values is not None else create_values_from_dict(inputs)
         self.autograd = autograd
         self.precondition_funcs = None
 
@@ -88,7 +92,7 @@ def convert_task_flow_for_development(inputs: Values,
         new_task = create_task_for_development(child, inputs, task_flow.tasks, tasks_for_development)
         child_tasks.append(new_task)
     res = TaskFlowForDevelopment(task=task_flow,
-                                 inputs=inputs,
+                                 values=inputs,
                                  tasks=child_tasks)
     res.task = task_flow
     tasks_for_development[full_flow_name] = res

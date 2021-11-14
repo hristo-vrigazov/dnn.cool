@@ -464,6 +464,6 @@ def synthetic_token_classification():
 
     values = Values(keys=['tokens'], types=['tokens'], values=[samples['tokens']])
     development_flow = TaskFlowForDevelopment(full_flow,
-                                              inputs=values,
+                                              values=values,
                                               tasks=[is_less_than_100, is_more_than_150])
     return development_flow
