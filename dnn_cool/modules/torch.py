@@ -63,7 +63,7 @@ class Condition(ICondition):
     def get_precondition(self):
         raise NotImplementedError()
 
-    def to_mask(self, data):
+    def to_mask(self, data, shape):
         raise NotImplementedError()
 
     def __invert__(self):
@@ -80,14 +80,14 @@ class OnesCondition(Condition):
     def get_precondition(self):
         return OnesCondition(self.path)
 
-    def to_mask(self, data):
+    def to_mask(self, data, shape):
         if '_availability' in data:
             return data['_availability'][self.path]
         t = data.get(self.path)
         if t is None:
             raise ValueError(f'Path "{self.path}" leads to a None object.\n'
                              f'If you are trying to get treelib explanations, your model must be in eval mode.')
-        return torch.ones_like(t).bool()
+        return torch.ones(*shape).bool()
 
 
 @dataclass()
@@ -97,9 +97,9 @@ class NegatedCondition(Condition):
     def get_precondition(self):
         return self.precondition.get_precondition()
 
-    def to_mask(self, data):
-        mask = self.precondition.to_mask(data)
-        precondition = self.get_precondition().to_mask(data)
+    def to_mask(self, data, shape):
+        mask = self.precondition.to_mask(data, shape)
+        precondition = self.get_precondition().to_mask(data, shape)
         mask[~precondition] = False
         mask[precondition] = ~mask[precondition]
         return mask
@@ -112,7 +112,7 @@ class LeafCondition(Condition):
     def get_precondition(self):
         return OnesCondition(self.path)
 
-    def to_mask(self, data):
+    def to_mask(self, data, shape):
         return data[self.path].clone()
 
 
@@ -124,9 +124,9 @@ class NestedCondition(Condition):
     def get_precondition(self):
         return self.parent
 
-    def to_mask(self, data):
+    def to_mask(self, data, shape):
         mask = data[self.path].clone()
-        precondition = self.get_precondition().to_mask(data)
+        precondition = self.get_precondition().to_mask(data, shape)
         mask[~precondition] = False
         return mask
 
@@ -139,9 +139,9 @@ class AndCondition(Condition):
     def get_precondition(self):
         return self.condition_one.get_precondition() & self.condition_two.get_precondition()
 
-    def to_mask(self, data):
-        mask_one = self.condition_one.to_mask(data)
-        mask_two = self.condition_two.to_mask(data)
+    def to_mask(self, data, shape):
+        mask_one = self.condition_one.to_mask(data, shape)
+        mask_two = self.condition_two.to_mask(data, shape)
         mask_one, mask_two = to_broadcastable_shape(mask_one, mask_two)
         return mask_one & mask_two
 
@@ -230,11 +230,13 @@ class CompositeModuleOutput(IModuleOutput):
         if inference_without_gt and not self.training:
             for key, value in self.preconditions.items():
                 if value is not None:
-                    self.preconditions[key] = value.to_mask(preconditions_source)
+                    default_shape = self.logits[key].shape[:-1]
+                    self.preconditions[key] = value.to_mask(preconditions_source, default_shape)
             return self
         for key, value in self.preconditions.items():
             if value is not None:
-                res[f'precondition|{key}'] = value.to_mask(preconditions_source)
+                default_shape = self.logits[key].shape[:-1]
+                res[f'precondition|{key}'] = value.to_mask(preconditions_source, default_shape)
         if not inference_without_gt:
             res['gt'] = self.gt
         return res

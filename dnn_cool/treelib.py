@@ -93,7 +93,7 @@ class LeafExplainer:
         logits = results.module_output.logits[path][results.idx].detach().cpu().numpy()
         precondition = results.module_output.preconditions.get(path)
         if precondition is not None:
-            precondition = precondition[results.idx][0].item()
+            precondition = precondition[results.idx].item()
 
         should_create_node = (precondition is None) or (precondition is True)
         tree, start_node = Tree(), None

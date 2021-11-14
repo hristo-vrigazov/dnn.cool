@@ -28,7 +28,7 @@ def test_precondition_and_missing():
         '_availability': {
             'is_category': torch.tensor([True, True, False, True]),
             'subcategory': torch.tensor([False, True, False, True])
-    }})
+        }}, None)
 
     expected = torch.tensor([False, True, False, True])
 
