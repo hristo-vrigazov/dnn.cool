@@ -436,11 +436,11 @@ def get_synthetic_token_classification_dataset(n):
             n1 = (a == 1).sum()
             n2 = (a == 2).sum()
             r = a.copy()
-            r[a == 0] = np.random.randint(0, 10, size=n0)
-            r[a == 1] = np.random.randint(10, 20, size=n1)
-            r[a == 2] = np.random.randint(20, 30, size=n2)
+            r[a == 0] = np.random.randint(0, 2, size=n0)
+            r[a == 1] = np.random.randint(10, 12, size=n1)
+            r[a == 2] = np.random.randint(20, 22, size=n2)
 
-            ss['tokens'].append(torch.tensor(r))
+            ss['tokens'].append(torch.tensor(a))
             ss['is_less_than_100'].append(torch.tensor(a == 0).float().unsqueeze(-1))
             ss['is_more_than_150'].append(torch.tensor(a == 2).float().unsqueeze(-1))
         samples['tokens'].append(ss['tokens'])
@@ -450,8 +450,8 @@ def get_synthetic_token_classification_dataset(n):
 
 
 def get_synthetic_token_classification_flow():
-    is_less_than_100 = BinaryClassificationTask('is_less_than_100', nn.Linear(64, 1))
-    is_more_than_150 = BinaryClassificationTask('is_more_than_150', nn.Linear(64, 1))
+    is_less_than_100 = BinaryClassificationTask('is_less_than_100', nn.Linear(16, 1))
+    is_more_than_150 = BinaryClassificationTask('is_more_than_150', nn.Linear(16, 1))
 
     tasks = Tasks([is_less_than_100, is_more_than_150])
 
@@ -484,7 +484,13 @@ class TokenClassificationModel(nn.Module):
     def __init__(self, flow_module):
         super().__init__()
         self.flow_module = flow_module
-        self.emb = nn.Embedding(num_embeddings=200, embedding_dim=64)
+        self.emb = nn.Sequential(
+            nn.Embedding(num_embeddings=3, embedding_dim=64),
+            nn.Linear(64, 32),
+            nn.ReLU(inplace=True),
+            nn.Linear(32, 16),
+            nn.ReLU(inplace=True)
+        )
 
     def forward(self, x):
         return self.flow_module({
