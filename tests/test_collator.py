@@ -50,4 +50,3 @@ def test_examples_to_nested_list():
         ({'task_name': create_nested_list_test()}, {'label': torch.tensor([5])})
     ]
     r = examples_to_nested_list(examples)
-    print(r)
