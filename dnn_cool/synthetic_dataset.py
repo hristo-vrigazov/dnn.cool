@@ -478,6 +478,19 @@ def synthetic_token_classification():
     return development_flow
 
 
+class TokenClassificationModel(nn.Module):
+
+    def __init__(self, flow_module):
+        super().__init__()
+        self.flow_module = flow_module
+        self.emb = nn.Embedding(num_embeddings=200, embedding_dim=32)
+
+    def forward(self, x):
+        return self.flow_module({
+            'features': self.emb(x['tokens'])
+        })
+
+
 def collate_token_classification(samples):
     data = samples_to_dict_of_nested_lists(samples)
     data.X_batch['tokens'] = collate_nested_dict(data.X_batch, ['tokens'],

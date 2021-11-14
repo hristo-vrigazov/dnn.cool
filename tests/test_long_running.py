@@ -3,7 +3,8 @@ from torch import optim
 
 from dnn_cool.catalyst_utils import img_publisher, text_publisher
 from dnn_cool.runner import TrainingArguments, DnnCoolSupervisedRunner
-from dnn_cool.synthetic_dataset import synthetic_dataset_preparation
+from dnn_cool.synthetic_dataset import synthetic_dataset_preparation, synthetic_token_classification, \
+    TokenClassificationModel, collate_token_classification
 
 
 def test_synthetic_dataset():
@@ -59,4 +60,15 @@ def print_any_prediction(criterion, model, nested_loaders):
     print(res.item())
     print(pred, y)
 
+
+def test_token_classification_training():
+    full_flow_for_development = synthetic_token_classification()
+    model = TokenClassificationModel(full_flow_for_development.get_minimal().torch())
+    runner = DnnCoolSupervisedRunner(model=model,
+                                     full_flow=full_flow_for_development,
+                                     project_dir='./token_classification',
+                                     runner_name='example_run')
+    datasets, loaders = runner.get_default_loaders(collator=collate_token_classification)
+    runner.train(loaders=loaders)
+    print(loaders)
 
