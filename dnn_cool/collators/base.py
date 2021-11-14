@@ -1,5 +1,9 @@
+import itertools
 from dataclasses import dataclass
 from typing import Dict
+
+import numpy as np
+import torch
 
 
 def initialize_dict_structure(dct):
@@ -79,3 +83,20 @@ def examples_to_nested_list(examples):
         X_shapes=create_shapes_dict(X_batch),
         y_shapes=create_shapes_dict(y_batch)
     )
+
+
+def collate_to_shape(ll, dtype, shape, padding_value, **kwargs):
+    t = torch.ones(*shape, dtype=dtype, **kwargs) * padding_value
+    shape_ranges = [list(range(n)) for n in shape[:-1]]
+    for item in (itertools.product(*shape_ranges)):
+        tmp = ll
+        for axis, idx in enumerate(item):
+            if idx < len(tmp):
+                tmp = tmp[idx]
+            else:
+                tmp = None
+                break
+        if tmp is None:
+            continue
+        t[tuple(item)][:len(tmp)] = tmp
+    return t
