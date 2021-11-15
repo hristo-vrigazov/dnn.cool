@@ -28,15 +28,13 @@ setup(
     packages=find_packages(exclude=("tests",)),
     include_package_data=True,
     install_requires=["torch",
-                      "catalyst == 20.12",
                       "pandas",
                       "numpy",
                       "tqdm",
-                      "scikit_learn",
                       "treelib",
-                      "matplotlib",
                       "joblib"],
     extras_require={
+        'catalyst': ["catalyst == 20.12", "scikit_learn", "matplotlib"],
         'nlp': ['transformers'],
         'interpretability': ['captum']
     }
