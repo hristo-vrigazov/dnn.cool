@@ -16,37 +16,7 @@ def test_inference_synthetic_treelib(treelib_explanation_on_first_batch):
     treelib_explanation_on_first_batch.show()
 
 
-def test_interpretation_synthetic():
-    model, nested_loaders, datasets, full_flow_for_development, tensorboard_converters = synthetic_dataset_preparation()
-    runner = DnnCoolSupervisedRunner(model=model,
-                                     full_flow=full_flow_for_development,
-                                     project_dir='./security_project',
-                                     runner_name='default_experiment',
-                                     tensoboard_converters=tensorboard_converters,
-                                     balance_dataparallel_memory=True)
-    loaders = OrderedDict({'infer': nested_loaders['valid']})
-    model = runner.best()
-
-    tensorboard_converters = TensorboardConverters(
-        logdir=runner.project_dir / runner.default_logdir,
-        tensorboard_loggers=TensorboardConverter(),
-        datasets=datasets
-    )
-
-    infer_dict_callback = InferDictCallback()
-    callbacks = OrderedDict([
-        ("interpretation", InterpretationCallback(full_flow_for_development.get_per_sample_criterion(),
-                                                  tensorboard_converters=tensorboard_converters)),
-        ("inference", infer_dict_callback),
-        ("reducer", ReplaceGatherCallback(full_flow_for_development, infer_dict_callback))
-    ])
-    r = runner.infer(loaders=loaders, callbacks=callbacks)
-
-    interpretations = callbacks["interpretation"].interpretations
-    print(interpretations)
-
-
-def test_interpretation_default_runner():
+def test_inference_default_runner():
     model, nested_loaders, datasets, full_flow_for_development, tensorboard_converters = synthetic_dataset_preparation()
     runner = DnnCoolSupervisedRunner(model=model,
                                      full_flow=full_flow_for_development,

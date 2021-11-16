@@ -290,7 +290,7 @@ class InterpretationCallback(Callback):
                                                                   self.infer_logdir,
                                                                   'interpretations',
                                                                   state.loader_key,
-                                                                  dump_indices=False)
+                                                                  interpretation_mode=True)
 
     def prepare_interpretations(self, state):
         res = {}
@@ -610,38 +610,49 @@ class SingleLossInterpretationCallback(IMetricCallback):
         return self.metric
 
 
-def to_dict_of_lists(nested_dict, precondition_dict, parent_dir, name, loader_key, dump_indices=True):
+def to_dict_of_lists(nested_dict, precondition_dict, parent_dir, name, loader_key, interpretation_mode=False):
     res = {}
     for key, value in nested_dict.items():
         if key.startswith('precondition'):
             continue
-        valid_values = []
-        valid_indices = []
-        for i in range(len(value)):
-            arr = value[i]
-            preconditions = precondition_dict.get(f'precondition|{key}')
-            precondition = preconditions[i] if preconditions is not None else np.ones_like(arr, dtype=bool)
-            precondition = squeeze_last_axis_if_needed(precondition)
-            valid_values.append(arr[precondition])
-            valid_axes = np.where(precondition)
-            for axis, nonzero in enumerate(valid_axes):
-                if not (axis < len(valid_indices)):
-                    valid_indices.append([])
-                valid_indices[axis].append(nonzero)
-        valid_values = np.concatenate(valid_values, axis=0)
-        valid_indices = squeeze_last_axis_if_needed(np.stack([np.concatenate(v) for v in valid_indices]).T)
-        res[key] = valid_values
-        res[f'indices|{key}'] = valid_indices
         if parent_dir is None:
             continue
         out_dir = parent_dir / loader_key
         out_dir.mkdir(exist_ok=True)
         out_dir = (out_dir / name)
         out_dir.mkdir(exist_ok=True)
-        joblib.dump(res[key], out_dir / f'{key}.pkl')
-        if dump_indices:
-            joblib.dump(res[f'indices|{key}'], out_dir / f'indices|{key}.pkl')
+        if interpretation_mode:
+            joblib.dump(value, out_dir / f'{key}.pkl')
+            res[key] = value
+            continue
+        valid_indices, valid_values = concat_nested(key, value, precondition_dict)
+        res[key] = valid_values
+        res[f'indices|{key}'] = valid_indices
+        joblib.dump(res[f'indices|{key}'], out_dir / f'indices|{key}.pkl')
     return res
+
+
+def concat_nested(key, value, precondition_dict):
+    valid_values = []
+    valid_indices = []
+    offset = 0
+    for i in range(len(value)):
+        arr = value[i]
+        preconditions = precondition_dict.get(f'precondition|{key}')
+        precondition = preconditions[i] if preconditions is not None else np.ones_like(arr, dtype=bool)
+        precondition = squeeze_last_axis_if_needed(precondition)
+        valid_values.append(arr[precondition])
+        valid_axes = np.where(precondition)
+        for axis, nonzero in enumerate(valid_axes):
+            if not (axis < len(valid_indices)):
+                valid_indices.append([])
+            if axis == 0:
+                nonzero += offset
+                offset += len(arr)
+            valid_indices[axis].append(nonzero)
+    valid_values = np.concatenate(valid_values, axis=0)
+    valid_indices = squeeze_last_axis_if_needed(np.stack([np.concatenate(v) for v in valid_indices]).T)
+    return valid_indices, valid_values
 
 
 def try_to_concat_list(list_of_samples, v):

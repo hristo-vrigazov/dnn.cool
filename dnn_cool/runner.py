@@ -6,6 +6,7 @@ from shutil import copyfile
 from typing import Dict, Tuple, Callable, Optional, Any, Union, List
 from typing import Iterator, Mapping
 
+import joblib
 import numpy as np
 import torch
 from catalyst.dl import SupervisedRunner, EarlyStoppingCallback, InferCallback, State, Callback
@@ -64,6 +65,7 @@ class InferDictCallback(InferCallback):
     def __init__(self, infer_logdir: Optional[Path] = None,
                  out_key='logits',
                  loaders_to_skip=(),
+                 task_flow=None,
                  *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.loaders_to_skip = loaders_to_skip
@@ -71,6 +73,7 @@ class InferDictCallback(InferCallback):
         self.predictions = {}
         self.targets = {}
         self.infer_logdir = infer_logdir
+        self.task_flow = task_flow
         if self.infer_logdir is not None:
             self.infer_logdir.mkdir(exist_ok=True)
         self.__current_store = None
@@ -119,6 +122,22 @@ class InferDictCallback(InferCallback):
                                                               self.infer_logdir, 'logits', state.loader_key)
         self.targets[state.loader_key] = to_dict_of_lists(self.targets[state.loader_key], nested_dict,
                                                           self.infer_logdir, 'targets', state.loader_key)
+        if self.task_flow is None:
+            return
+        # for task_name, logits in self.predictions[state.loader_key].items():
+        #     if task_name.startswith('indices|'):
+        #         continue
+        #     task_for_development = self.task_flow.get(task_name)
+        #     loss = task_for_development.get_per_sample_criterion().loss
+        #     targets = torch.tensor(self.targets[state.loader_key][task_name])
+        #     logits = torch.tensor(logits)
+        #     unreduced = loss(logits, targets).detach().cpu().numpy()
+        #     out_dir = self.infer_logdir / state.loader_key / 'unrolled_loss'
+        #     out_dir.mkdir(exist_ok=True)
+        #     # Since the precondition has been applied already, we can make the assumption
+        #     # that there are exactly 2 axes, one batch and one for the logits.
+        #     reduced = unreduced.mean(axis=-1)
+        #     joblib.dump(reduced, out_dir / f'{task_name}.pkl')
 
 
 class DnnCoolRunnerView:
@@ -286,7 +305,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         store = kwargs.pop('store', True)
         infer_logdir = logdir / 'infer' if store else None
         interpretation_callback = self.create_interpretation_callback(infer_logdir=infer_logdir, **kwargs)
-        infer_dict_callback = InferDictCallback(infer_logdir=infer_logdir)
+        infer_dict_callback = InferDictCallback(infer_logdir=infer_logdir, task_flow=self.task_flow)
         default_callbacks = OrderedDict([("interpretation", interpretation_callback),
                                          ("inference", infer_dict_callback)])
         if self.balance_dataparallel_memory:
