@@ -53,3 +53,11 @@ def create_values_from_dict(inputs: Dict[str, Sequence]):
     types = keys.copy()
     values = list(inputs.values())
     return Values(keys=keys, types=types, values=values)
+
+
+def squeeze_last_axis_if_needed(ndarray):
+    if len(ndarray.shape) < 1:
+        return ndarray
+    if ndarray.shape[-1] == 1:
+        return np.squeeze(ndarray, axis=-1)
+    return ndarray

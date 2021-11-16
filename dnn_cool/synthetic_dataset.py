@@ -429,7 +429,7 @@ def get_synthetic_token_classification_dataset(n):
     samples = defaultdict(list)
     for i in range(n):
         ss = defaultdict(list)
-        m = np.random.randint(8, 10)
+        m = np.random.randint(6, 11)
         for j in range(m):
             len_t = np.random.randint(2, 20)
             a = np.random.randint(0, 3, size=len_t)
@@ -466,7 +466,7 @@ def get_synthetic_token_classification_flow():
 
 
 def synthetic_token_classification():
-    samples = get_synthetic_token_classification_dataset(10_000)
+    samples = get_synthetic_token_classification_dataset(1_00)
     full_flow = get_synthetic_token_classification_flow()
     is_less_than_100 = BinaryClassificationTaskForDevelopment(full_flow.get('is_less_than_100'),
                                                               samples['is_less_than_100'])

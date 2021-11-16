@@ -17,7 +17,7 @@ from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset
 
 from dnn_cool.catalyst_utils import InterpretationCallback, TensorboardConverters, ReplaceGatherCallback, \
-    TensorboardConverter, to_dict_of_memmaps, load_inference_results_from_directory
+    TensorboardConverter, to_dict_of_lists, load_inference_results_from_directory
 from dnn_cool.tasks.task_flow import TaskFlow
 from dnn_cool.tasks.development.task_flow import TaskFlowForDevelopment
 from dnn_cool.utils.torch import TransformedSubset, load_model_from_export
@@ -71,7 +71,8 @@ class InferDictCallback(InferCallback):
         self.predictions = {}
         self.targets = {}
         self.infer_logdir = infer_logdir
-        self.infer_logdir.mkdir(exist_ok=True)
+        if self.infer_logdir is not None:
+            self.infer_logdir.mkdir(exist_ok=True)
         self.__current_store = None
 
     def on_loader_start(self, state: State):
@@ -119,7 +120,7 @@ class InferDictCallback(InferCallback):
     def to_dict_of_memmap(self, state, name):
         nested_dict = self.predictions[state.loader_key]
         parent_dir = self.infer_logdir
-        return to_dict_of_memmaps(name, nested_dict, parent_dir, state)
+        return to_dict_of_lists(name, nested_dict, parent_dir, state)
 
 
 class DnnCoolRunnerView:
@@ -304,16 +305,6 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         kwargs.pop('loader_names_to_skip_in_interpretation', ())
         del kwargs['datasets']
         super().infer(*args, **kwargs)
-        res = {}
-        if 'interpretation' in kwargs['callbacks']:
-            res['interpretations'] = kwargs['callbacks']['interpretation'].interpretations
-
-        if store:
-            out_dir = logdir / 'infer'
-            out_dir.mkdir(exist_ok=True)
-            for key in res:
-                torch.save(res[key], out_dir / f'{key}.pkl', pickle_protocol=4)
-        return res
 
     def create_interpretation_callback(self, infer_logdir, **kwargs) -> InterpretationCallback:
         tensorboard_converters = TensorboardConverters(

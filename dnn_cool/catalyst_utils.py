@@ -1,9 +1,11 @@
 from dataclasses import dataclass, field
 from functools import partial
+from os import listdir
 from pathlib import Path
 from typing import Any, Container, Sequence
 from typing import Callable, Dict, Optional, Tuple, List, Mapping
 
+import joblib
 import numpy as np
 import torch
 from catalyst.callbacks import BatchMetricCallback
@@ -15,7 +17,7 @@ from torch.nn import DataParallel
 from torch.utils.data import Dataset, SequentialSampler
 
 from dnn_cool.memmap.base import RaggedMemoryMap
-from dnn_cool.utils.base import any_value
+from dnn_cool.utils.base import any_value, squeeze_last_axis_if_needed
 
 
 def publish_all(prefix: str,
@@ -284,7 +286,7 @@ class InterpretationCallback(Callback):
             self.tensorboard_converters.publish(state, self.interpretations[state.loader_key])
         nested_dict = self.interpretations[state.loader_key]
         parent_dir = self.infer_logdir
-        to_dict_of_memmaps('interpretations', nested_dict, parent_dir, state)
+        to_dict_of_lists('interpretations', nested_dict, parent_dir, state)
 
     def prepare_interpretations(self, state):
         res = {}
@@ -596,29 +598,61 @@ class SingleLossInterpretationCallback(IMetricCallback):
         else:
             indices = runner.input[self._idx_key].detach().cpu().numpy()
 
-        self.interpretations[runner.loader_name]["loss"].append(loss_items.detach().cpu().numpy())
-        self.interpretations[runner.loader_name]["indices"].append(indices)
+        self.interpretations[runner.loader_key]["loss"].append(loss_items.detach().cpu().numpy())
+        self.interpretations[runner.loader_key]["indices"].append(indices)
 
     @property
     def metric_fn(self):
         return self.metric
 
 
-def to_dict_of_memmaps(name, nested_dict, parent_dir, state):
+def to_dict_of_lists(name, nested_dict, parent_dir, state):
     predictions = {
         state.loader_key: {}
     }
     for key, value in nested_dict.items():
-        predictions[state.loader_key][key] = value
+        if key.startswith('precondition'):
+            continue
+        valid_values = []
+        valid_indices = []
+        for i in range(len(value)):
+            arr = value[i]
+            preconditions = nested_dict.get(f'precondition|{key}')
+            precondition = preconditions[i] if preconditions is not None else np.ones_like(arr, dtype=bool)
+            precondition = squeeze_last_axis_if_needed(precondition)
+            valid_values.append(arr[precondition])
+            valid_axes = np.where(precondition)
+            for axis, nonzero in enumerate(valid_axes):
+                if not (axis < len(valid_indices)):
+                    valid_indices.append([])
+                valid_indices[axis].append(nonzero)
+        valid_values = np.concatenate(valid_values, axis=0)
+        valid_indices = np.stack([np.concatenate(v) for v in valid_indices]).T
+        predictions[state.loader_key][key] = valid_values
+        predictions[state.loader_key][f'indices|{key}'] = valid_indices
         if parent_dir is None:
             continue
         out_dir = parent_dir / state.loader_key
         out_dir.mkdir(exist_ok=True)
         out_dir = (out_dir / name)
         out_dir.mkdir(exist_ok=True)
-        memmap = RaggedMemoryMap.from_list_of_ndarrays(out_dir / f'{key}.dat', value)
-        predictions[state.loader_key][key] = memmap
+        try:
+            list_of_samples = np.concatenate(value)
+        except:
+            list_of_samples = []
+            for v in value:
+                try_to_concat_list(list_of_samples, v)
+        joblib.dump(list_of_samples, out_dir / f'{key}.pkl')
+        predictions[state.loader_key][key] = list_of_samples
     return predictions
+
+
+def try_to_concat_list(list_of_samples, v):
+    try:
+        for sample in v:
+            list_of_samples.append(sample)
+    except:
+        list_of_samples.append(v)
 
 
 def load_inference_results_from_directory(logdir):
@@ -626,7 +660,12 @@ def load_inference_results_from_directory(logdir):
     out_dir.mkdir(exist_ok=True)
     res = {}
     for key in ['logits', 'targets', 'interpretations']:
-        file_path = out_dir / f'{key}.pkl'
-        if file_path.exists():
-            res[key] = torch.load(out_dir / f'{key}.pkl')
+        res[key] = {}
+        for loader_name in ['infer', 'valid', 'test']:
+            res[key][loader_name] = {}
+            for filename in listdir(out_dir / loader_name / key):
+                if not filename.endswith('.pkl'):
+                    continue
+                full_path = out_dir / loader_name / key / filename
+                res[key][loader_name][filename[:-4]] = joblib.load(full_path)
     return res

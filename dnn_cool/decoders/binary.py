@@ -12,7 +12,7 @@ class BinaryDecoder(Decoder):
             threshold = 0.5
         self.threshold = threshold
 
-        self._candidates = np.linspace(0., 1., num=100)
+        self._candidates = np.linspace(0.01, .99, num=100)
         self.metric = metric
 
     def __call__(self, x):

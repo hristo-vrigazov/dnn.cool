@@ -68,7 +68,7 @@ def test_token_classification_training():
                                      full_flow=full_flow_for_development,
                                      project_dir='./token_classification',
                                      runner_name='example_run')
-    datasets, loaders = runner.get_default_loaders(collator=collate_token_classification)
+    datasets, loaders = runner.get_default_loaders(collator=collate_token_classification, batch_size_per_gpu=2)
     runner.train(num_epochs=10,
                  loaders=loaders,
                  verbose=True)

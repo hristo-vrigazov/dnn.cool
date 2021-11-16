@@ -3,6 +3,7 @@ from typing import Union
 
 import joblib
 import numpy as np
+from tqdm import tqdm
 
 from dnn_cool.utils.base import reduce_shape
 
@@ -23,6 +24,22 @@ class RaggedMemoryMapView:
         return res
 
 
+class ShapeView:
+
+    def __init__(self, ragged_shapes, idx=None):
+        self.ragged_shapes = ragged_shapes
+        self.idx = idx
+
+    def __getitem__(self, item):
+        return ShapeView(self.ragged_shapes, item)
+
+    def __eq__(self, other):
+        selected = set(self.ragged_shapes if self.idx is None else self.ragged_shapes[self.idx:self.idx+1])
+        if len(selected) != 1:
+            return False
+        return list(selected)[0] == other
+
+
 class RaggedMemoryMap:
 
     def __init__(self, path: Union[str, Path], shapes, dtype, mode,
@@ -39,11 +56,11 @@ class RaggedMemoryMap:
         self.ends = self.flattened_shapes.cumsum()
         self.starts = np.roll(self.ends, 1)
         self.starts[0] = 0
-        self.shape = self.flattened_shapes.sum()
+        self.flattened_shape = self.flattened_shapes.sum()
         self.n = len(self.shapes)
         self.range = np.arange(self.n)
 
-        self.memmap = np.memmap(path_str, dtype=self.dtype, mode=self.mode, shape=self.shape)
+        self.memmap = np.memmap(path_str, dtype=self.dtype, mode=self.mode, shape=self.flattened_shape)
         if initialization_data is not None:
             assert len(initialization_data) == len(shapes), \
                 'The initialization data must of the same length as the shapes array!'
@@ -98,6 +115,13 @@ class RaggedMemoryMap:
     def __len__(self):
         return self.n
 
+    def sum(self):
+        return self.memmap.sum()
+
+    @property
+    def shape(self):
+        return ShapeView(self.shapes)
+
     @classmethod
     def open_existing(cls, path, mode='r+'):
         metadata_path = str(path) + '.metadata'
@@ -121,7 +145,7 @@ class RaggedMemoryMap:
                    initialization_data=lists_of_int)
 
     @classmethod
-    def from_list_of_ndarrays(cls, path, lists_of_ndarray):
+    def from_stack_of_ndarrays(cls, path, lists_of_ndarray):
         shapes = [ndarray.shape for ndarray in lists_of_ndarray]
         dtype = lists_of_ndarray[0].dtype
         return cls(path=path,
@@ -129,3 +153,19 @@ class RaggedMemoryMap:
                    dtype=dtype,
                    mode='w+',
                    initialization_data=lists_of_ndarray)
+
+    @classmethod
+    def from_concat_of_ndarrays(cls, path, lists_of_ndarray):
+        dtype = lists_of_ndarray[0].dtype
+        if len(lists_of_ndarray[0].shape) == 0:
+            return cls(path=path,
+                       shapes=[arr.shape for arr in lists_of_ndarray],
+                       dtype=dtype,
+                       mode='w+',
+                       initialization_data=lists_of_ndarray)
+        arrs = np.concatenate(lists_of_ndarray, axis=0)
+        return cls(path=path,
+                   shapes=[arr.shape for arr in arrs],
+                   dtype=dtype,
+                   mode='w+',
+                   initialization_data=arrs)
