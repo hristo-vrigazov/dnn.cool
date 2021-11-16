@@ -241,6 +241,26 @@ class CompositeModuleOutput(IModuleOutput):
             res['gt'] = self.gt
         return res
 
+    def __getitem__(self, item):
+        if isinstance(item, str):
+            return LeafModuleOutput(
+                path=item,
+                logits=self.logits[item],
+                precondition=self.preconditions[item],
+                activated=self.activated[item],
+                decoded=self.decoded[item],
+                dropout_samples=self.dropout_samples[item]
+            )
+        return CompositeModuleOutput(
+            training=self.training,
+            gt=self.gt,
+            prefix=self.prefix,
+            logits={k: v[item] for k, v in self.logits.items()},
+            decoded={k: v[item] for k, v in self.decoded.items()},
+            preconditions=self.preconditions,
+            dropout_samples={k: v[item] for k, v in self.dropout_samples.items()},
+        )
+
 
 class TaskFlowModule(nn.Module):
 
