@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import f1_score
 from tqdm import tqdm
 
 from dnn_cool.decoders.base import Decoder
@@ -7,12 +7,12 @@ from dnn_cool.decoders.base import Decoder
 
 class BinaryDecoder(Decoder):
 
-    def __init__(self, threshold=None, metric=accuracy_score):
+    def __init__(self, threshold=None, metric=f1_score, start=0.01, end=0.99):
         if threshold is None:
             threshold = 0.5
         self.threshold = threshold
 
-        self._candidates = np.linspace(0.01, .99, num=100)
+        self._candidates = np.linspace(start, end, num=100)
         self.metric = metric
 
     def __call__(self, x):

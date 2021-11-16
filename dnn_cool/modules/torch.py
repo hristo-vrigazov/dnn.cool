@@ -87,7 +87,7 @@ class LabelsAvailableCondition(Condition):
         if t is None:
             raise ValueError(f'Path "{self.path}" leads to a None object.\n'
                              f'If you are trying to get treelib explanations, your model must be in eval mode.')
-        return t
+        return torch.ones(*shape, dtype=bool)
 
 
 @dataclass()

@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Dict
 
+import numpy as np
+
 from dnn_cool.dsl import IFeaturesDict, IOut, IFlowTaskResult, ICondition, IFlowTask
 from dnn_cool.external.autograd import IAutoGrad, squeeze_last_dim_if_needed
 
@@ -69,12 +71,18 @@ class LeafVisitor(IFlowTask):
             preds = self.autograd.to_numpy(preds)
         targets = visitor_data.targets[self.path] if visitor_data.targets is not None else None
 
-        precondition = visitor_data.predictions[f'precondition|{self.path}']
+        precondition = self.get_precondition(visitor_data, preds)
         if precondition.sum() == 0:
             return self.empty_result()
         precondition = squeeze_last_dim_if_needed(precondition)
         preconditioned_targets = targets[precondition] if targets is not None else None
         return self.preconditioned_result(preds[precondition], preconditioned_targets)
+
+    def get_precondition(self, visitor_data, preds):
+        precondition = visitor_data.predictions.get(f'precondition|{self.path}')
+        if precondition is not None:
+            return precondition
+        return np.ones(preds.shape[:-1], dtype=bool)
 
     def empty_result(self):
         raise NotImplementedError()

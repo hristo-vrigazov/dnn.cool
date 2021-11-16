@@ -629,7 +629,7 @@ def to_dict_of_lists(nested_dict, precondition_dict, parent_dir, name, loader_ke
                     valid_indices.append([])
                 valid_indices[axis].append(nonzero)
         valid_values = np.concatenate(valid_values, axis=0)
-        valid_indices = np.stack([np.concatenate(v) for v in valid_indices]).T
+        valid_indices = np.squeeze(np.stack([np.concatenate(v) for v in valid_indices]).T, axis=-1)
         res[key] = valid_values
         res[f'indices|{key}'] = valid_indices
         if parent_dir is None:
