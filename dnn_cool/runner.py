@@ -189,7 +189,7 @@ class DnnCoolRunnerView:
         loader_idx = ['infer', 'test', 'valid'].index(loader_name)
         global_loader_indices = self.train_test_val_indices[loader_idx]
         mask = loss_local_indices >= 0
-        logits = self.inference_results['logits'][loader_name][task_name][loss_local_indices[mask]]
+        logits = self.inference_results['logits'][loader_name][task_name][mask]
         task = self.full_flow.get_all_children()[task_name]
         logits = torch.tensor(logits)
         activated = task.get_activation()(logits) if task.get_activation() is not None else logits
@@ -197,7 +197,7 @@ class DnnCoolRunnerView:
         return {
             'global_idx': global_loader_indices[loss_local_indices[mask]],
             'loss_values': loss_values[mask],
-            'targets': self.inference_results['targets'][loader_name][task_name][loss_local_indices[mask]],
+            'targets': self.inference_results['targets'][loader_name][task_name][mask],
             'activated': activated,
             'decoded': decoded.numpy(),
             'logits': logits.numpy(),
