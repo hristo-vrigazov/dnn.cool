@@ -17,7 +17,7 @@ from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset
 
 from dnn_cool.catalyst_utils import InterpretationCallback, TensorboardConverters, ReplaceGatherCallback, \
-    TensorboardConverter
+    TensorboardConverter, to_dict_of_memmaps, load_inference_results_from_directory
 from dnn_cool.tasks.task_flow import TaskFlow
 from dnn_cool.tasks.development.task_flow import TaskFlowForDevelopment
 from dnn_cool.utils.torch import TransformedSubset, load_model_from_export
@@ -61,12 +61,17 @@ class TrainingArguments(Mapping):
 
 class InferDictCallback(InferCallback):
 
-    def __init__(self, out_key='logits', loaders_to_skip=(), *args, **kwargs):
+    def __init__(self, infer_logdir: Optional[Path] = None,
+                 out_key='logits',
+                 loaders_to_skip=(),
+                 *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.loaders_to_skip = loaders_to_skip
         self.out_key = out_key
         self.predictions = {}
         self.targets = {}
+        self.infer_logdir = infer_logdir
+        self.infer_logdir.mkdir(exist_ok=True)
         self.__current_store = None
 
     def on_loader_start(self, state: State):
@@ -108,26 +113,13 @@ class InferDictCallback(InferCallback):
                 self.targets[loader_name][key].append(value.detach().cpu().numpy())
 
     def on_loader_end(self, state: State):
-        self.predictions[state.loader_key] = {
-            key: np.concatenate(value, axis=0)
-            for key, value in self.predictions[state.loader_key].items()
-        }
+        self.predictions = self.to_dict_of_memmap(state, 'logits')
+        self.targets = self.to_dict_of_memmap(state, 'targets')
 
-        self.targets[state.loader_key] = {
-            key: np.concatenate(value, axis=0)
-            for key, value in self.targets[state.loader_key].items()
-        }
-
-
-def load_inference_results_from_directory(logdir):
-    out_dir = logdir / 'infer'
-    out_dir.mkdir(exist_ok=True)
-    res = {}
-    for key in ['logits', 'targets', 'interpretations']:
-        file_path = out_dir / f'{key}.pkl'
-        if file_path.exists():
-            res[key] = torch.load(out_dir / f'{key}.pkl')
-    return res
+    def to_dict_of_memmap(self, state, name):
+        nested_dict = self.predictions[state.loader_key]
+        parent_dir = self.infer_logdir
+        return to_dict_of_memmaps(name, nested_dict, parent_dir, state)
 
 
 class DnnCoolRunnerView:
@@ -287,7 +279,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         if 'loaders' not in kwargs:
             datasets, kwargs['loaders'] = self.get_default_loaders()
 
-        default_callbacks = [self.create_interpretation_callback(**kwargs)] + self.default_callbacks
+        default_callbacks = self.default_callbacks
         kwargs['callbacks'] = kwargs.get('callbacks', default_callbacks)
         super().train(*args, **kwargs)
 
@@ -298,8 +290,10 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
 
         logdir = self.project_dir / Path(kwargs.get('logdir', self.default_logdir))
         kwargs['logdir'] = logdir
-        interpretation_callback = self.create_interpretation_callback(**kwargs)
-        infer_dict_callback = InferDictCallback()
+        store = kwargs.pop('store', True)
+        infer_logdir = logdir / 'infer' if store else None
+        interpretation_callback = self.create_interpretation_callback(infer_logdir=infer_logdir, **kwargs)
+        infer_dict_callback = InferDictCallback(infer_logdir=infer_logdir)
         default_callbacks = OrderedDict([("interpretation", interpretation_callback),
                                          ("inference", infer_dict_callback)])
         if self.balance_dataparallel_memory:
@@ -307,14 +301,10 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
             default_callbacks["dataparallel_reducer"] = replace_gather_callback
         kwargs['callbacks'] = kwargs.get('callbacks', default_callbacks)
         kwargs['model'] = kwargs.get('model', self.model)
-        store = kwargs.pop('store', True)
         kwargs.pop('loader_names_to_skip_in_interpretation', ())
         del kwargs['datasets']
         super().infer(*args, **kwargs)
         res = {}
-        if 'inference' in kwargs['callbacks']:
-            res['logits'] = kwargs['callbacks']['inference'].predictions
-            res['targets'] = kwargs['callbacks']['inference'].targets
         if 'interpretation' in kwargs['callbacks']:
             res['interpretations'] = kwargs['callbacks']['interpretation'].interpretations
 
@@ -325,7 +315,7 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
                 torch.save(res[key], out_dir / f'{key}.pkl', pickle_protocol=4)
         return res
 
-    def create_interpretation_callback(self, **kwargs) -> InterpretationCallback:
+    def create_interpretation_callback(self, infer_logdir, **kwargs) -> InterpretationCallback:
         tensorboard_converters = TensorboardConverters(
             logdir=kwargs['logdir'],
             tensorboard_loggers=self.tensor_loggers,
@@ -333,8 +323,9 @@ class DnnCoolSupervisedRunner(SupervisedRunner):
         )
         loaders_to_skip = kwargs.get('loader_names_to_skip_in_interpretation', ())
         interpretation_callback = InterpretationCallback(self.task_flow.get_per_sample_criterion(),
-                                                         tensorboard_converters,
-                                                         loaders_to_skip)
+                                                         infer_logdir=infer_logdir,
+                                                         tensorboard_converters=tensorboard_converters,
+                                                         loaders_to_skip=loaders_to_skip)
         return interpretation_callback
 
     def get_default_loaders(self, shuffle_train=True,

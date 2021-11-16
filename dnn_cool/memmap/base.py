@@ -119,3 +119,13 @@ class RaggedMemoryMap:
                    dtype=dtype,
                    mode='w+',
                    initialization_data=lists_of_int)
+
+    @classmethod
+    def from_list_of_ndarrays(cls, path, lists_of_ndarray):
+        shapes = [ndarray.shape for ndarray in lists_of_ndarray]
+        dtype = lists_of_ndarray[0].dtype
+        return cls(path=path,
+                   shapes=shapes,
+                   dtype=dtype,
+                   mode='w+',
+                   initialization_data=lists_of_ndarray)

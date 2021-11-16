@@ -34,7 +34,7 @@ def test_interpretation_synthetic():
     infer_dict_callback = InferDictCallback()
     callbacks = OrderedDict([
         ("interpretation", InterpretationCallback(full_flow_for_development.get_per_sample_criterion(),
-                                                  tensorboard_converters)),
+                                                  tensorboard_converters=tensorboard_converters)),
         ("inference", infer_dict_callback),
         ("reducer", ReplaceGatherCallback(full_flow_for_development, infer_dict_callback))
     ])

@@ -14,6 +14,7 @@ from torch import nn
 from torch.nn import DataParallel
 from torch.utils.data import Dataset, SequentialSampler
 
+from dnn_cool.memmap.base import RaggedMemoryMap
 from dnn_cool.utils.base import any_value
 
 
@@ -215,6 +216,7 @@ class InterpretationCallback(Callback):
 
     def __init__(self, per_sample_criterion,
                  tensorboard_converters: Optional[TensorboardConverters] = None,
+                 infer_logdir=None,
                  loaders_to_skip=()):
         """
         :param flow: The task flow, which holds the per sample loss functions for every task.
@@ -231,7 +233,7 @@ class InterpretationCallback(Callback):
         self.leaf_losses = self.overall_loss.get_leaf_losses_per_sample()
         self.interpretations = {}
         self.loader_counts = {}
-
+        self.infer_logdir = infer_logdir
         self.tensorboard_converters = tensorboard_converters
 
     def _initialize_interpretations(self):
@@ -247,8 +249,8 @@ class InterpretationCallback(Callback):
     def on_loader_start(self, state: State):
         if should_skip_loader(state, self.loaders_to_skip):
             return
-        self.interpretations[state.loader_name] = self._initialize_interpretations()
-        self.loader_counts[state.loader_name] = 0
+        self.interpretations[state.loader_key] = self._initialize_interpretations()
+        self.loader_counts[state.loader_key] = 0
 
         if self.tensorboard_converters is not None:
             self.tensorboard_converters.initialize(state)
@@ -259,31 +261,34 @@ class InterpretationCallback(Callback):
         outputs = state.output['logits']
         targets = state.input['targets']
         overall_res = self.overall_loss(outputs, targets)
-        start = self.loader_counts[state.loader_name]
+        start = self.loader_counts[state.loader_key]
 
         n = 0
         for path, loss in overall_res.items():
             if path.startswith('indices'):
                 continue
-            self.interpretations[state.loader_name][path].append(loss.detach().cpu().numpy())
+            self.interpretations[state.loader_key][path].append(loss.detach().cpu().numpy())
             ind_key = f'indices|{path}'
             indices = overall_res[ind_key] + start
-            self.interpretations[state.loader_name][ind_key].append(indices.detach().cpu().numpy())
+            self.interpretations[state.loader_key][ind_key].append(indices.detach().cpu().numpy())
             n = len(indices)
 
-        self.loader_counts[state.loader_name] += n
+        self.loader_counts[state.loader_key] += n
 
     def on_loader_end(self, state: State):
         if should_skip_loader(state, self.loaders_to_skip):
             return
-        self.interpretations[state.loader_name] = self.prepare_interpretations(state)
+        self.interpretations[state.loader_key] = self.prepare_interpretations(state)
 
         if self.tensorboard_converters is not None:
-            self.tensorboard_converters.publish(state, self.interpretations[state.loader_name])
+            self.tensorboard_converters.publish(state, self.interpretations[state.loader_key])
+        nested_dict = self.interpretations[state.loader_key]
+        parent_dir = self.infer_logdir
+        to_dict_of_memmaps('interpretations', nested_dict, parent_dir, state)
 
     def prepare_interpretations(self, state):
         res = {}
-        for key, value in self.interpretations[state.loader_name].items():
+        for key, value in self.interpretations[state.loader_key].items():
             arrs = []
             for arr in value:
                 try:
@@ -597,3 +602,31 @@ class SingleLossInterpretationCallback(IMetricCallback):
     @property
     def metric_fn(self):
         return self.metric
+
+
+def to_dict_of_memmaps(name, nested_dict, parent_dir, state):
+    predictions = {
+        state.loader_key: {}
+    }
+    for key, value in nested_dict.items():
+        predictions[state.loader_key][key] = value
+        if parent_dir is None:
+            continue
+        out_dir = parent_dir / state.loader_key
+        out_dir.mkdir(exist_ok=True)
+        out_dir = (out_dir / name)
+        out_dir.mkdir(exist_ok=True)
+        memmap = RaggedMemoryMap.from_list_of_ndarrays(out_dir / f'{key}.dat', value)
+        predictions[state.loader_key][key] = memmap
+    return predictions
+
+
+def load_inference_results_from_directory(logdir):
+    out_dir = logdir / 'infer'
+    out_dir.mkdir(exist_ok=True)
+    res = {}
+    for key in ['logits', 'targets', 'interpretations']:
+        file_path = out_dir / f'{key}.pkl'
+        if file_path.exists():
+            res[key] = torch.load(out_dir / f'{key}.pkl')
+    return res

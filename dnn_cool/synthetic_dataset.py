@@ -429,7 +429,8 @@ def get_synthetic_token_classification_dataset(n):
     samples = defaultdict(list)
     for i in range(n):
         ss = defaultdict(list)
-        for j in range(10):
+        m = np.random.randint(8, 10)
+        for j in range(m):
             len_t = np.random.randint(2, 20)
             a = np.random.randint(0, 3, size=len_t)
             n0 = (a == 0).sum()
