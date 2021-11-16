@@ -23,7 +23,7 @@ class ReducedPerSample(nn.Module):
         dims = tuple(range(self.from_dim, n_dims))
         total = loss_results.sum(dim=dims, keepdim=False)
         dims = tuple(range(self.from_dim,  len(precondition.shape)))
-        if len(dims) > 1:
+        if len(precondition.shape) > 1:
             precondition_sum = precondition.sum(dim=dims, keepdim=False)
             precondition = precondition_sum > 0
         else:
