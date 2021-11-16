@@ -124,20 +124,20 @@ class InferDictCallback(InferCallback):
                                                           self.infer_logdir, 'targets', state.loader_key)
         if self.task_flow is None:
             return
-        # for task_name, logits in self.predictions[state.loader_key].items():
-        #     if task_name.startswith('indices|'):
-        #         continue
-        #     task_for_development = self.task_flow.get(task_name)
-        #     loss = task_for_development.get_per_sample_criterion().loss
-        #     targets = torch.tensor(self.targets[state.loader_key][task_name])
-        #     logits = torch.tensor(logits)
-        #     unreduced = loss(logits, targets).detach().cpu().numpy()
-        #     out_dir = self.infer_logdir / state.loader_key / 'unrolled_loss'
-        #     out_dir.mkdir(exist_ok=True)
-        #     # Since the precondition has been applied already, we can make the assumption
-        #     # that there are exactly 2 axes, one batch and one for the logits.
-        #     reduced = unreduced.mean(axis=-1)
-        #     joblib.dump(reduced, out_dir / f'{task_name}.pkl')
+        for task_name, logits in self.predictions[state.loader_key].items():
+            if task_name.startswith('indices|'):
+                continue
+            task_for_development = self.task_flow.get(task_name)
+            loss = task_for_development.get_per_sample_criterion().loss
+            targets = torch.tensor(self.targets[state.loader_key][task_name])
+            logits = torch.tensor(logits)
+            unreduced = loss(logits, targets).detach().cpu().numpy()
+            out_dir = self.infer_logdir / state.loader_key / 'unrolled_loss'
+            out_dir.mkdir(exist_ok=True)
+            # Since the precondition has been applied already, we can make the assumption
+            # that there are exactly 2 axes, one batch and one for the logits.
+            reduced = unreduced.mean(axis=-1)
+            joblib.dump(reduced, out_dir / f'{task_name}.pkl')
 
 
 class DnnCoolRunnerView:

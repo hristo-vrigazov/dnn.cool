@@ -627,8 +627,10 @@ def to_dict_of_lists(nested_dict, precondition_dict, parent_dir, name, loader_ke
             continue
         valid_indices, valid_values = concat_nested(key, value, precondition_dict)
         res[key] = valid_values
-        res[f'indices|{key}'] = valid_indices
-        joblib.dump(res[f'indices|{key}'], out_dir / f'indices|{key}.pkl')
+        joblib.dump(valid_values, out_dir / f'{key}.pkl')
+        indices_dir = (parent_dir / loader_key / 'indices')
+        indices_dir.mkdir(exist_ok=True)
+        joblib.dump(valid_indices, indices_dir / f'{key}.pkl')
     return res
 
 
@@ -675,5 +677,9 @@ def load_inference_results_from_directory(logdir):
                 if not filename.endswith('.pkl'):
                     continue
                 full_path = out_dir / loader_name / key / filename
-                res[key][loader_name][filename[:-4]] = joblib.load(full_path)
+                task_name = full_path.stem
+                res[key][loader_name][task_name] = joblib.load(full_path)
+                if key == 'logits' and not task_name.startswith('indices|'):
+                    indices_path = out_dir / loader_name / 'indices' / filename
+                    res[key][loader_name][f'indices|{task_name}'] = joblib.load(indices_path)
     return res
