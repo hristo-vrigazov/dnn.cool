@@ -114,13 +114,11 @@ class InferDictCallback(InferCallback):
                 self.targets[loader_name][key].append(value.detach().cpu().numpy())
 
     def on_loader_end(self, state: State):
-        self.predictions = self.to_dict_of_memmap(state, 'logits')
-        self.targets = self.to_dict_of_memmap(state, 'targets')
-
-    def to_dict_of_memmap(self, state, name):
         nested_dict = self.predictions[state.loader_key]
-        parent_dir = self.infer_logdir
-        return to_dict_of_lists(name, nested_dict, parent_dir, state)
+        self.predictions[state.loader_key] = to_dict_of_lists(nested_dict, nested_dict,
+                                                              self.infer_logdir, 'logits', state.loader_key)
+        self.targets[state.loader_key] = to_dict_of_lists(self.targets[state.loader_key], nested_dict,
+                                                          self.infer_logdir, 'targets', state.loader_key)
 
 
 class DnnCoolRunnerView:
