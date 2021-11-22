@@ -7,6 +7,7 @@ from torch import nn
 
 from dnn_cool.dsl import ICondition, IFlowTaskResult
 from dnn_cool.modules.base import _copy_to_self, FeaturesDict
+from dnn_cool.utils.base import dict_get_along_keys
 from dnn_cool.utils.torch import to_broadcastable_shape
 
 
@@ -255,10 +256,11 @@ class CompositeModuleOutput(IModuleOutput):
             training=self.training,
             gt=self.gt,
             prefix=self.prefix,
-            logits={k: v[item] for k, v in self.logits.items()},
-            decoded={k: v[item] for k, v in self.decoded.items()},
+            logits=dict_get_along_keys(self.logits, item),
+            activated=dict_get_along_keys(self.activated, item),
+            decoded=dict_get_along_keys(self.decoded, item),
             preconditions=self.preconditions,
-            dropout_samples={k: v[item] for k, v in self.dropout_samples.items()},
+            dropout_samples=dict_get_along_keys(self.dropout_samples, item),
         )
 
 

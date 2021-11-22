@@ -61,3 +61,9 @@ def squeeze_last_axis_if_needed(ndarray):
     if ndarray.shape[-1] == 1:
         return np.squeeze(ndarray, axis=-1)
     return ndarray
+
+
+def dict_get_along_keys(dct, item):
+    if dct is None:
+        return dct
+    return {k: v[item] for k, v in dct.items()}
