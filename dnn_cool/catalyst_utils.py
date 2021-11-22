@@ -533,9 +533,9 @@ class SingleLossInterpretationCallback(IMetricCallback):
         self._idx_key = idx_key
 
     def _should_interpret_loader(self, runner: IRunner):
-        if runner.loader_name in self._loaders_to_skip:
+        if runner.loader_key in self._loaders_to_skip:
             return False
-        if isinstance(runner.loaders[runner.loader_name].sampler, SequentialSampler):
+        if isinstance(runner.loaders[runner.loader_key].sampler, SequentialSampler):
             return True
 
         """
@@ -548,11 +548,11 @@ class SingleLossInterpretationCallback(IMetricCallback):
     def on_loader_start(self, runner: IRunner):
         if not self._should_interpret_loader(runner):
             return
-        if runner.loader_name not in self.loggers:
-            logdir = runner.logdir / f"{runner.loader_name}_log"
-            self.loggers[runner.loader_name] = SummaryWriter(str(logdir))
-        if runner.loader_name not in self.interpretations:
-            self.interpretations[runner.loader_name] = {
+        if runner.loader_key not in self.loggers:
+            logdir = runner.logdir / f"{runner.loader_key}_log"
+            self.loggers[runner.loader_key] = SummaryWriter(str(logdir))
+        if runner.loader_key not in self.interpretations:
+            self.interpretations[runner.loader_key] = {
                 "loss": [],
                 "indices": [],
             }
@@ -561,22 +561,22 @@ class SingleLossInterpretationCallback(IMetricCallback):
         if not self._should_interpret_loader(runner):
             return
 
-        self.interpretations[runner.loader_name] = {
+        self.interpretations[runner.loader_key] = {
             key: np.concatenate(value, axis=0)
-            for key, value in self.interpretations[runner.loader_name].items()
+            for key, value in self.interpretations[runner.loader_key].items()
         }
 
-        out_file = runner.logdir / f"{runner.loader_name}_interpretations.pkl"
-        torch.save(self.interpretations[runner.loader_name], out_file)
+        out_file = runner.logdir / f"{runner.loader_key}_interpretations.pkl"
+        torch.save(self.interpretations[runner.loader_key], out_file)
 
-        loss_sorter = self.interpretations[runner.loader_name]["loss"].argsort()
-        indices_sorted = self.interpretations[runner.loader_name]["indices"][loss_sorter]
+        loss_sorter = self.interpretations[runner.loader_key]["loss"].argsort()
+        indices_sorted = self.interpretations[runner.loader_key]["indices"][loss_sorter]
         indices = {
             "best": indices_sorted[: self.top_k],
             "worst": indices_sorted[-self.top_k:][::-1],
         }
 
-        writer: SummaryWriter = self.loggers[runner.loader_name]
+        writer: SummaryWriter = self.loggers[runner.loader_key]
         for type_prefix in ["best", "worst"]:
             for idx in indices[type_prefix]:
                 tag = f"{self.prefix}{type_prefix}"
@@ -596,7 +596,7 @@ class SingleLossInterpretationCallback(IMetricCallback):
 
         if self._idx_key is None:
             bs = len(loss_items)
-            indices_so_far = self.interpretations[runner.loader_name]["indices"]
+            indices_so_far = self.interpretations[runner.loader_key]["indices"]
             start_idx = (0 if len(indices_so_far) == 0 else (indices_so_far[-1][-1] + 1))
             indices = np.arange(start_idx, start_idx + bs)
         else:
