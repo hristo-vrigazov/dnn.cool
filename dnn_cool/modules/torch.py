@@ -1,3 +1,4 @@
+import os
 from abc import ABC
 from dataclasses import dataclass, field
 from typing import Optional, Dict
@@ -262,6 +263,14 @@ class CompositeModuleOutput(IModuleOutput):
             preconditions=self.preconditions,
             dropout_samples=dict_get_along_keys(self.dropout_samples, item),
         )
+
+    def __repr__(self):
+        res = object.__repr__(self)
+        fields = ['logits', 'activated', 'decoded']
+        for f in fields:
+            for k, v in getattr(self, f).items():
+                res += f'{f} {k}: {v.shape}{os.linesep}'
+        return res
 
 
 class TaskFlowModule(nn.Module):
