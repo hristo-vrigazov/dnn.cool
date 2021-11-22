@@ -265,7 +265,7 @@ class CompositeModuleOutput(IModuleOutput):
         )
 
     def __repr__(self):
-        res = object.__repr__(self)
+        res = object.__repr__(self) + os.linesep
         fields = ['logits', 'activated', 'decoded']
         for f in fields:
             for k, v in getattr(self, f).items():
